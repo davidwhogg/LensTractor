@@ -7,4 +7,11 @@ imaging data.
 Authors: Phil Marshall (Oxford) & David W. Hogg (NYU)
 License: All rights reserved.
 
+Dependencies:
+
+LensFinder uses The Tractor (Hogg & Lang) to do the comparison between
+predicted image positions and the data: that is, The Tractor synthesizes the
+images and computes the likelihood.
+
+
 

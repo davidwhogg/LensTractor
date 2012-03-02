@@ -147,7 +147,7 @@ class GravitationalLens:
         N = self.number_of_images(sourceposition)
         assert(N > 0 and N < 5)
         if N == 1:
-            ipos = sourceposition.copy()
+            ipos = 2.0*sourceposition.copy()
         if N == 2:
             dpos = sourceposition.copy() - self.position
             # radial vector, length = thetaE
@@ -168,11 +168,14 @@ class GravitationalLens:
             ipos = np.array([self.guess_radial_position(sourceposition, ip) for ip in ipos])
         return ipos
 
+    # output: a shape (N,2) array of guessed image positions
+    # BUG: does not necessarily return 4 images! Hack to cross if fail.
     def guess_ring_positions(self, sourceposition):
+        vb = 0
         Nmin, Nmax = 0, 0
         npts = 1024
         while (Nmin != 2 or Nmin != Nmax) and npts < 1e6:
-            print 'making ring of',npts
+            if vb: print 'making ring of',npts
             ringpos = self.radial_caustic(npts=npts)
             ringpos = self.position + (1. + self.gamma) * (ringpos - self.position)
             td = self.time_delays(sourceposition, ringpos)
@@ -182,11 +185,18 @@ class GravitationalLens:
             maxI = ((td[1:-1] > td[0:-2]) *
                     (td[1:-1] > td[2:]))
             Nmax = np.sum(maxI)
-            print 'Nmin, Nmax', Nmin, Nmax
+            if vb: print 'Nmin, Nmax', Nmin, Nmax
             npts = npts * 4
             # note horrifying offset: exercise to the reader
         ringpos = ringpos[1:-1]
         ipos = np.append(ringpos[minI], ringpos[maxI], axis=0)
+        
+        if len(ipos) != 4:
+          ipos = np.zeros([4,2])
+          for i in range(4):
+            ipos[i,0] = self.einsteinradius * np.cos(i*0.5*np.pi)
+            ipos[i,1] = self.einsteinradius * np.sin(i*0.5*np.pi)
+        
         return ipos
 
     # takes just one position as input; returns it as output
@@ -199,50 +209,146 @@ class GravitationalLens:
 
     # input: a single source position shape (2) and a first guess at N image positions shape (N, 2)
     # output: N image positions shape (N, 2)
-    # MAGIC NUMBER: tol
-    def refine_image_positions(self, sourceposition, guessedimagepositions, tol=1.e-20, alpha=1.0):
+    # MAGIC NUMBERS: tol, too_many (needed to escape infinite oscillation)
+    def refine_image_positions(self, sourceposition, guessedimagepositions, tol=1.e-20, alpha=1.0, too_many=1e3):
         ipos = np.atleast_2d(guessedimagepositions)
         parities = self.parities(ipos)
-        N = len(ipos)
+        N = len(ipos[:,0])
         dspos = np.outer(np.ones(N), sourceposition) - self.source_positions(ipos)
         i = 0
-        while np.sum(dspos**2) > tol:
+        while np.sum(dspos**2) > tol and i < too_many:
             i += 1
             dipos = np.array([np.dot(tens, dsp) for tens, dsp in zip(self.magnification_tensors(ipos), dspos)])
             ipos = ipos + alpha * dipos
             dspos = np.outer(np.ones(N), sourceposition) - self.source_positions(ipos)
+        
+        fail = (np.sum(dspos**2) > tol)
+        
+        return ipos,fail
+
+# ----------------------------------------------------------------------------
+
+    # input: a set of (failed) N image positions shape (N, 2)
+    # output: N perturbed image positions shape (N, 2)
+    def perturb_image_positions(self, imagepositions,sigma):
+        ipos = np.atleast_2d(imagepositions)
+        N = len(ipos)
+        ipos[:,0] = ipos[:,0] + np.random.uniform(-sigma,sigma,size=N)
+        ipos[:,1] = ipos[:,1] + np.random.uniform(-sigma,sigma,size=N)
         return ipos
 
 # ----------------------------------------------------------------------------
 
+    def duplicate_locations(self,xx,invert=False):
+        uniq = np.unique(xx)
+        if not invert:
+          index = np.zeros(len(xx) - len(uniq),dtype=np.int)
+          j = 0
+          for x in uniq:
+            i = np.where(xx == x)
+            if len(i[0]) > 1:
+              index[j] = i[0][0]
+              j += 1        
+        else:
+          index = np.zeros(len(uniq),dtype=np.int)
+          j = 0
+          for x in uniq:
+            i = np.where(xx == x)
+            if len(i[0]) == 1:
+              index[j] = i[0][0]
+              j += 1
+        return index
+
+
     # solve for image positions given source position.
     # input: source position, shape (2,)
     # output: image positions, shape (N,2)
-    def image_positions(self, sourceposition):
+    def image_positions(self, sourceposition, keepgoing=True):
         assert(sourceposition.shape == (2, ))
+        
+        vb = 0
         
         ipos = self.guess_image_positions(sourceposition)
         N = self.number_of_images(sourceposition)
+#         print "image_positions:",N,"images expected for source at",sourceposition
+        
         initialparities = self.parities(ipos)
                 
-        ipos = self.refine_image_positions(sourceposition, ipos)
-        
+        done = False
         fail = False
-        if (N == 2) or (N == 4):
-            if (np.sum(self.parities(ipos)) != 0):
-                print 'image_positions: WARNING: parities wrong, some images have either merged or collapsed:'
+        humph = 1
+        while not done:
+        
+          # Reset starting position every 10th round, perturbing farther each time:
+          if keepgoing and (humph % 10) == 0: 
+            ipos = self.guess_image_positions(sourceposition)
+            ipos = self.perturb_image_positions(ipos,0.01*humph*self.einsteinradius)
+            initialparities = self.parities(ipos)
+          
+          # If failed last round, perturb the images and try again:
+          if fail and keepgoing:
+            ipos = self.perturb_image_positions(ipos,0.1*self.einsteinradius)
+          
+          fail = False
+          ipos,fail = self.refine_image_positions(sourceposition, ipos)
+
+          magnifications = self.magnifications(ipos)
+          parities = np.sign(magnifications)
+
+          if (N == 2) or (N == 4):
+              if (np.sum(parities) != 0):
+                  if vb: 
+                    print 'image_positions: WARNING: parities wrong, some images have either merged or collapsed'
+#                     print 'image positions:',ipos
+                  fail = True
+          elif (N == 3):
+              if (np.sum(parities - initialparities) != 0):
+                  if vb: 
+                    print 'image_positions: WARNING: parities wrong, some images have merged or collapsed'
+#                     print 'image positions:',ipos
+                  fail = True
+          
+          if len(magnifications) > len(set(magnifications)):
+              if vb: 
+                print 'image_positions: WARNING: magnifications wrong, some images have collapsed'
+                print 'image magnifications:',magnifications
+              fail = True
+              if N==4 and len(set(magnifications))==3:
+                index = self.duplicate_locations(magnifications)
+                ipos[index,0] = 0.0
+                ipos[index,1] = 0.0
+              elif N==4 and len(set(magnifications))==2:
+                index = self.duplicate_locations(magnifications)
+                nindex = self.duplicate_locations(magnifications,invert=True)
+                ipos[index[0],0] = 0.0
+                ipos[index[0],1] = 0.0
+                ipos[index[1],0] = 0.5*(ipos[nindex[0],0]+ipos[nindex[0],0])
+                ipos[index[1],1] = 0.5*(ipos[nindex[1],0]+ipos[nindex[1],0])
+              elif N==2 and len(set(magnifications))==1:
+                index = self.duplicate_locations(magnifications)
+                ipos[index,0] = 0.0
+                ipos[index,1] = 0.0
+                
+          if len(ipos[:,0]) > len(set(ipos[:,0])):
+              if vb: 
+                print 'image_positions: WARNING: x positions wrong, some images have collapsed'
                 print 'image positions:',ipos
-                print 'image magnifications:',self.magnifications(ipos)
-                fail = True
-        elif (N == 3):
-            if (np.sum(self.parities(ipos) - initialparities) != 0):
-                print 'image_positions: WARNING: parities wrong, some images have merged or collapsed:'
+              fail = True
+          if len(ipos[:,1]) > len(set(ipos[:,1])):
+              if vb: 
+                print 'image_positions: WARNING: y positions wrong, some images have collapsed'
                 print 'image positions:',ipos
-                print 'image magnifications:',self.magnifications(ipos)
-                fail = True
-        # Try refining again from a different guess?
+              fail = True
+                    
+          if fail and keepgoing and humph < 42:
+            humph += 1
+          else:
+            done = True
+
+
         return ipos,fail
 
+    
 # ----------------------------------------------------------------------------
 
     # NB: MUST BE SYNCHRONIZED WITH DEFLECTIONS() AND INVERSE_MAGNIFICATION_TENSORS()
@@ -400,6 +506,10 @@ class GravitationalLens:
             tg = np.reshape(self.magnifications(ig), xg.shape)
             plt.contour(xg, yg, tg, tcontours, alpha=0.5, linewidths=causticlw)
         if timedelaymap:
+            if sourcepositions is None:
+                spos = np.atleast_2d(np.zeros(2))
+            if imagepositions is None:
+                ipos = self.guess_image_positions(spos)
             dts = self.time_delays(spos[0], ipos)
             ta = np.min(dts)
             tb = np.max(dts) + self.einsteinradius**2
@@ -416,10 +526,11 @@ class GravitationalLens:
 
 # ============================================================================
 
-# options:
-# config = 'major_cusp'
-# config = 'minor_cusp'
-# config = 'naked_cusp'
+# TESTS:
+
+# Draw a few hundred source positions close to a cusp, and see how the code 
+# fails to find all images.
+
 def merger_test(config):
     print "Requested image configuration is",config
 
@@ -434,11 +545,11 @@ def merger_test(config):
 
     plt.clf()
     sis.plot()
-    foofile = 'foo_%s.png' % config
+    foofile = '%s_diagram.png' % config
     plt.savefig(foofile)
     print "Lens outline plotted in",foofile
 
-    nsample = 100
+    nsample = 1000
     print "Drawing",nsample,"sample image positions..."
     ipos = np.zeros((nsample, 2))
 
@@ -466,38 +577,121 @@ def merger_test(config):
     else:
         target = 4
     index = np.where(nimz == target)
-    print len(index[0]), 'randomly generated image positions hit target'
+    print len(index[0]), 'randomly generated image positions hit target source area'
     ipoz = ipos[index]
     spoz = spoz[index]
     fail = False
     total = len(spoz)
+    
+    print 'Looping over these systems, looking for a failure:'
+    keepgoing = False
     count = 0
     for spos in spoz:
-        ipos,fail = sis.image_positions(spos)
+        ipos,fail = sis.image_positions(spos,keepgoing)
         count += 1
         if fail:
-            print "Image solve failure (after ",int(count/(0.01*total)),"% of samples)"
-            break
+          print "  Image solve failure (after ",int(count/(0.01*total)),"% of samples)"
+          break
+    
     if fail:
-        print "Source position is",spos
+        print "  Source position is",spos
         nim = sis.number_of_images(spos)
-        print "No. of expected images:",nim
-        ipos,dummy = sis.image_positions(spos)
-        print "Solved image positions:",ipos
-        print "Image magnifications:",sis.magnifications(ipos)
+        print "  No. of expected images:",nim
+        ipos,dummy = sis.image_positions(spos,keepgoing)
+        print "  Solved (but wrong) image positions:",ipos
+        print "  (Wrong) image magnifications:",sis.magnifications(ipos)
         spos2 = sis.source_positions(ipos)
-        print "Corresponding source positions:",spos2
+        print "  Corresponding source positions:",spos2
         plt.clf()
         sis.plot(sourcepositions=np.append(np.atleast_2d(spos), spos2, axis=0), imagepositions=ipos, timedelaymap=True)
-        barfile = 'bar_%s.png' % config
+        barfile = '%s_failure_%s.png' % (config,str(count))
         plt.savefig(barfile)
-        print "Images and source(s) plotted in",barfile
+        print "  Problem images and source(s) plotted in",barfile
+    
+        keepgoing = True
+        ipos,dummy = sis.image_positions(spos,keepgoing)
+        print "  Solved (and correct) image positions:",ipos
+        print "  (Correct) image magnifications:",sis.magnifications(ipos)
+        spos2 = sis.source_positions(ipos)
+        print "  Corresponding source positions:",spos2
+        plt.clf()
+        sis.plot(sourcepositions=np.append(np.atleast_2d(spos), spos2, axis=0), imagepositions=ipos, timedelaymap=True)
+        barfile = '%s_success_%s.png' % (config,str(count))
+        plt.savefig(barfile)
+        print "  Problem images and source(s) plotted in",barfile
+    
     else:
         print "All tests passed OK"
 
+# ----------------------------------------------------------------------------
+
+# Draw a few thousand source and lens configurations, and see how long the 
+# code takes to find all images in each case.
+
+import time
+
+def speed_test():
+    
+    nsample = 10000
+    print "Solving",nsample,"lens systems..."
+
+    vb = 1
+    
+    lenspos = [0.0, 0.0]
+    b = 1.0 # arcsec
+
+    gamma = np.random.uniform(0.0, 0.5, size=nsample)
+    phi = np.random.uniform(0.0, np.pi, size=nsample)
+    
+    spos = np.zeros([nsample,2])
+    spos[:,0] = np.random.uniform(-b, b, size=nsample)
+    spos[:,1] = np.random.uniform(-b, b, size=nsample)
+    
+    nim = np.ones(nsample)
+    dt = np.zeros(nsample)
+    
+    keepgoing = True
+    nfail = 0
+    for i in range(nsample):
+        sis = GravitationalLens(lenspos, b, gamma[i], phi[i])
+        nim[i] = sis.number_of_images(spos[i])
+        if vb: print i, spos[i], gamma[i], phi[i], nim[i]
+        t0 = time.time()
+        ipos,fail = sis.image_positions(spos[i],keepgoing)
+        dt[i] = time.time() - t0
+        if vb: print ipos, dt[i]
+        if fail:
+            plt.clf()
+            sis.plot(sourcepositions=spos[i],imagepositions=ipos,timedelaymap=True)
+            foofile = 'speed_test_failure%s_diagram.png' % str(i)
+            plt.savefig(foofile)
+            print "Solve failure: lens outline plotted in",foofile
+            print "  image positions:",ipos
+            print "  magnifications:",sis.magnifications(ipos)
+            nfail += 1
+        
+    print "...done in %d seconds!" % sum(dt)
+    plt.clf()
+    plt.hist(dt, bins=10**np.linspace(-3, 1, num=20))
+    plt.xscale('log')
+    plt.xlabel('solve time (seconds)')
+    plt.ylabel('frequency')
+    histfile = 'speed_test_histogram.png'
+    plt.savefig(histfile)
+    print "Histogram plotted in",histfile
+    
+    print "Solve failure rate =",nfail*100.0/nsample,"%"
+
+
+# ============================================================================
+
 if __name__ == '__main__':
-    for config in ['major_cusp', 'minor_cusp', 'naked_cusp']:
-        merger_test(config)
+
+#     for config in ['major_cusp', 'minor_cusp', 'naked_cusp']:
+#         merger_test(config)
+
+    speed_test()
+    
 
 # if False:
 #     caustic = sis.tangential_caustic()
