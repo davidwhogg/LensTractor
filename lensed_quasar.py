@@ -1,6 +1,6 @@
 '''
 This file is part of the LensFinder project.
-Copyright 2011 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
+Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 
 to-do
 -----
