@@ -6,8 +6,10 @@ morphological model.
 
 ## Authors:
 
-Philip J. Marshall, Oxford University
-David W. Hogg, New York University, <http://cosmo.nyu.edu/hogg/>
+* Philip J. Marshall, Oxford University
+  <http://www.slac.stanford.edu/~pjm/>
+* David W. Hogg, New York University
+  <http://cosmo.nyu.edu/hogg/>
 
 ## License:
 
@@ -17,9 +19,7 @@ rights reserved.
 ## Dependencies:
 
 * `numpy`
-
 * `matplotlib`
-
 * `Tractor`: LensFinder uses The Tractor (Hogg & Lang) to do the
-comparison between predicted image positions and the data: that is,
-The Tractor synthesizes images and computes likelihoods.
+  comparison between predicted image positions and the data: that is,
+  The Tractor synthesizes images and computes likelihoods.
