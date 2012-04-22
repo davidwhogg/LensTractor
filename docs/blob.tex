@@ -1,0 +1,275 @@
+\documentclass[12pt]{article}
+\usepackage{amssymb,amsmath,mathrsfs,color}
+
+% functions for text
+\newcommand{\foreign}[1]{\emph{#1}}
+\newcommand{\project}[1]{\textsl{#1}}
+
+% definitions for text (depend on functions)
+\newcommand{\equationname}{equation}
+\newcounter{hogg}
+\setcounter{hogg}{0}
+\renewcommand{\thehogg}{\alph{hogg}}
+\newcommand{\hoggitem}{\textsl{\refstepcounter{hogg}(\thehogg)}}
+
+% functions for math
+\renewcommand{\vector}[1]{\boldsymbol{#1}}
+\newcommand{\unitvector}[1]{\vector{\hat{#1}}}
+\newcommand{\tensor}[1]{\boldsymbol{#1}}
+\newcommand{\transpose}[1]{{#1}^{\mathsf{\!T}}}
+\renewcommand{\outer}[2]{{#1}\cdot\transpose{#2}}
+
+% definitions for math (depend on functions)
+\newcommand{\allimages}{\left\{\image_n\right\}}
+\newcommand{\allpars}{\vector{\theta}}
+\newcommand{\band}{B}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\deflection}{\vector{\alpha}}
+\newcommand{\dposition}{\vector{x}}
+\newcommand{\hyperpars}{\vector{\alpha}}
+\newcommand{\image}{\vector{I}}
+\newcommand{\magnification}{\tensor{M}}
+\newcommand{\normal}{\mathscr{N}}
+\newcommand{\pars}{\vector{\omega}}
+\newcommand{\phihat}{\unitvector{\phi}}
+\newcommand{\potential}{\psi}
+\newcommand{\residual}{\vector{e}}
+\newcommand{\rhat}{\unitvector{r}}
+\newcommand{\synthetic}{\vector{\tilde{I}}}
+\newcommand{\variance}{\vector{\sigma}^2}
+
+\begin{document}\sloppy\sloppypar
+\section*{Is that blob a gravitational lens?}
+\noindent
+authors TBD
+
+\begin{abstract}
+In large ground-based imaging surveys, strong gravitational lenses are
+rare and also barely resolved.  Their confident identification without
+space-based imaging requires sensitive probabilistic modeling.  Here
+we present the fundamentals of the probabilistic modeling approach to
+finding barely resolved lenses.  Fundamentally, lenses can be found
+because there is limited freedom in the possible appearance of a
+source multiply imaged by a reasonable foreground mass distribution.
+\end{abstract}
+
+Under the strong assumptions that \textsl{(a)}~multiply imaged quasars
+and galactic nuclei are valuable and \textsl{(b)}~extremely large
+ground-based surveys will be conducted in the future, it is important
+to develop methods that can identify samples of candidate
+gravitational lenses with high purity and completeness.  Now that
+gravitational lensing is an abundantly observed phenomenon, the
+community becomes convinced that any individual source of complex
+morphology is produced by gravitational lensing by being shown that
+the gravitational-lens model provides a simple explanation of the
+non-trivial morphology.  Projects that have convincingly demonstrated
+that many sources are lenses have done so by building good (highly
+likely) and reasonable (highly prior probable) models with
+time-consuming gravitational lensing modeling codes (cite, for
+example, slacs follow-up).
+
+If the lens modeling could be fully automated and made fast, then in
+principle samples of candidate gravitational lenses would not have to
+be modeled \emph{after} their selection for study; the selection
+itself could involve making good and reasonable models, and competing
+them against non-lensing models.  Here ``fully automated'' means being
+able to run on hundreds of millions of sources without a large number
+of failures, and ``fast'' means on the order of CPU-seconds per source
+(even assuming the availablility of many CPU-years of computation per
+survey).
+
+A key idea in what follows is model complexity or model freedom: When
+a model is less free, it is less able to accurately represent
+arbitrary sources, but it has more predictive power, because
+morphologies outside its ``coverage'' are ruled out \foreign{a
+  priori}.  This concept of model freedom is \emph{not} directly
+related to the number of free parameters (except in extremely rare
+cases).  Indeed, in some of our model comparisons below, the
+gravitational lensing model will have \emph{more} free parameters but
+\emph{less} model freedom than its competitor.
+
+In what follows, in all cases, the image model and any
+point-spread-function model is a model of the pixel-convolved scene,
+so that interpolation of the image onto a finite pixel grid involves
+only sampling and not also convolution.
+
+\section{Model comparison generalities}
+
+In what follows, we will think of our ``data'' as being a set of $n$
+astrometrically aligned overlapping images $\image_n$, each of which
+is in a known band $\band_n$ and photometrically calibrated.  We will
+think of our ``model'' as being a parameterized (possibly with a large
+number of parameters) prescription for generating a set of synthetic
+images $\synthetic_n$, one for each image in the data set, a (possibly
+parameterized) prescription for the noise-generating process in the
+images that permits calculation of the probability
+$p(\image_n|\synthetic_n)$ of the data given the synthetic image,
+and---importantly---a description of the prior probability
+distribution function (prior PDF) over all the parameters of the
+synthetic images and the noise model.  That is, the model can be
+described by
+\begin{eqnarray}\displaystyle
+\image_n &=& \synthetic_n(\allpars) + \residual_n
+\\
+p(\image_n|\allpars) &=& p(\residual_n|\allpars)
+\\
+p(\allimages) &=& \int \left[\prod_n p(\image_n|\allpars)\right]\,p(\allpars)\,\dd\allpars
+\label{eq:marginalizedlikelihood}\quad,
+\end{eqnarray}
+where the synthetic images $\synthetic_n$ are explicitly a function of
+the model parameters $\allpars$, the noise contribution to image $I_n$
+is the difference between the data image and the synthetic image, the
+single-image likelihood $p(\image_n|\allpars)$ is just the PDF (or,
+strictly, ``frequency distribution function'') for the noise evaluated
+at the residual image (difference between image and synthetic image)
+$\residual_n$, the marginalized likelihood $p(\allimages)$ is the
+likelihood for all images, integrated over all parameter values with
+the prior (which is the measure in parameter space), and there is an
+implicit independence assumption with the product of the single-image
+likelihoods inside the integral.  In principle, the parameters
+$\allpars$ could split into two categories: There could be primary
+parameters $\pars$ and hyperparameters $\hyperpars$, with the
+hyperparameters controlling aspects of the prior PDF on the
+parameters.  This does not change any of the discussion here or below;
+it just complexifies the enormous integral performed in
+\equationname~(\ref{eq:marginalizedlikelihood}) to
+\begin{eqnarray}\displaystyle
+p(\allimages|\hyperpars) &=& \int \left[\prod_n p(\image_n|\pars)\right]\,p(\pars|\hyperpars)\,p(\hyperpars)\,\dd\pars
+\quad .
+\end{eqnarray}
+Things will get more complicated when we think of the hyperpars as
+applying to many lenses, and not just one at a time, but we will
+postpone that for subsequent work.
+
+Qualitatively different models can be compared by many methods.
+\hoggitem~There are information criteria such as AIC (cite) and BIC
+(cite), which compare the goodness of fit (likelihood) at
+maximum-likelihood (that is, unmarginalized best-fit likelihood) but
+penalize model complexity with a simple function of the number of
+parameters.  These criteria are only strictly appropriate for linear
+models (and our models are not linear), and they make strong
+assumptions about parameter priors.  \hoggitem~There is
+cross-validation, in which small fractions of the data are left out,
+the model is fit to the remainders and used to predict the left-out
+fractions.  These methods do not have a clear probabilistic basis,
+although they are advocated in other places by one of us (cite hogg).
+\hoggitem~There is marginalized likelihood, which is model-selection
+via the scalar developed in
+\equationname~(\ref{eq:marginalizedlikelihood}) above.  This
+properly accounts for differences in model complexity and permits
+comparisons of models without any \foreign{a priori} idea of which is
+more probable.  It has the great disadvantage in practice that it
+depends on having appropriately informative prior PDFs on model
+parameters, a condition that is rarely met; many marginalized
+likelihood calculations in the literature are extremely misleading.
+\hoggitem~There is relative marginalized posterior probability, which
+is the same as marginalized likelihood but multiplied by constants
+(proportional to model prior probabilities) that turn the results into
+marginalized posterior model probabilities.  As with the parameter
+prior PDFs, when it comes to these model priors, it is ``garbage in,
+garbage out''.  \hoggitem~There is expected utility maximization:
+Probabilistic inference tells you what probabilities to assign, but
+does not tell you what to \emph{decide}; decisions (for example the
+decisions to point follow-up telescopes or spectrographs at particular
+candidates) require all the likelihood and prior information mentioned
+above \emph{plus} some assessment of the utilities of different
+options, usually in micro-economic terms.
+
+All of the probabilistically justified model-selection criteria in
+this list (that are appropriate for non-linear models) require full
+specification of the likelihood funciton and appropriately informative
+priors on all model parameters.  For this reason, in what follows, we
+focus on generating good marginalized likelihoods for the models we
+compare, and only subsequently and briefly discuss the specific
+choices for model selection in terms of marginalized likelihood,
+marginalized posterior probability, and expected utility.
+
+\section{Models}
+
+Lens candidate identification will proceed by model comparison.
+However, there are a number of components common to all models.  The
+first component common to all models is the noise model.  We will
+assume that each pixel in the residual image $\residual_n$---the
+difference image between the data image $\image_n$ and the synthetic
+image $\synthetic_n$---is drawn from a Gaussian distribution with zero
+mean and variance taken from an image $\variance_n$ built by:
+\begin{eqnarray}\displaystyle
+\variance_n &=& a_n + b_n\,\synthetic_n
+\quad ,
+\end{eqnarray}
+where $\variance_n$ is an image of noise variance values, one per
+image pixel, and $a_n$ and $b_n$ are scalar constants, with $a_n$
+relating to sky, dark, and read noise, and $b_n$ relating to
+source-photon shot noise.  The constants $a_n$ and $b_n$ (two
+parameters per image) will be part of the model parameters $\allpars$.
+The Gaussian assumption is a large-number limit.  The only exceptions
+to this independent-pixel noise model will be some masked pixels,
+which will not be used in the inference at all; the mask images will
+be provided by the data provider and constitute part of the assumed
+prior knowledge.
+
+The second component common to all models pixel-convolved PSF model.
+We assume that a point-source can be represented in each image $n$ by
+a sum of $K$ concentric two-dimensional Gaussians.  Each of these
+Gaussians has mean zero but a two-dimensional variance tensor with
+arbitrary one-dimensional variances and co-variance.
+
+The third component common to all models is the synthetic galaxy
+model.  Each source will be modeled as a galaxy plus one or more point
+sources.  The galaxy will be parameterized by a radial model
+(exponential or deVaucouleurs) with a flux, an effective (half-light)
+radius, and an ellipticity tensor (axis ratio and orientation).  The
+only unusual aspects to our galaxy model are the following: We choose
+to truncate linearly the galaxy model intensity from the model to zero
+linearly over the radius range from 7 to 8 effective radii; this is
+the same choice as that made by the \project{Sloan Digital Sky Survey}
+imaging pipeline (hogg cite some non-reference).  We don't use the
+truncated functions (truncated exponential and truncated
+deVaucouleurs) directly, but rather we use mixture-of-Gaussian
+approximations to those functions.  These approximations are shown in
+\figurename~HOGG.
+
+\paragraph{$M$-image lens with no millilensing.}
+The singular isothermal sphere with external shear (quadrupole
+provided by a density perturbation at large radius) projects to a
+two-dimensional lensing potential scalar $\potential$, deflection
+angle vector $\deflection$, and magnification tensor $\magnification$
+\begin{eqnarray}\displaystyle
+\potential(\dposition) &=& b\,r + \frac{1}{2}\,\gamma\,r^2\,\cos(2\,(\phi-\phi_\gamma))
+\\
+\deflection(\dposition) &=& -b\,\rhat
+ - \gamma\,r\,\cos(2\,(\phi-\phi_\gamma))\,\rhat
+ + \gamma\,r\,\sin(2\,(\phi-\phi_\gamma))\,\phihat
+\\
+\magnification(\dposition) &=& \outer{\rhat}{\rhat} + \outer{\phihat}{\phihat} - HOGG
+\\
+r &\equiv& \sqrt{\dposition\cdot\dposition}
+\\
+\rhat &\equiv& \frac{1}{r}\,\dposition
+\\
+\rhat\cdot\rhat &\equiv& 1
+\\
+\phihat\cdot\rhat &\equiv& 0
+\\
+\phihat\cdot\phihat &\equiv& 1
+\quad ,
+\end{eqnarray}
+where $\dposition$ is a two-dimensional sky vector relative to the
+lens center, $b$ is the Einstein radius (units of angle), $r$ is a
+radial coordinate relative to the lens center (angle units), $\gamma$
+is the external shear amplitude, $\phi_\gamma$ is an orientation angle
+associated with the external shear, and $\rhat$ and $\phihat$ are
+unit vectors in the two-dimensional space, and implicitly the
+two-dimensional vectors are unit vectors.
+
+\paragraph{$M$-image lens with millilensing.}
+
+\paragraph{galaxy plus central AGN}
+
+\paragraph{galaxy plus $M$ point sources}
+
+\section{Tests and examples}
+
+\section{Discussion}
+
+\end{document}
