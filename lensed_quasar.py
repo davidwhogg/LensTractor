@@ -1,6 +1,6 @@
 '''
 This file is part of the LensFinder project.
-Copyright 2011 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
+Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 
 Description
 -----------
@@ -17,15 +17,14 @@ To-do
 - write down priors on magnification / mag bias
 '''
 
-import numpy as np
-# import markovpy as dfm
 if __name__ == '__main__':
     import matplotlib
     matplotlib.use('Agg')
     from matplotlib import rc
     rc('font',**{'family':'serif','serif':'Computer Modern Roman','size':18})
     rc('text', usetex=True)
-    import pylab as plt
+import numpy as np
+import pylab as plt
 import matplotlib.nxutils as nx
 
 # Global verbosity:
