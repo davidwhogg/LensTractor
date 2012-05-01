@@ -1,0 +1,86 @@
+# ============================================================================
+
+Title: Lens Identification and Modeling in Multi-Epoch Imaging Data
+
+Questions:
+* What do known lensed quasars look like when observed with PS1?
+* By fitting all pixels in all available exposures simultaneously, can we:
+  * Answer the question, is this a lens or not?
+  * Measure the lightcurves of the blended objects?
+  * Measure the lens galaxy?
+  * Measure the model components' positions to better than the co-added image
+     PSF width/(S/N)? Better than the best exposure?
+
+Abstract:
+
+
+
+Method:
+
+We perform a principled comparison between 2 models:
+
+ "lens" : 1 quasar multiply-imaged by a simple lens galaxy with extended
+          optical emission. Galaxy is an LRG.
+
+ "nebula" : K "stars" and one "galaxy".
+ 
+In both models and in each filter, a point source k is assumed to have fluxes
+at each epoch drawn iid from a Gaussian with mean f0_k and variance sigf_k^2,
+while a galaxy is assumed to have an elliptically-symmetric Gaussian constant
+brightness distribution.
+
+Priors:
+  Component positions ~ N(object {ra,dec}, object width}
+
+  Galaxies:
+  - Gaussian shape prior from ellipticity distribution, width 0.25 in e1, e2
+  - i-band flux prior from LRG population counts (lens) or all galaxies
+     population counts (nebula)
+  - size priors from populations too - covariance with fluxes.   
+  - color priors from LRG population colours (lens) or all galaxies colors
+     (nebula). Build KDE from survey data to same depth. Do in CFHT
+     photometric redshift and magnitude slices. 
+     Need to get these, and worry a little bit about filter conversions.
+  - galaxy mass (sigma_SIS) from FP, or at least Faber-Jackson relation. 
+     Include luminosity evolution, and evolution of normalisation: needs
+     redshift. Empirical prior? Need flux-limited sample with i-band mag and
+     velocity dispersion, extending to z=1. Use FJ relation with scatter to
+     assign velocity dispersion to all CFHT LRGs, check that resulting
+     velocity function agrees with fits to SDSS. 
+
+  Point sources:
+  - Quasar i-band flux prior from number counts; 
+     variance prior dependent on flux? Colour prior from number counts, 
+     variance prior dependent on colour? Stripe 82 quasars. Kelly catalog?
+     Stripe 82 data straight. KDE of colours/ counts.
+  - Star i-band flux prior from number counts; variance from number counts.
+      Colour prior from number counts, variance prior dependent on colour.
+      Star prior must include quasar prior. All "stars" (small objects)
+      in CFHT, these need to include plenty of faint blue galaxies, to
+      represent SF regions of nebulae. Magnitude slices? 
+  
+Non-linear fit: MCMC. Priors must not be too spiked. Probably not a problem.
+
+PSF assumed available, as postcard image. Whole scene realised and compared
+with observed image. Fit to all images simultaneously.
+
+
+Data needed:
+
+- CFHT photo-z catalog: g,r,i,z,Reff,epsilon,[zphot]
+    - select LRGs, make KDE of Pr(g,r,i,z,Reff,epsilon,zphot|LRG)
+- Evolving LRG FJ relation with scatter, to make Pr(sigma|i,zphot)
+
+
+# ============================================================================
+
+Paper II
+
+Questions:
+* Can the lens or not model comparison of Paper I be done in catalog space?
+* How is the lensed image position precision different?
+* How are the recovered lightcurves different?
+
+Requires: Gcat paper from NIPS/SPIE
+
+# ============================================================================

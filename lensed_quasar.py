@@ -2,9 +2,17 @@
 This file is part of the LensFinder project.
 Copyright 2011 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 
-to-do
+Description
+-----------
+
+Simple lens model for lensed quasar detection. Given deflector parameters (position, 
+Einstein radius, gammax, phix), and a source position, solve for the 2,3 or 4 images, 
+and return image positions and fluxes (and many other things).
+
+
+To-do
 -----
-- test lens-equation solving
+- test lens-equation solving [Done: 99.94% success, 10ms per solve]
 - perhaps write unit tests for potentials(), deflections(), magnifications()
 - write down priors on magnification / mag bias
 '''
@@ -19,6 +27,9 @@ if __name__ == '__main__':
     rc('text', usetex=True)
     import pylab as plt
 import matplotlib.nxutils as nx
+
+# Global verbosity:
+vb = 0
 
 # ============================================================================
 
@@ -171,11 +182,11 @@ class GravitationalLens:
     # output: a shape (N,2) array of guessed image positions
     # BUG: does not necessarily return 4 images! Hack to cross if fail.
     def guess_ring_positions(self, sourceposition):
-        vb = 0
+        thisvb = 0
         Nmin, Nmax = 0, 0
         npts = 1024
         while (Nmin != 2 or Nmin != Nmax) and npts < 1e6:
-            if vb: print 'making ring of',npts
+            if thisvb: print 'making ring of',npts
             ringpos = self.radial_caustic(npts=npts)
             ringpos = self.position + (1. + self.gamma) * (ringpos - self.position)
             td = self.time_delays(sourceposition, ringpos)
@@ -185,7 +196,7 @@ class GravitationalLens:
             maxI = ((td[1:-1] > td[0:-2]) *
                     (td[1:-1] > td[2:]))
             Nmax = np.sum(maxI)
-            if vb: print 'Nmin, Nmax', Nmin, Nmax
+            if thisvb: print 'Nmin, Nmax', Nmin, Nmax
             npts = npts * 4
             # note horrifying offset: exercise to the reader
         ringpos = ringpos[1:-1]
@@ -239,6 +250,8 @@ class GravitationalLens:
 
 # ----------------------------------------------------------------------------
 
+    # input: array of 2, 3 or 4 numbers
+    # output: indices of the ones that are the same
     def duplicate_locations(self,xx,invert=False):
         uniq = np.unique(xx)
         if not invert:
@@ -260,14 +273,14 @@ class GravitationalLens:
         return index
 
 
+# ----------------------------------------------------------------------------
+
     # solve for image positions given source position.
     # input: source position, shape (2,)
     # output: image positions, shape (N,2)
     def image_positions(self, sourceposition, keepgoing=True):
         assert(sourceposition.shape == (2, ))
-        
-        vb = 0
-        
+                
         ipos = self.guess_image_positions(sourceposition)
         N = self.number_of_images(sourceposition)
 #         print "image_positions:",N,"images expected for source at",sourceposition
@@ -308,27 +321,6 @@ class GravitationalLens:
 #                     print 'image positions:',ipos
                   fail = True
           
-          if len(magnifications) > len(set(magnifications)):
-              if vb: 
-                print 'image_positions: WARNING: magnifications wrong, some images have collapsed'
-                print 'image magnifications:',magnifications
-              fail = True
-              if N==4 and len(set(magnifications))==3:
-                index = self.duplicate_locations(magnifications)
-                ipos[index,0] = 0.0
-                ipos[index,1] = 0.0
-              elif N==4 and len(set(magnifications))==2:
-                index = self.duplicate_locations(magnifications)
-                nindex = self.duplicate_locations(magnifications,invert=True)
-                ipos[index[0],0] = 0.0
-                ipos[index[0],1] = 0.0
-                ipos[index[1],0] = 0.5*(ipos[nindex[0],0]+ipos[nindex[0],0])
-                ipos[index[1],1] = 0.5*(ipos[nindex[1],0]+ipos[nindex[1],0])
-              elif N==2 and len(set(magnifications))==1:
-                index = self.duplicate_locations(magnifications)
-                ipos[index,0] = 0.0
-                ipos[index,1] = 0.0
-                
           if len(ipos[:,0]) > len(set(ipos[:,0])):
               if vb: 
                 print 'image_positions: WARNING: x positions wrong, some images have collapsed'
@@ -340,6 +332,38 @@ class GravitationalLens:
                 print 'image positions:',ipos
               fail = True
                     
+          if len(magnifications) > len(set(magnifications)):
+              if vb: 
+                print 'image_positions: WARNING: magnifications wrong, some images have collapsed'
+                print 'image magnifications:',magnifications
+              fail = True
+              # Find duplicated images and re-position them:
+              duplicated = False
+              if N==4 and len(set(magnifications))==3:
+                duplicated = True
+                index = self.duplicate_locations(magnifications)
+                ipos[index,0] = 0.0
+                ipos[index,1] = 0.0
+              elif N==4 and len(set(magnifications))==2:
+                duplicated = True
+                index = self.duplicate_locations(magnifications)
+                nindex = self.duplicate_locations(magnifications,invert=True)
+                ipos[index[0],0] = 0.0
+                ipos[index[0],1] = 0.0
+                ipos[index[1],0] = 0.5*(ipos[nindex[0],0]+ipos[nindex[0],0])
+                ipos[index[1],1] = 0.5*(ipos[nindex[1],0]+ipos[nindex[1],0])
+              elif N==2 and len(set(magnifications))==1:
+                duplicated = True
+                index = self.duplicate_locations(magnifications)
+                ipos[index,0] = 0.0
+                ipos[index,1] = 0.0
+              
+              if duplicated: 
+                if vb: print 'reset image positions:',ipos
+                magnifications = self.magnifications(ipos)
+                parities = np.sign(magnifications)
+                if vb: print 'reset image magnifications:',magnifications
+                
           if fail and keepgoing and humph < 42:
             humph += 1
           else:
@@ -359,6 +383,8 @@ class GravitationalLens:
         phi = np.arctan2(dpos[:,1], dpos[:,0])
         psis = self.einsteinradius * r + 0.5 * r * r * self.gamma * np.cos(2. * (phi - self.phi))
         return psis
+
+# ----------------------------------------------------------------------------
 
     # input: image-plane positions shape (N, 2)
     # output: potential values at those positions shape (N, )
@@ -381,6 +407,8 @@ class GravitationalLens:
         alphas[:,1] += self.gammasin2phi * dpos[:,0]
         return alphas
 
+# ----------------------------------------------------------------------------
+
     # input: image positions shape (N, 2)
     # output: source position
     # note outer, sqrt, sum craziness
@@ -392,28 +420,33 @@ class GravitationalLens:
     # output shape (N, 2, 2)
     # NB: MUST BE SYNCHRONIZED WITH POTENTIALS() AND DEFLECTIONS()
     def inverse_magnification_tensors(self, imagepositions):
+        tiny = 1e-12 # to deal with lens and image both exactly at origin
         ipos = np.atleast_2d(imagepositions)
         mag = np.zeros((len(ipos), 2, 2))
         mag[:,0,0] = 1.
         mag[:,1,1] = 1.
         # print "inverse_magnification_tensors: ipos = ",ipos
         dpos = ipos - self.position
-        rcubed = np.sum(dpos * dpos, axis=1)**1.5
-        if np.min(rcubed) <= 0.:
-            print ipos
-            print self.position
-            print mag
+        rcubed = np.sum(dpos * dpos, axis=1)**1.5 + tiny # tiny little hack
+        if np.min(rcubed) <= 0.0:
+            print "image positions = ",ipos
+            print "lens position = ",self.position
+            print "differences = ",dpos
+            print "rcubed = ",rcubed
             print self
-        assert(np.min(rcubed) > 0.)
-        mag[:,0,0] -= self.einsteinradius * dpos[:,1] * dpos[:,1] / rcubed
-        mag[:,0,1] += self.einsteinradius * dpos[:,1] * dpos[:,0] / rcubed
-        mag[:,1,0] += self.einsteinradius * dpos[:,0] * dpos[:,1] / rcubed
-        mag[:,1,1] -= self.einsteinradius * dpos[:,0] * dpos[:,0] / rcubed
-        mag[:,0,0] -= self.gammacos2phi
-        mag[:,0,1] -= self.gammasin2phi
-        mag[:,1,0] -= self.gammasin2phi
-        mag[:,1,1] += self.gammacos2phi
+        else:
+            mag[:,0,0] -= self.einsteinradius * dpos[:,1] * dpos[:,1] / rcubed
+            mag[:,0,1] += self.einsteinradius * dpos[:,1] * dpos[:,0] / rcubed
+            mag[:,1,0] += self.einsteinradius * dpos[:,0] * dpos[:,1] / rcubed
+            mag[:,1,1] -= self.einsteinradius * dpos[:,0] * dpos[:,0] / rcubed
+            mag[:,0,0] -= self.gammacos2phi
+            mag[:,0,1] -= self.gammasin2phi
+            mag[:,1,0] -= self.gammasin2phi
+            mag[:,1,1] += self.gammacos2phi
+        assert(np.min(rcubed) > 0.0)
         return mag
+
+# ----------------------------------------------------------------------------
 
     def magnification_tensors(self, imagepositions):
         return np.array([np.linalg.inv(t) for t in self.inverse_magnification_tensors(imagepositions)])
@@ -634,8 +667,6 @@ def speed_test():
     
     nsample = 10000
     print "Solving",nsample,"lens systems..."
-
-    vb = 1
     
     lenspos = [0.0, 0.0]
     b = 1.0 # arcsec
@@ -663,7 +694,7 @@ def speed_test():
         if fail:
             plt.clf()
             sis.plot(sourcepositions=spos[i],imagepositions=ipos,timedelaymap=True)
-            foofile = 'speed_test_failure%s_diagram.png' % str(i)
+            foofile = 'tests/solving/failure%s_diagram.png' % str(i)
             plt.savefig(foofile)
             print "Solve failure: lens outline plotted in",foofile
             print "  image positions:",ipos
@@ -676,7 +707,7 @@ def speed_test():
     plt.xscale('log')
     plt.xlabel('solve time (seconds)')
     plt.ylabel('frequency')
-    histfile = 'speed_test_histogram.png'
+    histfile = 'tests/solving/speed_test_histogram.png'
     plt.savefig(histfile)
     print "Histogram plotted in",histfile
     
