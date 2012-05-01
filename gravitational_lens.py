@@ -42,7 +42,7 @@ vb = 0
 class GravitationalLens:
 
     def __init__(self, position, einsteinradius, gamma, phi):
-        self.name = 'SIS + external shear'
+        self.name = 'Gravitational lens, modeled as SIS density profile + external shear'
         self.position = np.array(position)
         self.einsteinradius = einsteinradius
         self.set_gamma_phi(gamma, phi)
@@ -52,17 +52,18 @@ class GravitationalLens:
         return '%s (%s %.2f %.2f %.2f)' % (self.name, self.position, self.einsteinradius, self.gamma, self.phi)
 
 # ----------------------------------------------------------------------------
-    
-    # self.phi is in radians
+# External shear set-up:
+
     def set_gamma_trig(self, gammacos2phi, gammasin2phi):
+        # self.phi is in radians
         self.gammacos2phi = gammacos2phi
         self.gammasin2phi = gammasin2phi
         self.gamma = np.sqrt(self.gammacos2phi**2 + self.gammasin2phi**2)
         self.phi = 0.5 * np.arctan2(self.gammasin2phi, self.gammacos2phi)
         return None
 
-    # phi is in radians
     def set_gamma_phi(self, gamma, phi):
+        # phi is in radians
         self.gamma = gamma
         self.phi = phi
         self.gammacos2phi = self.gamma * np.cos(2. * self.phi)
@@ -70,13 +71,15 @@ class GravitationalLens:
         return None
 
 # ----------------------------------------------------------------------------
+# Caustics and critical curves
+#   magic number 1024 sets resolution (plots are made with points not lines)
 
     def eigs(self):
-   	return (np.array([np.cos(self.phi), np.sin(self.phi)]), 
+   	  return (np.array([np.cos(self.phi), np.sin(self.phi)]), 
                 np.array([-np.sin(self.phi), np.cos(self.phi)]))
     
-    # return the sourceposition = 0 morphology; undefined when gamma=0
     def cross(self):
+        # The sourceposition = 0 morphology; undefined when gamma=0
         assert(self.gamma > 0.)
         eig1, eig2 = self.eigs()
         foo = np.array([ eig1 / (1. - self.gamma),
@@ -85,9 +88,6 @@ class GravitationalLens:
                          -eig2 / (1. + self.gamma)])
         return self.position + self.einsteinradius * foo
     
-# ----------------------------------------------------------------------------
-
-    # magic number 1024 (sets precision)
     def critical_curve(self, npts=1024):
         eig1, eig2 = self.eigs()
         ddphi = 2. * np.pi / npts
@@ -101,12 +101,9 @@ class GravitationalLens:
         critcurve += np.outer(r*sinphi, eig2)
         return critcurve
 
-# ----------------------------------------------------------------------------
-
-    # magic number 1024
-    # note crazy over-wrapping on dphi; this is used in guess_image_positions()
-    # note computational overkill; it's a freakin' circle.
     def radial_caustic(self, npts=1024):
+        # note crazy over-wrapping on dphi; this is used in guess_image_positions()
+        # note computational overkill; it's a freakin' circle.
         eig1, eig2 = self.eigs()
         ddphi = 2. * np.pi / npts
         dphi = np.arange(0., 2. * np.pi + 1.5 * ddphi, ddphi)
@@ -117,9 +114,6 @@ class GravitationalLens:
         caustic += np.outer(self.einsteinradius * sinphi, eig2)
         return caustic
 
-# ----------------------------------------------------------------------------
-
-    # magic number 1024
     def tangential_caustic(self, npts=1024):
         eig1, eig2 = self.eigs()
         ddphi = 2. * np.pi / npts
@@ -134,9 +128,9 @@ class GravitationalLens:
         return caustic
 
 # ----------------------------------------------------------------------------
-
-    # return the number of images you SEE
-    # return 1, 2, 3, or 4
+# Expected number of images
+#   returns 1, 2, 3, or 4
+    
     def number_of_images(self, sourceposition):
         if nx.points_inside_poly(np.atleast_2d(sourceposition), self.radial_caustic())[0]:
             if nx.points_inside_poly(np.atleast_2d(sourceposition), self.tangential_caustic())[0]:
@@ -147,12 +141,14 @@ class GravitationalLens:
         return 1
 
 # ----------------------------------------------------------------------------
+# Getting started - initial guesses for image positions
+#
+#   inputs: a single source position, shape (2)
+#   outputs: a first guess at N image positions, shape (N, 2)
+#   notes:
+#   - N=3 is fugly
+#   - N=4 is worse
 
-    # input: a single source position, shape (2)
-    # output: a first guess at N image positions, shape (N, 2)
-    # notes:
-    # - N=3 is fugly
-    # - N=4 is worse
     def guess_image_positions(self, sourceposition):
         N = self.number_of_images(sourceposition)
         assert(N > 0 and N < 5)
@@ -178,9 +174,8 @@ class GravitationalLens:
             ipos = np.array([self.guess_radial_position(sourceposition, ip) for ip in ipos])
         return ipos
 
-    # output: a shape (N,2) array of guessed image positions
-    # BUG: does not necessarily return 4 images! Hack to cross if fail.
     def guess_ring_positions(self, sourceposition):
+        # BUG: does not necessarily return 4 images! Hack to cross if fail.
         thisvb = 0
         Nmin, Nmax = 0, 0
         npts = 1024
@@ -209,17 +204,19 @@ class GravitationalLens:
         
         return ipos
 
-    # takes just one position as input; returns it as output
     def guess_radial_position(self, sourceposition, imageposition):
+        # NB. takes just one image position as input, returns update on output
         rfactor = np.arange(0.5, 2.0, 0.005)
         ipos = np.outer(rfactor, imageposition - self.position) + self.position
         return ipos[np.argmin(self.time_delays(sourceposition, ipos))]
 
 # ----------------------------------------------------------------------------
+# Refining image positions during solve process.
+#
+#   input: a single source position shape (2) and a first guess at N image positions shape (N, 2) 
+#   output: N image positions shape (N, 2)                                                        
+#   magic numbers: tol, too_many (needed to escape infinite oscillation)                          
 
-    # input: a single source position shape (2) and a first guess at N image positions shape (N, 2)
-    # output: N image positions shape (N, 2)
-    # MAGIC NUMBERS: tol, too_many (needed to escape infinite oscillation)
     def refine_image_positions(self, sourceposition, guessedimagepositions, tol=1.e-20, alpha=1.0, too_many=1e3):
         ipos = np.atleast_2d(guessedimagepositions)
         parities = self.parities(ipos)
@@ -230,16 +227,16 @@ class GravitationalLens:
             i += 1
             dipos = np.array([np.dot(tens, dsp) for tens, dsp in zip(self.magnification_tensors(ipos), dspos)])
             ipos = ipos + alpha * dipos
-            dspos = np.outer(np.ones(N), sourceposition) - self.source_positions(ipos)
-        
+            dspos = np.outer(np.ones(N), sourceposition) - self.source_positions(ipos)        
         fail = (np.sum(dspos**2) > tol)
-        
         return ipos,fail
 
 # ----------------------------------------------------------------------------
+# When stuck, images need perturbing before refinement proceeds.
+#
+#   input: a set of (failed) N image positions shape (N, 2)
+#   output: N perturbed image positions shape (N, 2)
 
-    # input: a set of (failed) N image positions shape (N, 2)
-    # output: N perturbed image positions shape (N, 2)
     def perturb_image_positions(self, imagepositions,sigma):
         ipos = np.atleast_2d(imagepositions)
         N = len(ipos)
@@ -247,11 +244,10 @@ class GravitationalLens:
         ipos[:,1] = ipos[:,1] + np.random.uniform(-sigma,sigma,size=N)
         return ipos
 
-# ----------------------------------------------------------------------------
-
-    # input: array of 2, 3 or 4 numbers
-    # output: indices of the ones that are the same
+# One sign of being stuck is to return two copies of the same image:
     def duplicate_locations(self,xx,invert=False):
+        # input: array of 2, 3 or 4 numbers
+        # output: indices of the ones that are the same
         uniq = np.unique(xx)
         if not invert:
           index = np.zeros(len(xx) - len(uniq),dtype=np.int)
@@ -271,19 +267,17 @@ class GravitationalLens:
               j += 1
         return index
 
-
 # ----------------------------------------------------------------------------
+# Solve for image positions given source position.
+#
+#   input: source position, shape (2,)
+#   output: image positions, shape (N,2)
 
-    # solve for image positions given source position.
-    # input: source position, shape (2,)
-    # output: image positions, shape (N,2)
     def image_positions(self, sourceposition, keepgoing=True):
+
         assert(sourceposition.shape == (2, ))
-                
         ipos = self.guess_image_positions(sourceposition)
         N = self.number_of_images(sourceposition)
-#         print "image_positions:",N,"images expected for source at",sourceposition
-        
         initialparities = self.parities(ipos)
                 
         done = False
@@ -301,25 +295,28 @@ class GravitationalLens:
           if fail and keepgoing:
             ipos = self.perturb_image_positions(ipos,0.1*self.einsteinradius)
           
+          # OK, inch forward:
           fail = False
           ipos,fail = self.refine_image_positions(sourceposition, ipos)
 
           magnifications = self.magnifications(ipos)
           parities = np.sign(magnifications)
 
+          # Check image parities:
           if (N == 2) or (N == 4):
               if (np.sum(parities) != 0):
                   if vb: 
                     print 'image_positions: WARNING: parities wrong, some images have either merged or collapsed'
-#                     print 'image positions:',ipos
+                    # print 'image positions:',ipos
                   fail = True
           elif (N == 3):
               if (np.sum(parities - initialparities) != 0):
                   if vb: 
                     print 'image_positions: WARNING: parities wrong, some images have merged or collapsed'
-#                     print 'image positions:',ipos
+                    # print 'image positions:',ipos
                   fail = True
           
+          # Check we have the right number of images:
           if len(ipos[:,0]) > len(set(ipos[:,0])):
               if vb: 
                 print 'image_positions: WARNING: x positions wrong, some images have collapsed'
@@ -330,7 +327,8 @@ class GravitationalLens:
                 print 'image_positions: WARNING: y positions wrong, some images have collapsed'
                 print 'image positions:',ipos
               fail = True
-                    
+          
+          # Check that magnifications are unique:
           if len(magnifications) > len(set(magnifications)):
               if vb: 
                 print 'image_positions: WARNING: magnifications wrong, some images have collapsed'
@@ -356,18 +354,17 @@ class GravitationalLens:
                 index = self.duplicate_locations(magnifications)
                 ipos[index,0] = 0.0
                 ipos[index,1] = 0.0
-              
               if duplicated: 
                 if vb: print 'reset image positions:',ipos
                 magnifications = self.magnifications(ipos)
                 parities = np.sign(magnifications)
                 if vb: print 'reset image magnifications:',magnifications
-                
+          
+          # Onwards!      
           if fail and keepgoing and humph < 42:
             humph += 1
           else:
-            done = True
-
+            done = True # Hooray! Straight to successful return from here.
 
         return ipos,fail
 
@@ -717,9 +714,11 @@ def speed_test():
 
 if __name__ == '__main__':
 
+# Can we make the solver fail at merging image positions?
 #     for config in ['major_cusp', 'minor_cusp', 'naked_cusp']:
 #         merger_test(config)
 
+# How often does solver fail, and how long does each solve take?
     speed_test()
     
 
