@@ -1,17 +1,19 @@
 # ========================================================================================
 # 2012-04-05 (Thursday) 10:52 BST
 # 
-# Feb/March NYU trip, finished lensed_quasar.py, such that images are correctly found about
-# 99.94% of the time (speed_test on 10000 systems, 6 failures). Guess this is good enough.
-# Mode solve time is about 6ms, mean is under 10ms.
-# See plots and logs in tests/solving
-
-# Now need to take predicted image positions and fluxes, and realise them as images. This
-# means calls to the tractor routines.
+# Feb/March NYU trip, finished lensed_quasar.py, such that images are
+# correctly found about 99.94% of the time (speed_test on 10000 systems, 6
+# failures). Guess this is good enough. Mode solve time is about 6ms, mean
+# is under 10ms. See plots and logs in tests/solving
+# 
+# Now need to take predicted image positions and fluxes, and realise them
+# as images. This means calls to the tractor routines.
 
 # ========================================================================================
 # 2012-05-01 (Tuesday) 09:17 BST
 
-# organising directory a bit better...
+# Organising directories a bit better, into lensfinder module
+# Started data_management, onepoint modules to try and deal with 
+# PS1 data, tractor style.
 
 # ========================================================================================

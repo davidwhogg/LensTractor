@@ -17,9 +17,7 @@ Record key statistics in easily-parsed log files.]
 import numpy as np
 import os,glob,string
 
-# import tractor
-# BUG: this fails because I don't have astrometry.sdss
-#      Very likely there are more problems like this!
+import tractor, astrometry
 
 vb = 1
 
@@ -98,7 +96,23 @@ class deck:
     def riffle(self):
         
         return
-
+        
+# Hmm - need to build astrometry.net I think, to get the wcs 
+# functionality? Or make a ParamList wcs instead? This is better...
+# 	wcs = astrometry.util.util.Tan()
+# 	wcs.crval[0] = ra
+# 	wcs.crval[1] = dec
+# 	wcs.crpix[0] = W/2.
+# 	wcs.crpix[1] = H/2.
+# 	scale = width / float(W)
+# 	wcs.cd[0] = -scale
+# 	wcs.cd[1] = 0
+# 	wcs.cd[2] = 0
+# 	wcs.cd[3] = -scale
+# 	wcs.imagew = W
+# 	wcs.imageh = H
+# 
+# 	wcs = FitsWcs(wcs)
 # ============================================================================
 
 if __name__ == '__main__':

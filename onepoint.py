@@ -13,9 +13,7 @@ the difference.
 
 import numpy as np, os
 
-# import tractor
-# BUG: this fails because I don't have astrometry.sdss
-#      Very likely there are more problems like this!
+import tractor
 
 import lensfinder
 
