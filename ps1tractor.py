@@ -29,7 +29,8 @@ import pylab as plt
 import pyfits
 
 from astrometry.util.file import *
-# from astrometry.util.util import Sip
+# Awaiting working an build...
+from astrometry.util.util import Sip
 from astrometry.util.pyfits_utils import *
 
 import tractor
@@ -87,6 +88,8 @@ def ps1tractor():
    var[var != var] = 0.0
    # Convert var to wht, and find median uncertainty as well:
    invvar = 1.0/var
+   assert(all(np.isfinite(sci.ravel())))
+   assert(all(np.isfinite(invvar.ravel())))
    # Assign var=0, var<0 all zero weight:
    invvar[var == 0] = 0.0
    invvar[var < 0] = 0.0
@@ -97,79 +100,37 @@ def ps1tractor():
    
    # Report on progress so far:
    if opt.verbose:
-     print 'Sci header:', hdr
-     print 'Read in sci image:', sci.shape, sci
-     print 'Read in var image:', var.shape, var
-     print 'Made mask image:', mask.shape, mask
-     print 'Variance range:', var.min(), var.max()
-     print 'Median pixel uncertainty:', sig
-     print 'Image median:', np.median(sci.ravel())
+      print 'Sci header:', hdr
+      print 'Read in sci image:', sci.shape, sci
+      print 'Read in var image:', var.shape, var
+      print 'Made mask image:', mask.shape, mask
+      print 'Variance range:', var.min(), var.max()
+      print 'Median pixel uncertainty:', sig
+      print 'Image median:', np.median(sci.ravel())
 
    # -------------------------------------------------------------------------
+   # Make a first guess at a PSF - a single circularly symmettric Gaussian 
+   # defined on same grid as sci image:
 
-#    for k,v in maskplanes.items():
-#          plt.clf()
-# 
-#          I = ((mask & (1 << v)) != 0)
-#          rgb = np.zeros((NX,NY,3))
-#          clipimg = np.clip((img - (-3.*sig)) / (13.*sig), 0, 1)
-#          cimg = clipimg.copy()
-#          cimg[I] = 1
-#          rgb[:,:,0] = cimg
-#          cimg = clipimg.copy()
-#          cimg[I] = 0
-#          rgb[:,:,1] = cimg
-#          rgb[:,:,2] = cimg
-#          plt.imshow(rgb, interpolation='nearest', origin='lower')
-#          plt.title(k)
-#          plt.savefig('mask-%s.png' % k.lower())
-# 
-#    badmask = sum([(1 << maskplanes[k]) for k in ['BAD', 'SAT', 'INTRP', 'CR']])
-#    # HACK -- left EDGE sucks
-#    badmask += (1 << maskplanes['EDGE'])
-#    #badmask = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3)
-#    #badmask |= (1 << 4)
-#    print 'Masking out: 0x%x' % badmask
-#    invvar[(mask & badmask) != 0] = 0.
-# 
-#    assert(all(np.isfinite(img.ravel())))
-#    assert(all(np.isfinite(invvar.ravel())))
-# 
-#    psf = pyfits.open(psffn)[0].data
-#    print 'psf', psf.shape
-#    psf /= psf.sum()
-# 
-#    from tractor.emfit import em_fit_2d
-#    from tractor.fitpsf import em_init_params
-# 
-#    # Create Gaussian mixture model PSF approximation.
-#    S = psf.shape[0]
-#    # number of Gaussian components
-#    K = 3
-#    w,mu,sig = em_init_params(K, None, None, None)
-#    II = psf.copy()
-#    II /= II.sum()
-#    # HIDEOUS HACK
-#    II = np.maximum(II, 0)
-#    print 'Multi-Gaussian PSF fit...'
-#    xm,ym = -(S/2), -(S/2)
-#    em_fit_2d(II, xm, ym, w, mu, sig)
-#    print 'w,mu,sig', w,mu,sig
-#    mypsf = tractor.GaussianMixturePSF(w, mu, sig)
-# 
-# 
-#    P = mypsf.getPointSourcePatch(S/2, S/2)
-#    mn,mx = psf.min(), psf.max()
-#    ima = dict(interpolation='nearest', origin='lower',
-#                   vmin=mn, vmax=mx)
-#    plt.clf()
-#    plt.subplot(1,2,1)
-#    plt.imshow(psf, **ima)
-#    plt.subplot(1,2,2)
-#    pimg = np.zeros_like(psf)
-#    P.addTo(pimg)
-#    plt.imshow(pimg, **ima)
-#    plt.savefig('psf.png')
+   w = 1.0                   # amplitude at peak
+   mu = np.array(NX/2,NY/2)  # centroid position in pixels 
+   sig = 2.0                 # pixels, is sigma width
+   mypsf = tractor.GaussianMixturePSF(w, mu, sig)
+   P = mypsf.getPointSourcePatch(NX/2, NY/2)
+   
+   # Plot initial PSF:
+   mn,mx = psf.min(), psf.max()
+   ima = dict(interpolation='nearest', origin='lower',
+                  vmin=mn, vmax=mx)
+   plt.clf()
+   plt.subplot(1,2,1)
+   plt.imshow(psf, **ima)
+   plt.subplot(1,2,2)
+   pimg = np.zeros_like(psf)
+   P.addTo(pimg)
+   plt.imshow(pimg, **ima)
+   plt.savefig('psf.png')
+
 # 
 #    sig = np.sqrt(np.median(var))
 # 
