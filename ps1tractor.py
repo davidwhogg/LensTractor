@@ -116,10 +116,10 @@ def ps1tractor():
    # Make a first guess at a PSF - a single circularly symmettric Gaussian 
    # defined on same grid as sci image:
 
-   w = np.array([1.0])           # amplitude at peak
-   mu = np.array([0,0])          # centroid position in pixels 
-   sig = np.array([1.0])         # pixels, is sigma width
-   psf = tractor.GaussianMixturePSF(w,mu,sig)
+   w = np.array([1.0,1.0])           # amplitude at peak
+   mu = np.array([[0.0,0.0],[0.0,0.0]])      # centroid position in pixels 
+   cov = np.array([[[1.0,0.0],[0.0,1.0]],[[9.0,0.0],[0.0,9.0]]])             # pixels^2, variance matrices
+   psf = tractor.GaussianMixturePSF(w,mu,cov)
       
    # -------------------------------------------------------------------------
 
@@ -159,7 +159,7 @@ def ps1tractor():
 
    # Freeze all but the PSF, sky and sources:
    for image in chug.images:
-      image.freezeParams('photocal', 'wcs')
+      image.freezeParams('photocal', 'wcs', 'psf')
 
    # Plot:
    plot_state(chug,'initial')
@@ -167,28 +167,23 @@ def ps1tractor():
 
    # Optimize sources with small initial PSF:
    for i in range(5):
-      dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
-      plot_state(chug,'step-%02d'%i)
-      
-   # Optimize everything that is not frozen:
-   for i in range(6,10):
+      # dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
       dlnp2,X,a = chug.opt2()
       plot_state(chug,'step-%02d'%i)
       
-   # This gives an error:
-   # opt2: Finding derivs...
-   # Traceback (most recent call last):
-   #   File "ps1tractor.py", line 242, in <module>
-   #     ps1tractor()
-   #   File "ps1tractor.py", line 175, in ps1tractor
-   #     dlnp2,X,a = chug.opt2()
-   #   File "/Users/pjm/work/tractor/tractor/engine.py", line 555, in opt2
-   #     allderivs = self.getderivs2()
-   #   File "/Users/pjm/work/tractor/tractor/engine.py", line 628, in getderivs2
-   #     ims = [self.images[j] for j in imjs]
-   #   File "/Users/pjm/work/tractor/tractor/utils.py", line 434, in __getitem__
-   #     return self.subs.__getitem__(key)   
-     
+   # Freeze the sources and thaw the psfs:
+   chug.freezeParam('catalog')
+   for image in chug.images:
+      image.thawParams('psf')
+      
+   # Optimize everything that is not frozen:
+   for i in range(5,10):
+      dlnp2,X,a = chug.opt2()
+      plot_state(chug,'step-%02d'%i)
+#       # Print PSF parameters:
+#       print chug.images[0].psf
+      # PSF not being optimized correctly
+      
    # -------------------------------------------------------------------------
    
    print "Tractor stopping."
