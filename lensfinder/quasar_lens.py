@@ -20,7 +20,8 @@ from tractor import *
 from gravitational_len import GravitationalLens
 
 # ============================================================================
-#
+# Gravitational Lens parameters need to be "Params" objects of some kind.
+
 class EinsteinRadius(ScalarParam):
       def getName(self):
             return 'Einstein radius in pixels'
@@ -53,8 +54,9 @@ class ExternalShear(ParamList):
 class LensGalaxy(DevGalaxy):
       '''
       A LensGalaxy has mass, and emits light. Initialise with a position,
-      brightness and shape for the Galaxy, and an Einstein radius and external
-      shear for the mass distribution (assumed to be SIS+shear).
+      brightness and shape for the Galaxy (which is assumed to have a De 
+      Vaucoleurs surface brightness profile), and an Einstein radius and 
+      external shear for the mass distribution (assumed to be SIS).
       '''
 
       def __init__(self, pos, brightness, shape, Rein, xshear):
@@ -81,12 +83,12 @@ class LensGalaxy(DevGalaxy):
             
             # Define a "trivial" coordinate system, centred on the lens, that
             # has 1 arcsec "pixels":
-            tWCS = trivialWCS(self.pos) # Needs a new tractor class? Or inherit NullWCS
+            wcs = LocalWCS(self.pos) # Needs a new tractor class? Or inherit NullWCS
             lensposition = (0.0,0.0) # in trivial WCS
             
             # Unpack the source and convert position into trivial 
             # tangent-plane coordinates:
-            sourceposition = tWCS.positionToPixel(source.getPosition())
+            sourceposition = wcs.positionToPixel(source.getPosition())
             sourceflux = source.getBrightness()
             
             # Instantiate the gravitational lens:
@@ -103,60 +105,9 @@ class LensGalaxy(DevGalaxy):
             if fail: pass 
 
             # Convert image positions back to sky:
-            imagepositions = tWCS.pixelToPosition(imagepositions)
+            imagepositions = wcs.pixelToPosition(imagepositions)
             
             return imagepositions, imagefluxes
-
-# ============================================================================
-
-class TrivialWCS(WCS):
-	'''
-	The "trivial" WCS -- useful when you need to work on the sky but in
-      small offsets from RA,Dec.
-	'''
-	def __init__(self, pos, pixscale=1.):
-            self.x0 = 0.0
-            self.y0 = 0.0
-            self.ra = pos.ra
-            self.dec = pos.dec
-		self.pixscale = pixscale
-            # Set CD matrix?!
-            
-
-      # Somehow need to set wcs.cd... Is this how it is set?
-	def cdAtPixel(self, x, y):
-            cosdec = np.cos(self.dec*np.pi/180.0)
-		return np.array([[cosdec,0.0],[0.0,1.0]]) * self.pixscale / 3600.
-# 	def cdAtPixel(self, x, y):
-# 		cd = self.wcs.get_cd()
-# 		return np.array([[cd[0], cd[1]], [cd[2],cd[3]]])
-
-	def hashkey(self):
-		return ('TrivialWCS', self.x0, self.y0, self.wcs)
-
-	def __str__(self):
-		return ('TrivialWCS: x0,y0 %.3f,%.3f, WCS ' % (self.x0,self.y0)
-				+ str(self.wcs))
-
-	def setX0Y0(self, x0, y0):
-		self.x0 = x0
-		self.y0 = y0
-
-	def positionToPixel(self, src, pos):
-		# ok,x,y = self.wcs.radec2pixelxy(pos.ra, pos.dec)
-		X = self.wcs.radec2pixelxy(pos.ra, pos.dec)
-		if len(X) == 3:
-			ok,x,y = X
-		else:
-			assert(len(X) == 2)
-			x,y = X
-		return x-self.x0, y-self.y0
-
-	def pixelToPosition(self, src, xy):
-		(x,y) = xy
-		r,d = self.wcs.pixelxy2radec(x + self.x0, y + self.y0)
-		return RaDecPos(r,d)
-
 
 # ============================================================================
 
@@ -191,9 +142,12 @@ class QuasarLens(MultiParams):
                '''
                # Lens galaxy:
                patch = self.lensgalaxy.getModelPatch(img)
-               # 2, 3 or 4 lensed images, from solving the lens equation.
+               
+               # Solve the lens equation to get the image positions and fluxes.
                # Note: images are returned time-ordered:
                imagepositions, imagefluxes = self.lensgalaxy.getLensedImages(self.source)
+                              
+               # Add point image patches to the patch, applying dmags:
                for i,(imageposition,imageflux) in enumerate(zip(imagepositions,imagefluxes)):
                   thisimageflux = imageflux * np.exp(dmag[i])
                   patch += PointSource(imageposition,thisimageflux).getModelPatch(img)

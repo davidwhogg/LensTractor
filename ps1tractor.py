@@ -29,8 +29,7 @@ import pylab as plt
 import pyfits
 
 from astrometry.util.file import *
-# Awaiting working an build...
-from astrometry.util.util import Sip
+from astrometry.util.util import Tan
 from astrometry.util.pyfits_utils import *
 
 import tractor
@@ -84,19 +83,24 @@ def ps1tractor():
    mask = numpy.ones([NX,NY],dtype=np.int16)
    mask[numpy.where(var == 0)] = 0
    
-   # Assign var=nan all zero weight:
-   var[var != var] = 0.0
    # Convert var to wht, and find median uncertainty as well:
    invvar = 1.0/var
+   # Assign zero weight to var=nan, var<=0:
+   invvar[var != var] = 0.0
+   invvar[var <= 0] = 0.0
+   
+   good = np.where(invvar > 0)
+   bad = np.where(invvar == 0)
+   
+   # Zero out sci image where wht is 0.0:
+   sci[bad] = 0.0
+
    assert(all(np.isfinite(sci.ravel())))
    assert(all(np.isfinite(invvar.ravel())))
-   # Assign var=0, var<0 all zero weight:
-   invvar[var == 0] = 0.0
-   invvar[var < 0] = 0.0
-   # Zero out sci image where wht is 0.0:
-   sci[invvar == 0] = 0.0
-   # Rough estimate of global pixel uncertainty:
-   sig = np.sqrt(np.median(var))
+
+   # Rough estimates of background level and rms:
+   sciback = np.sqrt(np.median(var[good]))
+   scirms = np.sqrt(np.median(var[good]))
    
    # Report on progress so far:
    if opt.verbose:
@@ -104,237 +108,130 @@ def ps1tractor():
       print 'Read in sci image:', sci.shape, sci
       print 'Read in var image:', var.shape, var
       print 'Made mask image:', mask.shape, mask
-      print 'Variance range:', var.min(), var.max()
-      print 'Median pixel uncertainty:', sig
-      print 'Image median:', np.median(sci.ravel())
+      print 'Useful variance range:', var[good].min(), var[good].max()
+      print 'Useful image median level:', sciback
+      print 'Useful image median pixel uncertainty:', scirms
 
    # -------------------------------------------------------------------------
    # Make a first guess at a PSF - a single circularly symmettric Gaussian 
    # defined on same grid as sci image:
 
-   w = 1.0                   # amplitude at peak
-   mu = np.array(NX/2,NY/2)  # centroid position in pixels 
-   sig = 2.0                 # pixels, is sigma width
-   mypsf = tractor.GaussianMixturePSF(w, mu, sig)
-   P = mypsf.getPointSourcePatch(NX/2, NY/2)
-   
-   # Plot initial PSF:
-   mn,mx = psf.min(), psf.max()
-   ima = dict(interpolation='nearest', origin='lower',
-                  vmin=mn, vmax=mx)
-   plt.clf()
-   plt.subplot(1,2,1)
-   plt.imshow(psf, **ima)
-   plt.subplot(1,2,2)
-   pimg = np.zeros_like(psf)
-   P.addTo(pimg)
-   plt.imshow(pimg, **ima)
-   plt.savefig('psf.png')
+   w = np.array([1.0])           # amplitude at peak
+   mu = np.array([0,0])          # centroid position in pixels 
+   sig = np.array([2.0])         # pixels, is sigma width
+   psf = tractor.GaussianMixturePSF(w,mu,sig)
+      
+   # -------------------------------------------------------------------------
 
-# 
-#    sig = np.sqrt(np.median(var))
-# 
-#    plt.clf()
-#    plt.hist(img.ravel(), 100, range=(-3.*sig, 3.*sig))
-#    plt.savefig('imghist.png')
-# 
-#    srcs = fits_table(srcfn)
-#    print 'Initial:', len(srcs), 'sources'
-#    # Trim sources with x=0 or y=0
-#    srcs = srcs[(srcs.x != 0) * (srcs.y != 0)]
-#    print 'Trim on x,y:', len(srcs), 'sources left'
-#    # Zero out nans & infs
-#    for c in ['theta', 'a', 'b']:
-#          I = np.logical_not(np.isfinite(srcs.get(c)))
-#          srcs.get(c)[I] = 0.
-#    # Set sources with flux=NaN to something more sensible...
-#    I = np.logical_not(np.isfinite(srcs.flux))
-#    srcs.flux[I] = 1.
-#    # Sort sources by flux.
-#    srcs = srcs[np.argsort(-srcs.flux)]
-# 
-#    # Trim sources that are way outside the image.
-#    margin = 8. * np.maximum(srcs.a, srcs.b)
-#    H,W = img.shape
-#    srcs = srcs[(srcs.x > -margin) * (srcs.y > -margin) *
-#                      (srcs.x < (W+margin) * (srcs.y < (H+margin)))]
-#    print 'Trim out-of-bounds:', len(srcs), 'sources left'
-# 
-# 
-#    wcs = tractor.FitsWcs(Sip(imgfn, 1))
-#    #wcs = tractor.NullWCS()
-# 
-#    timg = tractor.Image(data=img, invvar=invvar, psf=mypsf, wcs=wcs,
-#                                   sky=tractor.ConstantSky(0.),
-#                                   photocal=tractor.NullPhotoCal(),
-#                                   name='image')
-# 
-#    inverr = timg.getInvError()
-#    assert(all(np.isfinite(inverr.ravel())))
-# 
-#    tsrcs = []
-#    for s in srcs:
-#          #pos = tractor.PixPos(s.x, s.y)
-#          pos = tractor.RaDecPos(s.ra, s.dec)
-#          if s.a > 0 and s.b > 0:
-#                eflux = tractor.Flux(s.flux / 2.)
-#                dflux = tractor.Flux(s.flux / 2.)
-#                re,ab,phi = s.a, s.b/s.a, 90.-s.theta
-#                eshape = gal.GalaxyShape(re,ab,phi)
-#                dshape = gal.GalaxyShape(re,ab,phi)
-#                print 'Fluxes', eflux, dflux
-#                tsrc = gal.CompositeGalaxy(pos, eflux, eshape, dflux, dshape)
-#          else:
-#                flux = tractor.Flux(s.flux)
-#                print 'Flux', flux
-#                tsrc = tractor.PointSource(pos, flux)
-#          tsrcs.append(tsrc)
-# 
-#    chug = tractor.Tractor([timg])
-#    for src in tsrcs:
-#          if chug.getModelPatch(timg, src) is None:
-#                print 'Dropping non-overlapping source:', src
-#                continue
-#          chug.addSource(src)
-#    print 'Kept a total of', len(chug.catalog), 'sources'
-# 
-#    ima = dict(interpolation='nearest', origin='lower',
-#                   vmin=-3.*sig, vmax=10.*sig)
-#    chia = dict(interpolation='nearest', origin='lower',
-#                      vmin=-5., vmax=5.)
-# 
-#    plt.clf()
-#    plt.imshow(img, **ima)
-#    plt.colorbar()
-#    plt.savefig('img.png')
-# 
-#    plt.clf()
-#    plt.imshow(invvar, interpolation='nearest', origin='lower')
-#    plt.colorbar()
-#    plt.savefig('invvar.png')
-# 
-#    mod = chug.getModelImages()[0]
-#    plt.clf()
-#    plt.imshow(mod, **ima)
-#    plt.colorbar()
-#    plt.savefig('mod-0.png')
-# 
-#    chi = chug.getChiImage(0)
-#    plt.clf()
-#    plt.imshow(chi, **chia)
-#    plt.colorbar()
-#    plt.savefig('chi-0.png')
-# 
-#    for step in range(5):
-#          cat = chug.getCatalog()
-#          for src in cat:
-#                if chug.getModelPatch(timg, src) is None:
-#                      print 'Dropping non-overlapping source:', src
-#                      chug.removeSource(src)
-#          print 'Kept a total of', len(chug.catalog), 'sources'
-# 
-#          #cat = chug.getCatalog()
-#          #for i,src in enumerate([]):
-#          #for i,src in enumerate(chug.getCatalog()):
-#          #for i in range(len(cat)):
-#          i = 0
-#          while i < len(cat):
-#                src = cat[i]
-# 
-#                #print 'Step', i
-#                #for j,s in enumerate(cat):
-#                #     x,y = timg.getWcs().positionToPixel(s, s.getPosition())
-#                #     print '  ',
-#                #     if j == i:
-#                #           print '*',
-#                #     print '(%6.1f, %6.1f)'%(x,y), s
-# 
-#                print 'Optimizing source', i, 'of', len(cat)
-# 
-#                x,y = timg.getWcs().positionToPixel(src, src.getPosition())
-#                print '(%6.1f, %6.1f)'%(x,y), src
-#                # pre = src.getModelPatch(timg)
-# 
-#                s1 = str(src)
-#                print 'src1 ', s1
-#                dlnp1,X,a = chug.optimizeCatalogFluxes(srcs=[src])
-#                s2 = str(src)
-#                dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep(srcs=[src], sky=False)
-#                s3 = str(src)
-# 
-#                #post = src.getModelPatch(timg)
-# 
-#                print 'src1 ', s1
-#                print 'src2 ', s2
-#                print 'src3 ', s3
-#                print 'dlnp', dlnp1, dlnp2
-# 
-#                if chug.getModelPatch(timg, src) is None:
-#                      print 'After optimizing, no overlap!'
-#                      print 'Removing source', src
-#                      chug.removeSource(src)
-#                      i -= 1
-#                i += 1
-# 
-#                # plt.clf()
-#                # plt.subplot(2,2,1)
-#                # img = timg.getImage()
-#                # (x0,x1,y0,y1) = pre.getExtent()
-#                # plt.imshow(img, **ima)
-#                # ax = plt.axis()
-#                # plt.plot([x0,x0,x1,x1,x0], [y0,y1,y1,y0,y0], 'k-', lw=2)
-#                # plt.axis(ax)
-#                # plt.subplot(2,2,3)
-#                # plt.imshow(pre.getImage(), **ima)
-#                # plt.subplot(2,2,4)
-#                # plt.imshow(post.getImage(), **ima)
-#                # plt.savefig('prepost-s%i-s%03i.png' % (step, i))
-#                #
-#                # mod = chug.getModelImages()[0]
-#                # plt.clf()
-#                # plt.imshow(mod, **ima)
-#                # plt.colorbar()
-#                # plt.savefig('mod-s%i-s%03i.png' % (step, i))
-#                # chi = chug.getChiImage(0)
-#                # plt.clf()
-#                # plt.imshow(chi, **chia)
-#                # plt.colorbar()
-#                # plt.savefig('chi-s%i-s%03i.png' % (step, i))
-# 
-# 
-#          #dlnp,x,a = chug.optimizeCatalogFluxes()
-#          #print 'fluxes: dlnp', dlnp
-#          #dlnp,x,a = chug.optimizeCatalogAtFixedComplexityStep()
-#          #print 'opt: dlnp', dlnp
-# 
-#          mod = chug.getModelImages()[0]
-#          plt.clf()
-#          plt.imshow(mod, **ima)
-#          plt.colorbar()
-#          plt.savefig('mod-%i.png' % (step+1))
-# 
-#          chi = chug.getChiImage(0)
-#          plt.clf()
-#          plt.imshow(chi, **chia)
-#          plt.colorbar()
-#          plt.savefig('chi-%i.png' % (step+1))
-# 
-#    return
-# 
-#    for step in range(5):
-#          chug.optimizeCatalogFluxes()
-#          mod = chug.getModelImages()[0]
-#          plt.clf()
-#          plt.imshow(mod, **ima)
-#          plt.colorbar()
-#          plt.savefig('mod-s%i.png' % step)
-# 
-#          chi = chug.getChiImage(0)
-#          plt.clf()
-#          plt.imshow(chi, **chia)
-#          plt.colorbar()
-#          plt.savefig('chi-s%i.png' % step)
-# 
+   # Photometric calibration from PS1 image - Null, because images are 
+   # calibrated to return consistent brightness values.
+   photocal = tractor.NullPhotoCal()
+
+   # Set up sky to be varied:
+   sky = tractor.ConstantSky(0.0)
+
+   # -------------------------------------------------------------------------
+   # Make a first guess at a catalog - 4 point sources. Find centre of 
+   # field using fitsWCS:
+
+   wcs = lensfinder.PS1WCS(hdr)
+   
+   x,y,f = NX/2,NY/2, 100*scirms
+   e = 5 # pixels
+   srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),tractor.Flux(f)),
+           tractor.PointSource(wcs.pixelToPosition(x-e,y),tractor.Flux(f)),
+           tractor.PointSource(wcs.pixelToPosition(x,y+e),tractor.Flux(f)),
+           tractor.PointSource(wcs.pixelToPosition(x,y-e),tractor.Flux(f))]
+
+   # -------------------------------------------------------------------------
+   
+   # Make a tractor Image object out of all this stuff:
+   
+   image = tractor.Image(data=sci, invvar=invvar,
+				 psf=psf, wcs=wcs, sky=sky, photocal=photocal)
+
+   # Start a tractor, and feed it the catalog one src at a time:
+
+   chug = tractor.Tractor([image])
+   for src in srcs:
+      chug.addSource(src)
+   print 'Obtained a total of', len(chug.catalog), 'sources'
+
+   # Freeze all but the PSF, sky and sources:
+   for image in chug.images:
+      image.freezeParams('photocal', 'wcs')
+
+   # Plot:
+   
+   plot_state(chug,'initial')
+   print chug.getParamNames()
+
+   # Optimize one step:
+
+   for i in range(15):
+      dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
+      # dlnp2,X,a = chug.opt2()
+      plot_state(chug,'step-%02d'%i)
+ 
+   # -------------------------------------------------------------------------
+   
+   print "Tractor stopping."
+      
+   return  
+
+# ============================================================================
+
+def plot_state(t,prefix):
+   '''
+   Make all the plots we need to assess the state of the tractor. Mainly, 
+   a multi-panel figure of image, synthetic image and chi, for each image being 
+   modelled.
+   
+   t is a tractor object, containing a list of images.
+   '''
+   
+   px,py = 2,2
+   
+   for i,image in enumerate(t.images):
+      if image.name is None:
+         imname = prefix+str(i)
+      else:
+         imname = image.name
+      scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
+ 
+      ima = dict(interpolation='nearest', origin='lower',
+                     vmin=-3.*scale, vmax=20.*scale)
+      chia = dict(interpolation='nearest', origin='lower',
+                        vmin=-5., vmax=5.)
+      psfa = dict(interpolation='nearest', origin='lower')
+
+      plt.figure(figsize=(5*px+1,5*py))
+      plt.clf()
+      plt.gray
+
+      plt.subplot(py,px,1)
+      plt.imshow(image.data, **ima)
+      plt.colorbar()
+
+      model = t.getModelImages()[i]
+      plt.subplot(py,px,2)
+      plt.imshow(model, **ima)
+      plt.colorbar()
+
+      chi = t.getChiImage(i)
+      plt.subplot(py,px,3)
+      plt.imshow(chi, **chia)
+      plt.colorbar()
+
+      psfimage = image.psf.getPointSourcePatch(*model.shape).patch
+      plt.subplot(py,px,4)
+      plt.imshow(psfimage, **psfa)
+      plt.colorbar()
+
+      plt.savefig(imname+'.png')   
+   
+   return
+
 # ============================================================================
 
 if __name__ == '__main__':
