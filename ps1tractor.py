@@ -113,7 +113,7 @@ def ps1tractor():
       print 'Useful image median pixel uncertainty:', scirms
 
    # -------------------------------------------------------------------------
-   # Make a first guess at a PSF - a single circularly symmettric Gaussian 
+   # Make a first guess at a PSF - a single circularly symmetric Gaussian 
    # defined on same grid as sci image:
 
    w = np.array([1.0])           # amplitude at peak
@@ -123,8 +123,9 @@ def ps1tractor():
       
    # -------------------------------------------------------------------------
 
-   # Photometric calibration from PS1 image - Null, because images are 
-   # calibrated to return consistent brightness values.
+   # Photometric calibration from PS1 image - Null, because we're working in flux
+   # units, not calibrated mags; this corresponds to using tractor.Flux() below
+   # when creating the Source objects.
    photocal = tractor.NullPhotoCal()
 
    # Set up sky to be varied:
@@ -169,26 +170,12 @@ def ps1tractor():
    for i in range(5):
       dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
       plot_state(chug,'step-%02d'%i)
-      
+
    # Optimize everything that is not frozen:
    for i in range(6,10):
       dlnp2,X,a = chug.opt2()
       plot_state(chug,'step-%02d'%i)
       
-   # This gives an error:
-   # opt2: Finding derivs...
-   # Traceback (most recent call last):
-   #   File "ps1tractor.py", line 242, in <module>
-   #     ps1tractor()
-   #   File "ps1tractor.py", line 175, in ps1tractor
-   #     dlnp2,X,a = chug.opt2()
-   #   File "/Users/pjm/work/tractor/tractor/engine.py", line 555, in opt2
-   #     allderivs = self.getderivs2()
-   #   File "/Users/pjm/work/tractor/tractor/engine.py", line 628, in getderivs2
-   #     ims = [self.images[j] for j in imjs]
-   #   File "/Users/pjm/work/tractor/tractor/utils.py", line 434, in __getitem__
-   #     return self.subs.__getitem__(key)   
-     
    # -------------------------------------------------------------------------
    
    print "Tractor stopping."
