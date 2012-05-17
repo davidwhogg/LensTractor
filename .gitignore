@@ -2,4 +2,5 @@
 *.pyc
 *.aux
 *.log
-blob.pdf
+*.png
+*.pdf
