@@ -113,7 +113,7 @@ def ps1tractor():
       print 'Useful image median pixel uncertainty:', scirms
 
    # -------------------------------------------------------------------------
-   # Make a first guess at a PSF - a single circularly symmettric Gaussian 
+   # Make a first guess at a PSF - a single circularly symmetric Gaussian 
    # defined on same grid as sci image:
 
    w = np.array([1.0,1.0])           # amplitude at peak
@@ -123,8 +123,9 @@ def ps1tractor():
       
    # -------------------------------------------------------------------------
 
-   # Photometric calibration from PS1 image - Null, because images are 
-   # calibrated to return consistent brightness values.
+   # Photometric calibration from PS1 image - Null, because we're working in flux
+   # units, not calibrated mags; this corresponds to using tractor.Flux() below
+   # when creating the Source objects.
    photocal = tractor.NullPhotoCal()
 
    # Set up sky to be varied:
@@ -170,12 +171,12 @@ def ps1tractor():
       # dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
       dlnp2,X,a = chug.opt2()
       plot_state(chug,'step-%02d'%i)
-      
+            
    # Freeze the sources and thaw the psfs:
    chug.freezeParam('catalog')
    for image in chug.images:
       image.thawParams('psf')
-      
+
    # Optimize everything that is not frozen:
    for i in range(5,10):
       dlnp2,X,a = chug.opt2()
