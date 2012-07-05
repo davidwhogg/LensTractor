@@ -5,9 +5,10 @@ Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 Description
 -----------
 
-Quasar lens model for lensed quasar detection. Given deflector parameters
+Lens objects for lens detection. Given deflector parameters
 (position,  Einstein radius, gammax, phix), and a source position, solve for
-the 2,3 or 4 images, and make an image patch corresponding to this model.
+the 2,3 or 4 images of a point source lens, and make an image patch 
+corresponding to this model.
 
 To-do
 -----
@@ -15,30 +16,32 @@ To-do
 
 '''
 
+import numpy as np
+
 from tractor.sdss_galaxy import DevGalaxy
 from tractor import *
-from gravitational_len import GravitationalLens
+from gravitational_lensing import GravitationalLens
 
 # ============================================================================
 # Gravitational Lens parameters need to be "Params" objects of some kind.
 
 class EinsteinRadius(ScalarParam):
       def getName(self):
-            return 'Einstein radius in arcsec'
+            return 'Einstein radius'
 
 class ExternalShear(ParamList):
       def getName(self):
-            return 'External shear, magnitude and angle'
+            return 'External shear'
       def getNamedParams(self):
             # gamma: shear magnitude, dimless
             # phi: deg, "E of N", 0=direction of increasing Dec, 90=direction of increasing RA
-            return [('gamma', 0), ('phi', 1)]
+            return dict(gamma=0, phi=1)
       def hashkey(self):
             return ('ExternalShear',) + tuple(self.vals)
       def __repr__(self):
             return 'gamma=%g, phi=%g' % (self.gamma, self.phi)
       def __str__(self):
-            return 'gamma=%.1f, phi=%.1f' % (self.gamma, self.phi)
+            return '%s: gamma=%.1f, phi=%.1f' % (self.getName(), self.gamma, self.phi)
       def copy(self):
             return ExternalShear(*self.vals)
       def getParamNames(self):
@@ -63,14 +66,20 @@ class LensGalaxy(DevGalaxy):
             MultiParams.__init__(self, pos, brightness, shape, Rein, xshear)
             self.name = self.getName()
 
+      def __str__(self):
+            return (self.getName() + ' at ' + str(self.pos)
+                                   + ' with ' + str(self.brightness) 
+                                   + ' and ' + str(self.shape)
+                                   + ' and ' + str(self.Rein)
+                                   + ' and ' + str(self.xshear))
+      
       def getName(self):
             return 'LensGalaxy'
 
       def getNamedParams(self):
-            return [('pos', 0), ('brightness', 1), ('shape', 2),
-                        ('Rein', 3), ('xshear', 4),]
+            return dict(pos=0, brightness=1, shape=2, Rein=3, xshear=4)
 
-      def getLensedImages(self,source)
+      def getLensedImages(self,source):
             '''
             Unpack the parameters and pass to an instance of a
             gravitational lens, and ask for the image positions and fluxes for
@@ -130,11 +139,15 @@ class PointSourceLens(MultiParams):
             # points to them...
             MultiParams.__init__(self, lensgalaxy, pointsource, dmag)
 
+       def __str__(self):
+            return (self.getName() + ' comprising a ' + str(self.lensgalaxy)
+                                   + ' and a ' + str(self.pointsource))
+                                   
        def getName(self):
                return 'PointSourceLens'
 
        def getNamedParams(self):
-               return [('lensgalaxy', 0), ('pointsource', 1), ('dmag', 2)]
+               return dict(lensgalaxy=0, pointsource=1, dmag=2)
 
        def getModelPatch(self,img):
                '''

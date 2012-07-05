@@ -5,7 +5,7 @@ Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 Description
 -----------
 
-Simple lens model for lensed quasar detection. Given deflector parameters (position, 
+Simple lens models for lensed quasar detection. Given deflector parameters (position, 
 Einstein radius, gammax, phix), and a source position, solve for the 2,3 or 4 images, 
 and return image positions and fluxes (and many other things).
 

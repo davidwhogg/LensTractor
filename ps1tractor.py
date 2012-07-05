@@ -41,7 +41,7 @@ from astrometry.util.util import Tan
 from astrometry.util.pyfits_utils import *
 
 import tractor
-from tractor import sdss_galaxy as gal
+from tractor import sdss_galaxy as galaxy
 import lensfinder
 
 # ============================================================================
@@ -167,13 +167,44 @@ def ps1tractor():
    #          tractor.PointSource(wcs.pixelToPosition(x,y+e),tractor.Flux(f)),
    #          tractor.PointSource(wcs.pixelToPosition(x,y-e),tractor.Flux(f))]
    
-   # Lens:
-   x,y,f = NX/2,NY/2, 100*scirms
-   thetaE = 1.5 # arcsec
-   gamma = 0.2 # to make quad
-   phi   = 0.0 # degrees
+   # Source:
+   xs,ys, ms = 0.5*NX, 0.5*NY, tractor.Mag(21.0)
+   print ms
+   sourcepos = wcs.pixelToPosition(xs,ys)
+   print sourcepos
    
-   srcs = [tractor.PointSourceLens(wcs.pixelToPosition(x,y),tractor.Flux(f))]
+   pointsource = tractor.PointSource(sourcepos,ms)
+   print pointsource
+   
+   # Lens mass:
+   thetaE = lensfinder.EinsteinRadius(1.5) # arcsec
+   print thetaE
+   gamma = 0.2 # to make quad
+   phi   = 0.0 # deg
+   xshear = lensfinder.ExternalShear(gamma,phi)
+   print xshear
+   
+   # Lens light:
+   x,y = 0.5*NX,0.5*NY
+   lenspos = wcs.pixelToPosition(x,y)
+   md = tractor.Mag(20.0)
+   print md
+   re = 1.0  # arcsec
+   q = 1.0   # axis ratio
+   theta = 0.0 # degrees
+   galshape = galaxy.GalaxyShape(re,q,theta)
+   print galshape
+      
+   lensgalaxy = lensfinder.LensGalaxy(lenspos,md,galshape,thetaE,xshear)
+   print lensgalaxy
+   
+   psl = lensfinder.PointSourceLens(lensgalaxy, pointsource)
+   print psl
+   
+   assert False
+   
+   # srcs = [psl]
+
 
    # -------------------------------------------------------------------------
    
