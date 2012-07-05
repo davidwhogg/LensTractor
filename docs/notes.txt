@@ -26,3 +26,11 @@ python ps1tractor.py -v \
 # PSF also not being initialised correctly, opt2 assigns its own?
 
 # ========================================================================================
+# 2012-07-05 (Thursday) 14:05 CEST
+
+# Replace 4 point srcs with 1 LensedPointSource, and optimize that. Need
+# to create class, and work on getModelPatch.
+
+
+
+# ========================================================================================

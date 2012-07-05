@@ -24,7 +24,7 @@ from gravitational_len import GravitationalLens
 
 class EinsteinRadius(ScalarParam):
       def getName(self):
-            return 'Einstein radius in pixels'
+            return 'Einstein radius in arcsec'
 
 class ExternalShear(ParamList):
       def getName(self):
@@ -111,9 +111,9 @@ class LensGalaxy(DevGalaxy):
 
 # ============================================================================
 
-class QuasarLens(MultiParams):
+class PointSourceLens(MultiParams):
        '''
-       QuasarLens is a composite object consisting of a LensGalaxy [that has
+       PointSourceLens is a composite object consisting of a LensGalaxy [that has
        both light (Galaxy) and mass (GravitationalLens)], and a virtual Point
        Source behind it. The lensed image positions are determined by the
        lensing deflection; the magnified fluxes need to be perturbed in order
@@ -123,29 +123,29 @@ class QuasarLens(MultiParams):
        initially set  to unity.
        '''
 
-       def __init__(self, lensgalaxy, source):
+       def __init__(self, lensgalaxy, pointsource):
             dmag = ParamList(np.zeros(4))
             # The next line fails if MultiParams.__init__ *copies*
-            # self.lensgalaxy, self.source and self.dmag rather than points to
-            # them...
-            MultiParams.__init__(self, lensgalaxy, source, dmag)
+            # self.lensgalaxy, self.pointsource and self.dmag rather than 
+            # points to them...
+            MultiParams.__init__(self, lensgalaxy, pointsource, dmag)
 
        def getName(self):
-               return 'QuasarLens'
+               return 'PointSourceLens'
 
        def getNamedParams(self):
-               return [('lensgalaxy', 0), ('source', 1), ('dmag', 2)]
+               return [('lensgalaxy', 0), ('pointsource', 1), ('dmag', 2)]
 
        def getModelPatch(self,img):
                '''
-               Render the image of the quasarlens on the image grid provided.
+               Render the image of the PointSourceLens on the image grid provided.
                '''
                # Lens galaxy:
                patch = self.lensgalaxy.getModelPatch(img)
                
                # Solve the lens equation to get the image positions and fluxes.
                # Note: images are returned time-ordered:
-               imagepositions, imagefluxes = self.lensgalaxy.getLensedImages(self.source)
+               imagepositions, imagefluxes = self.lensgalaxy.getLensedImages(self.pointsource)
                               
                # Add point image patches to the patch, applying dmags:
                for i,(imageposition,imageflux) in enumerate(zip(imagepositions,imagefluxes)):

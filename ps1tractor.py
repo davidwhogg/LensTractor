@@ -159,12 +159,21 @@ def ps1tractor():
 
    wcs = lensfinder.PS1WCS(hdr)
    
+   # Test: 4 point sources:
+   #  x,y,f = NX/2,NY/2, 100*scirms
+   #  e = 1 # pixels
+   #  srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),tractor.Flux(f)),
+   #          tractor.PointSource(wcs.pixelToPosition(x-e,y),tractor.Flux(f)),
+   #          tractor.PointSource(wcs.pixelToPosition(x,y+e),tractor.Flux(f)),
+   #          tractor.PointSource(wcs.pixelToPosition(x,y-e),tractor.Flux(f))]
+   
+   # Lens:
    x,y,f = NX/2,NY/2, 100*scirms
-   e = 1 # pixels
-   srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),tractor.Flux(f)),
-           tractor.PointSource(wcs.pixelToPosition(x-e,y),tractor.Flux(f)),
-           tractor.PointSource(wcs.pixelToPosition(x,y+e),tractor.Flux(f)),
-           tractor.PointSource(wcs.pixelToPosition(x,y-e),tractor.Flux(f))]
+   thetaE = 1.5 # arcsec
+   gamma = 0.2 # to make quad
+   phi   = 0.0 # degrees
+   
+   srcs = [tractor.PointSourceLens(wcs.pixelToPosition(x,y),tractor.Flux(f))]
 
    # -------------------------------------------------------------------------
    
@@ -176,7 +185,7 @@ def ps1tractor():
    # Optimization plan:
    
    Nsteps_optimizing_catalog = 20
-   Nsteps_optimizing_PSFs = 5
+   Nsteps_optimizing_PSFs = 0 # To save time.
 
    # Start a tractor, and feed it the catalog one src at a time:
 
