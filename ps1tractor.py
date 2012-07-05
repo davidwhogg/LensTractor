@@ -16,11 +16,19 @@ Example use
     examples/H1413+117_10x10arcsec_55377.34051_z_sci.fits \
     examples/H1413+117_10x10arcsec_55377.34051_z_var.fits
 
+Bugs
+----
+
+ BUG: PSF not being optimized correctly - missing derivatives?
+
 '''
 
 if __name__ == '__main__':
-      import matplotlib
-      matplotlib.use('Agg')
+   import matplotlib
+   matplotlib.use('Agg')
+   # Fonts, latex:
+   matplotlib.rc('font',**{'family':'serif', 'serif':['TimesNewRoman'], 'size':18.0})
+   matplotlib.rc('text', usetex=True)
 
 import os
 import logging
@@ -67,6 +75,9 @@ def ps1tractor():
    logging.basicConfig(level=lvl, format='%(message)s', stream=sys.stdout)
 
    # -------------------------------------------------------------------------
+   
+   name = scifile.replace('_sci.fits','')
+   
    # Get sci and wht images, and make mask:
    
    hdulist = pyfits.open(scifile)
@@ -104,6 +115,7 @@ def ps1tractor():
    
    # Report on progress so far:
    if opt.verbose:
+      print 'Image name:', name
       print 'Sci header:', hdr
       print 'Read in sci image:', sci.shape, sci
       print 'Read in var image:', var.shape, var
@@ -116,10 +128,20 @@ def ps1tractor():
    # Make a first guess at a PSF - a single circularly symmetric Gaussian 
    # defined on same grid as sci image:
 
-   w = np.array([1.0,1.0])           # amplitude at peak
-   mu = np.array([[0.0,0.0],[0.0,0.0]])      # centroid position in pixels 
-   cov = np.array([[[1.0,0.0],[0.0,1.0]],[[9.0,0.0],[0.0,9.0]]])             # pixels^2, variance matrices
+   w = np.array([1.0])             # amplitude at peak
+   mu = np.array([[0.0,0.0]])      # centroid position in pixels 
+   FWHM = 4 # pixels
+   var = (FWHM/2.35)**2.0
+   cov = np.array([[[var,0.0],[0.0,var]]])  # pixels^2, variance matrix
    psf = tractor.GaussianMixturePSF(w,mu,cov)
+      
+   # # Double Gaussian alternative:
+   # w = np.array([1.0,1.0])           # amplitude at peak
+   # mu = np.array([[0.0,0.0],[0.0,0.0]])      # centroid position in pixels 
+   # FWHM = 7 # pixels
+   # var = (FWHM/2.35)**2.0
+   # cov = np.array([[[1.0,0.0],[0.0,1.0]],[[var,0.0],[0.0,var]]])  # pixels^2, variance matrices
+   # psf = tractor.GaussianMixturePSF(w,mu,cov)
       
    # -------------------------------------------------------------------------
 
@@ -138,7 +160,7 @@ def ps1tractor():
    wcs = lensfinder.PS1WCS(hdr)
    
    x,y,f = NX/2,NY/2, 100*scirms
-   e = 5 # pixels
+   e = 1 # pixels
    srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),tractor.Flux(f)),
            tractor.PointSource(wcs.pixelToPosition(x-e,y),tractor.Flux(f)),
            tractor.PointSource(wcs.pixelToPosition(x,y+e),tractor.Flux(f)),
@@ -148,42 +170,54 @@ def ps1tractor():
    
    # Make a tractor Image object out of all this stuff:
    
-   image = tractor.Image(data=sci, invvar=invvar,
+   initimage = tractor.Image(data=sci, invvar=invvar, name=name,
 				 psf=psf, wcs=wcs, sky=sky, photocal=photocal)
+
+   # Optimization plan:
+   
+   Nsteps_optimizing_catalog = 20
+   Nsteps_optimizing_PSFs = 5
 
    # Start a tractor, and feed it the catalog one src at a time:
 
-   chug = tractor.Tractor([image])
+   chug = tractor.Tractor([initimage])
    for src in srcs:
       chug.addSource(src)
    print 'Obtained a total of', len(chug.catalog), 'sources'
 
-   # Freeze all but the PSF, sky and sources:
-   for image in chug.images:
-      image.freezeParams('photocal', 'wcs', 'psf')
-
    # Plot:
-   plot_state(chug,'initial')
-   print chug.getParamNames()
+   plot_state(chug,'progress_initial')
 
-   # Optimize sources with small initial PSF:
-   for i in range(5):
+   # Freeze the PSF, sky and photocal, leaving the sources:
+   print "DEBUGGING: Before freezing, PSF = ",chug.getImage(0).psf
+   for image in chug.getImages():
+      image.freezeParams('photocal', 'wcs', 'psf')
+   print "DEBUGGING: After freezing, PSF = ",chug.getImage(0).psf
+   print "DEBUGGING: pars to be optimized are:",chug.getParamNames()
+
+   # Optimize sources with initial PSF:
+   for i in range(Nsteps_optimizing_catalog):
       # dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
-      dlnp2,X,a = chug.opt2()
-      plot_state(chug,'step-%02d'%i)
-            
+      dlnp2,X,a = chug.optimize()
+      plot_state(chug,'progress_optimizing-catalog_step-%02d'%i)
+      print "DEBUGGING: pars being optimized are:",chug.getParamNames()
+                  
    # Freeze the sources and thaw the psfs:
+   print "DEBUGGING: Before thawing, PSF = ",chug.getImage(0).psf
    chug.freezeParam('catalog')
-   for image in chug.images:
+   for image in chug.getImages():
       image.thawParams('psf')
+   print "DEBUGGING: After thawing, PSF = ",chug.getImage(0).psf
+   print "DEBUGGING: pars to be optimized are:",chug.getParamNames()
 
    # Optimize everything that is not frozen:
-   for i in range(5,10):
-      dlnp2,X,a = chug.opt2()
-      plot_state(chug,'step-%02d'%i)
-#       # Print PSF parameters:
-#       print chug.images[0].psf
-      # PSF not being optimized correctly
+   for i in range(Nsteps_optimizing_catalog,Nsteps_optimizing_catalog+Nsteps_optimizing_PSFs):
+      dlnp2,X,a = chug.optimize()
+      plot_state(chug,'progress_optimizing-psf_step-%02d'%i)
+      print "DEBUGGING: pars being optimized are:",chug.getParamNames()
+   
+   print "DEBUGGING: After optimizing, PSF = ",chug.getImage(0).psf
+   # BUG: PSF not being optimized correctly - missing derivatives?
       
    # -------------------------------------------------------------------------
    
@@ -193,7 +227,7 @@ def ps1tractor():
 
 # ============================================================================
 
-def plot_state(t,prefix):
+def plot_state(t,suffix):
    '''
    Make all the plots we need to assess the state of the tractor. Mainly, 
    a multi-panel figure of image, synthetic image and chi, for each image being 
@@ -203,45 +237,70 @@ def plot_state(t,prefix):
    '''
    
    px,py = 2,2
+   figprops = dict(figsize=(5*px,5*py), dpi=128)                                          # Figure properties
+   adjustprops = dict(\
+      left=0.05,\
+      bottom=0.05,\
+      right=0.95,\
+      top=0.95,\
+      wspace=0.1,\
+      hspace=0.1)
+        
    
    for i,image in enumerate(t.images):
       if image.name is None:
-         imname = prefix+str(i)
+         imname = suffix+str(i)
       else:
          imname = image.name
       scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
  
       ima = dict(interpolation='nearest', origin='lower',
-                     vmin=-3.*scale, vmax=20.*scale)
+                     vmin=-30.*scale, vmax=3.*scale)
       chia = dict(interpolation='nearest', origin='lower',
                         vmin=-5., vmax=5.)
       psfa = dict(interpolation='nearest', origin='lower')
 
-      plt.figure(figsize=(5*px+1,5*py))
+      fig = plt.figure(**figprops)
+      fig.subplots_adjust(**adjustprops)
       plt.clf()
-      plt.gray
+      plt.gray()
 
       plt.subplot(py,px,1)
-      plt.imshow(image.data, **ima)
-      plt.colorbar()
+      plt.imshow(-image.data, **ima)
+      # plt.colorbar()
+      tidyup_plot()
+      plt.title('Observed image')
 
       model = t.getModelImages()[i]
       plt.subplot(py,px,2)
-      plt.imshow(model, **ima)
-      plt.colorbar()
+      plt.imshow(-model, **ima)
+      # plt.colorbar()
+      tidyup_plot()
+      plt.title('Predicted image')
 
       chi = t.getChiImage(i)
       plt.subplot(py,px,3)
-      plt.imshow(chi, **chia)
-      plt.colorbar()
+      plt.imshow(-chi, **chia)
+      # plt.colorbar()
+      tidyup_plot()
+      plt.title('Residuals ($\pm 5\sigma$)')
 
       psfimage = image.psf.getPointSourcePatch(*model.shape).patch
       plt.subplot(py,px,4)
-      plt.imshow(psfimage, **psfa)
-      plt.colorbar()
+      plt.imshow(-psfimage, **psfa)
+      # plt.colorbar()
+      tidyup_plot()
+      plt.title('PSF')
 
-      plt.savefig(imname+'.png')   
+      plt.savefig(imname+'_'+suffix+'.png')   
    
+   return
+
+def tidyup_plot():
+   # Turn off the axis ticks and labels:
+   ax = plt.gca()
+   ax.xaxis.set_ticks([])
+   ax.yaxis.set_ticks([])
    return
 
 # ============================================================================

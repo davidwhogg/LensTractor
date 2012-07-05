@@ -16,4 +16,13 @@
 # Started data_management, onepoint modules to try and deal with 
 # PS1 data, tractor style.
 
+# Test program - fit 4 point sources, and the PSF, to one image:
+
+python ps1tractor.py -v \
+    examples/H1413+117_10x10arcsec_55377.34051_z_sci.fits \
+    examples/H1413+117_10x10arcsec_55377.34051_z_var.fits
+
+# Results: PSF not optimized correctly positions of point sources are close.
+# PSF also not being initialised correctly, opt2 assigns its own?
+
 # ========================================================================================
