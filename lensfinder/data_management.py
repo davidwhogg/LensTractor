@@ -17,8 +17,9 @@ Record key statistics in easily-parsed log files.]
 import numpy as np
 import os,glob,string
 
-import astrometry
-from tractor import *
+from astrometry.util.util import *
+import tractor
+import lensfinder
 
 vb = True
 
@@ -160,68 +161,62 @@ class deck:
 def PS1WCS(hdr):
       '''
       Return a WCS object initialised from a PS1 file header.
+      WARNING: PC matrix not being used, determinant may be wrong sign...
+      Need to check with literature image of H1413
       '''
-      t = astrometry.util.util.Tan()
+      t = Tan()
       t.set_crpix(hdr['CRPIX1'], hdr['CRPIX2'])
       t.set_crval(hdr['CRVAL1'], hdr['CRVAL2'])
       t.set_cd(hdr['CDELT1'], 0., 0., hdr['CDELT2'])
       t.set_imagesize(hdr['NAXIS1'], hdr['NAXIS2'])
       
-      return FitsWcs(t)
+      return tractor.FitsWcs(t)
          
 # ============================================================================
 
-class LocalWCS(WCS):
+def LensPlaneWCS(pos):
       '''
       The "local" WCS -- useful when you need to work on the sky, but in
-      small offsets from RA,Dec in arcsec. Initialisation is with the
+      small offsets from RA, Dec in arcsec. Initialisation is with the
       coordinates of the central pixel, which is set to be the origin of
-      the "pixel coordinate" system.
+      the "pixel coordinate" system. Return a WCS object.
       '''
-      def __init__(self, pos, pixscale=1.0):
-            self.x0 = 0.0
-            self.y0 = 0.0
-            self.ra = pos.ra
-            self.dec = pos.dec
-            self.pixscale = pixscale
-
-      def cdAtPixel(self, x, y):
-            return np.array([[1.0,0.0],[0.0,1.0]]) * self.pixscale / 3600.
-
-      def hashkey(self):
-            return ('LocalWCS', self.x0, self.y0, self.wcs)
-
-      def __str__(self):
-            return ('LocalWCS: x0,y0 %.3f,%.3f, WCS ' % (self.x0,self.y0)
-                        + str(self.wcs))
-
-      def setX0Y0(self, x0, y0):
-            self.x0 = x0
-            self.y0 = y0
-
-      def positionToPixel(self, src, pos):
-            # ok,x,y = self.wcs.radec2pixelxy(pos.ra, pos.dec)
-            X = self.wcs.radec2pixelxy(pos.ra, pos.dec)
-            if len(X) == 3:
-                  ok,x,y = X
-            else:
-                  assert(len(X) == 2)
-                  x,y = X
-            return x-self.x0, y-self.y0
-
-      def pixelToPosition(self, src, xy):
-            (x,y) = xy
-            r,d = self.wcs.pixelxy2radec(x + self.x0, y + self.y0)
-            return RaDecPos(r,d)
+      
+      onearcsec = 1.0/3600.0
+      
+      return tractor.FitsWcs(Tan(pos.ra,pos.dec,1.0,1.0,-onearcsec,0.0,0.0,onearcsec,0,0))
 
 
 # ============================================================================
 
 if __name__ == '__main__':
 
-# Basic test on lensfinder examples dir:
+  
+   if True:
+   # Basic test on lensfinder examples dir:
 
-    folder = os.environ['LENSFINDER_DIR']+'/examples'
-    postcards = deck(folder)
+      folder = os.environ['LENSFINDER_DIR']+'/examples'
+      postcards = deck(folder)
 
+
+   if False:
+   # Testing LensPlaneWCS:
+      
+      ra,dec = 310.0,0.0
+      pos = tractor.RaDecPos(ra,dec)
+      
+      lenswcs = lensfinder.LensPlaneWCS(pos)
+      
+      print lenswcs
+      
+      dt = 1/360.0
+      print lenswcs.positionToPixel(tractor.RaDecPos(ra, dec))
+      print lenswcs.positionToPixel(tractor.RaDecPos(ra+dt, dec))
+      print lenswcs.positionToPixel(tractor.RaDecPos(ra-dt, dec))
+      print lenswcs.positionToPixel(tractor.RaDecPos(ra, dec+dt))
+      print lenswcs.positionToPixel(tractor.RaDecPos(ra, dec-dt))
+             
+      
+      
+      
 # ============================================================================

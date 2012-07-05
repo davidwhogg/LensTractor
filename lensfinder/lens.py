@@ -20,7 +20,9 @@ import numpy as np
 
 from tractor.sdss_galaxy import DevGalaxy
 from tractor import *
-from gravitational_lensing import GravitationalLens
+
+import lensfinder
+
 
 # ============================================================================
 # Gravitational Lens parameters need to be "Params" objects of some kind.
@@ -86,27 +88,26 @@ class LensGalaxy(DevGalaxy):
             the given source. The source is a `PointSource` object.
             '''
             # Unpack the lens:
-            lensRein = self.Rein
-            lensgamma = self.gamma
-            lensphi = np.deg2rad(self.phi) # lens solver expects radians.
+            lensRein = self.Rein.getValue()
+            lensgamma = self.xshear[0]
+            lensphi = np.deg2rad(self.xshear[0]) # lens solver expects radians.
             
             # Define a "trivial" coordinate system, centred on the lens, that
             # has 1 arcsec "pixels":
-            wcs = LocalWCS(self.pos) # Needs a new tractor class? Or inherit NullWCS
-            lensposition = (0.0,0.0) # in trivial WCS
+            lenswcs = lensfinder.LensPlaneWCS(self.pos) # Trivial tangent plane wcs, 1" pixels, N up
+            lenspixelpos = (0.0,0.0)                    # in Lens Plane WCS
             
             # Unpack the source and convert position into trivial 
             # tangent-plane coordinates:
-            sourceposition = wcs.positionToPixel(source.getPosition())
-            sourceflux = source.getBrightness()
+            sourcepixelpos = np.array(lenswcs.positionToPixel(source.getPosition()))
             
             # Instantiate the gravitational lens:
-            SISX = GravitationalLens(lensposition,lensRein,lensgamma,lensphi)
+            SISX = lensfinder.GravitationalLens(lenspixelpos,lensRein,lensgamma,lensphi)
             
             # Solve for image positions and fluxes:
             fail,keepgoing = False,True
-            imagepositions,fail = SISX.image_positions(sourceposition,keepgoing)
-            imagefluxes = sourceflux*SISX.magnifications(imagepositions)
+            imagepixelpos,fail = SISX.image_positions(sourcepixelpos,keepgoing)
+            imagemagnifications = SISX.magnifications(imagepixelpos)
 
             # What to do when solver fails? 0.07% of the time...
             # Answer - deal with it. One or two images will be incorrectly 
@@ -114,9 +115,9 @@ class LensGalaxy(DevGalaxy):
             if fail: pass 
 
             # Convert image positions back to sky:
-            imagepositions = wcs.pixelToPosition(imagepositions)
-            
-            return imagepositions, imagefluxes
+            imagepositions = [lenswcs.pixelToPosition(p[0],p[1]) for p in imagepixelpos]
+                        
+            return imagepositions, imagemagnifications
 
 # ============================================================================
 
@@ -133,11 +134,18 @@ class PointSourceLens(MultiParams):
        '''
 
        def __init__(self, lensgalaxy, pointsource):
-            dmag = ParamList(np.zeros(4))
+#             dmag = ParamList(np.zeros(4))
             # The next line fails if MultiParams.__init__ *copies*
             # self.lensgalaxy, self.pointsource and self.dmag rather than 
             # points to them...
-            MultiParams.__init__(self, lensgalaxy, pointsource, dmag)
+#             MultiParams.__init__(self, lensgalaxy, pointsource, dmag)
+            MultiParams.__init__(self, lensgalaxy, pointsource)
+            
+            # Create 4 local cached PointSource instances for the purpose of 
+            # patch-making later:
+            pointsourcecache = [pointsource.copy() for i in range(4)]
+          
+            return
 
        def __str__(self):
             return (self.getName() + ' comprising a ' + str(self.lensgalaxy)
@@ -147,7 +155,8 @@ class PointSourceLens(MultiParams):
                return 'PointSourceLens'
 
        def getNamedParams(self):
-               return dict(lensgalaxy=0, pointsource=1, dmag=2)
+#                return dict(lensgalaxy=0, pointsource=1, dmag=2)
+               return dict(lensgalaxy=0, pointsource=1)
 
        def getModelPatch(self,img):
                '''
@@ -158,12 +167,15 @@ class PointSourceLens(MultiParams):
                
                # Solve the lens equation to get the image positions and fluxes.
                # Note: images are returned time-ordered:
-               imagepositions, imagefluxes = self.lensgalaxy.getLensedImages(self.pointsource)
+               imagepositions, imagemagnifications = self.lensgalaxy.getLensedImages(self.pointsource)
                               
                # Add point image patches to the patch, applying dmags:
-               for i,(imageposition,imageflux) in enumerate(zip(imagepositions,imagefluxes)):
-                  thisimageflux = imageflux * np.exp(dmag[i])
-                  patch += PointSource(imageposition,thisimageflux).getModelPatch(img)
+               for i,(imageposition,imagemagnification) in enumerate(zip(imagepositions,imagemagnifications)):
+                  # Recall: pointsourcecache is a list of 4 pointsource instances, to be pointed at.
+                  PS = pointsourcecache[i]
+                  PS.setPosition(imageposition)
+                  PS.setBrightness(self.pointsource.getBrightness.magnify(imagemagnification))
+                  patch += PS.getModelPatch(img)
 
                return patch
 

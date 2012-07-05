@@ -168,7 +168,7 @@ def ps1tractor():
    #          tractor.PointSource(wcs.pixelToPosition(x,y-e),tractor.Flux(f))]
    
    # Source:
-   xs,ys, ms = 0.5*NX, 0.5*NY, tractor.Mag(21.0)
+   xs,ys, ms = 0.5*NX, 0.5*NY, tractor.Mags(z=21.0)
    print ms
    sourcepos = wcs.pixelToPosition(xs,ys)
    print sourcepos
@@ -187,7 +187,7 @@ def ps1tractor():
    # Lens light:
    x,y = 0.5*NX,0.5*NY
    lenspos = wcs.pixelToPosition(x,y)
-   md = tractor.Mag(20.0)
+   md = tractor.Mags(z=20.0)
    print md
    re = 1.0  # arcsec
    q = 1.0   # axis ratio
@@ -200,11 +200,8 @@ def ps1tractor():
    
    psl = lensfinder.PointSourceLens(lensgalaxy, pointsource)
    print psl
-   
-   assert False
-   
-   # srcs = [psl]
-
+      
+   srcs = [psl]
 
    # -------------------------------------------------------------------------
    
