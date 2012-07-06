@@ -1,5 +1,5 @@
 '''
-This file is part of the LensFinder project.
+This file is part of the lenstractor project.
 Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 
 Description
@@ -18,21 +18,20 @@ To-do
 
 import numpy as np
 
-from tractor.sdss_galaxy import DevGalaxy
-from tractor import *
 from astrometry.util import util
 
-import lensfinder
+import tractor
+import lenstractor
 
 
 # ============================================================================
 # Gravitational Lens parameters need to be "Params" objects of some kind.
 
-class EinsteinRadius(ScalarParam):
+class EinsteinRadius(tractor.ScalarParam):
       def getName(self):
             return 'Einstein radius'
 
-class ExternalShear(ParamList):
+class ExternalShear(tractor.ParamList):
       def getName(self):
             return 'External shear'
       def getNamedParams(self):
@@ -57,7 +56,7 @@ class ExternalShear(ParamList):
 #  - deV galaxy
 #  - SIS + shear mass distribution to act as a gravitational lens
 
-class LensGalaxy(DevGalaxy):
+class LensGalaxy(tractor.sdss_galaxy.DevGalaxy):
       '''
       A LensGalaxy has mass, and emits light. Initialise with a position,
       brightness and shape for the Galaxy (which is assumed to have a De 
@@ -66,7 +65,7 @@ class LensGalaxy(DevGalaxy):
       '''
 
       def __init__(self, pos, brightness, shape, Rein, xshear):
-            MultiParams.__init__(self, pos, brightness, shape, Rein, xshear)
+            tractor.MultiParams.__init__(self, pos, brightness, shape, Rein, xshear)
             self.name = self.getName()
 
       def __str__(self):
@@ -95,7 +94,7 @@ class LensGalaxy(DevGalaxy):
             
             # Define a "trivial" coordinate system, centred on the lens, that
             # has 1 arcsec "pixels":
-            lenswcs = lensfinder.LensPlaneWCS(self.pos) # Trivial tangent plane wcs, 1" pixels, N up
+            lenswcs = lenstractor.LensPlaneWCS(self.pos) # Trivial tangent plane wcs, 1" pixels, N up
             lenspixelpos = (0.0,0.0)                    # in Lens Plane WCS
             
             # Unpack the source and convert position into trivial 
@@ -103,7 +102,7 @@ class LensGalaxy(DevGalaxy):
             sourcepixelpos = np.array(lenswcs.positionToPixel(source.getPosition()))
             
             # Instantiate the gravitational lens:
-            SISX = lensfinder.GravitationalLens(lenspixelpos,lensRein,lensgamma,lensphi)
+            SISX = lenstractor.GravitationalLens(lenspixelpos,lensRein,lensgamma,lensphi)
             
             # Solve for image positions and fluxes:
             fail,keepgoing = False,True
@@ -122,7 +121,7 @@ class LensGalaxy(DevGalaxy):
 
 # ============================================================================
 
-class PointSourceLens(MultiParams):
+class PointSourceLens(tractor.MultiParams):
        '''
        PointSourceLens is a composite object consisting of a LensGalaxy [that has
        both light (Galaxy) and mass (GravitationalLens)], and a virtual Point
@@ -140,7 +139,7 @@ class PointSourceLens(MultiParams):
             # self.lensgalaxy, self.pointsource and self.dmag rather than 
             # points to them...
 #             MultiParams.__init__(self, lensgalaxy, pointsource, dmag)
-            MultiParams.__init__(self, lensgalaxy, pointsource)
+            tractor.MultiParams.__init__(self, lensgalaxy, pointsource)
             
             # Create 4 local cached PointSource instances for the purpose of 
             # patch-making later:
@@ -196,7 +195,7 @@ def LensPlaneWCS(pos):
       
       onearcsec = 1.0/3600.0
       
-      return FitsWcs(util.Tan(pos.ra,pos.dec,1.0,1.0,-onearcsec,0.0,0.0,onearcsec,0,0))
+      return tractor.FitsWcs(util.Tan(pos.ra,pos.dec,1.0,1.0,-onearcsec,0.0,0.0,onearcsec,0,0))
 
 
 # ============================================================================

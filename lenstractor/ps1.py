@@ -1,26 +1,25 @@
 # ============================================================================
 
 '''
-This file is part of the LensFinder project.
+This file is part of the lenstractor project.
 Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 
 Description
 -----------
 
-Data management classes and functions *for the PS1 survey*. RENAME!
-Read in a deck of postcard images in
-FITS files, match them up and return an array of tractor image data
-structures. [Write out model images, residuals etc with sensible filenames.
-Record key statistics in easily-parsed log files.]
+Data management classes and functions for the PS1 survey.
 
+* Read in a deck of postcard images in FITS files, match them up and return an 
+  array of tractor image data structures. 
+* Manipulate PS1 FITS image headers, WCS and photo cal items.
 '''
 
 import numpy as np
 import os,glob,string
 
-from astrometry.util.util import *
+from astrometry.util import util
 import tractor
-import lensfinder
+import lenstractor
 
 vb = True
 
@@ -165,7 +164,7 @@ def PS1WCS(hdr):
       WARNING: PC matrix not being used, determinant may be wrong sign...
       Need to check with literature image of H1413
       '''
-      t = Tan()
+      t = util.Tan()
       t.set_crpix(hdr['CRPIX1'], hdr['CRPIX2'])
       t.set_crval(hdr['CRVAL1'], hdr['CRVAL2'])
       t.set_cd(hdr['CDELT1'], 0., 0., hdr['CDELT2'])
@@ -217,9 +216,9 @@ if __name__ == '__main__':
 
   
    if True:
-   # Basic test on lensfinder examples dir:
+   # Basic test on lenstractor examples dir:
 
-      folder = os.environ['LENSFINDER_DIR']+'/examples'
+      folder = os.environ['lenstractor_DIR']+'/examples'
       postcards = deck(folder)
 
 
@@ -229,7 +228,7 @@ if __name__ == '__main__':
       ra,dec = 310.0,0.0
       pos = tractor.RaDecPos(ra,dec)
       
-      lenswcs = lensfinder.LensPlaneWCS(pos)
+      lenswcs = lenstractor.LensPlaneWCS(pos)
       
       print lenswcs
       

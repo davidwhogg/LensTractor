@@ -1,5 +1,5 @@
 '''
-This file is part of the LensFinder project.
+This file is part of the lenstractor project.
 Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 
 Description
@@ -37,12 +37,11 @@ import pylab as plt
 import pyfits
 
 from astrometry.util.file import *
-from astrometry.util.util import Tan
+from astrometry.util import util
 from astrometry.util.pyfits_utils import *
 
 import tractor
-from tractor import sdss_galaxy as galaxy
-import lensfinder
+import lenstractor
 
 # ============================================================================
 
@@ -152,7 +151,7 @@ def ps1tractor():
 
    band = hdr['HIERARCH FPA.FILTER'][0]
    zpt = hdr['HIERARCH FPA.ZP']
-   photocal = lensfinder.PS1MagsPhotoCal(zpt,band)
+   photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
    print photocal
 
    # Set up sky to be varied:
@@ -163,7 +162,7 @@ def ps1tractor():
    # Make a first guess at a catalog - 4 point sources. Find centre of 
    # field using fitsWCS:
 
-   wcs = lensfinder.PS1WCS(hdr)
+   wcs = lenstractor.PS1WCS(hdr)
    print wcs
    
    # Test: 4 point sources:
@@ -184,11 +183,11 @@ def ps1tractor():
    print pointsource
    
    # Lens mass:
-   thetaE = lensfinder.EinsteinRadius(0.75) # arcsec
+   thetaE = lenstractor.EinsteinRadius(0.75) # arcsec
    print thetaE
    gamma = 0.2 # to make quad
    phi   = 0.0 # deg
-   xshear = lensfinder.ExternalShear(gamma,phi)
+   xshear = lenstractor.ExternalShear(gamma,phi)
    print xshear
    
    # Lens light:
@@ -199,13 +198,13 @@ def ps1tractor():
    re = 1.0  # arcsec
    q = 1.0   # axis ratio
    theta = 0.0 # degrees
-   galshape = galaxy.GalaxyShape(re,q,theta)
+   galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
    print galshape
       
-   lensgalaxy = lensfinder.LensGalaxy(lenspos,md,galshape,thetaE,xshear)
+   lensgalaxy = lenstractor.LensGalaxy(lenspos,md,galshape,thetaE,xshear)
    print lensgalaxy
    
-   psl = lensfinder.PointSourceLens(lensgalaxy, pointsource)
+   psl = lenstractor.PointSourceLens(lensgalaxy, pointsource)
    print psl
       
    srcs = [psl]
