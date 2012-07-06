@@ -20,6 +20,7 @@ import numpy as np
 
 from tractor.sdss_galaxy import DevGalaxy
 from tractor import *
+from astrometry.util import util
 
 import lensfinder
 
@@ -143,7 +144,7 @@ class PointSourceLens(MultiParams):
             
             # Create 4 local cached PointSource instances for the purpose of 
             # patch-making later:
-            pointsourcecache = [pointsource.copy() for i in range(4)]
+            self.pointsourcecache = [pointsource.copy() for i in range(4)]
           
             return
 
@@ -172,15 +173,30 @@ class PointSourceLens(MultiParams):
                # Add point image patches to the patch, applying dmags:
                for i,(imageposition,imagemagnification) in enumerate(zip(imagepositions,imagemagnifications)):
                   # Recall: pointsourcecache is a list of 4 pointsource instances, to be pointed at.
-                  PS = pointsourcecache[i]
+                  PS = self.pointsourcecache[i]
                   PS.setPosition(imageposition)
-                  PS.setBrightness(self.pointsource.getBrightness.magnify(imagemagnification))
+                  PS.setBrightness(self.pointsource.getBrightness()*imagemagnification)
                   patch += PS.getModelPatch(img)
 
                return patch
 
        def getParamDerivatives(self, img, brightnessonly=False):
                pass
+
+
+# ============================================================================
+
+def LensPlaneWCS(pos):
+      '''
+      The "local" WCS -- useful when you need to work on the sky, but in
+      small offsets from RA, Dec in arcsec. Initialisation is with the
+      coordinates of the central pixel, which is set to be the origin of
+      the "pixel coordinate" system. Return a WCS object.
+      '''
+      
+      onearcsec = 1.0/3600.0
+      
+      return FitsWcs(util.Tan(pos.ra,pos.dec,1.0,1.0,-onearcsec,0.0,0.0,onearcsec,0,0))
 
 
 # ============================================================================

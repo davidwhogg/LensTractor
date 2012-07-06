@@ -148,16 +148,23 @@ def ps1tractor():
    # Photometric calibration from PS1 image - Null, because we're working in flux
    # units, not calibrated mags; this corresponds to using tractor.Flux() below
    # when creating the Source objects.
-   photocal = tractor.NullPhotoCal()
+#    photocal = tractor.NullPhotoCal()
+
+   band = hdr['HIERARCH FPA.FILTER'][0]
+   zpt = hdr['HIERARCH FPA.ZP']
+   photocal = lensfinder.PS1MagsPhotoCal(zpt,band)
+   print photocal
 
    # Set up sky to be varied:
    sky = tractor.ConstantSky(0.0)
-
+   print sky
+   
    # -------------------------------------------------------------------------
    # Make a first guess at a catalog - 4 point sources. Find centre of 
    # field using fitsWCS:
 
    wcs = lensfinder.PS1WCS(hdr)
+   print wcs
    
    # Test: 4 point sources:
    #  x,y,f = NX/2,NY/2, 100*scirms
@@ -168,7 +175,7 @@ def ps1tractor():
    #          tractor.PointSource(wcs.pixelToPosition(x,y-e),tractor.Flux(f))]
    
    # Source:
-   xs,ys, ms = 0.5*NX, 0.5*NY, tractor.Mags(z=21.0)
+   xs,ys, ms = 0.5*NX, 0.5*NY, tractor.Mags(z=16.0)
    print ms
    sourcepos = wcs.pixelToPosition(xs,ys)
    print sourcepos
@@ -177,7 +184,7 @@ def ps1tractor():
    print pointsource
    
    # Lens mass:
-   thetaE = lensfinder.EinsteinRadius(1.5) # arcsec
+   thetaE = lensfinder.EinsteinRadius(0.75) # arcsec
    print thetaE
    gamma = 0.2 # to make quad
    phi   = 0.0 # deg
@@ -187,7 +194,7 @@ def ps1tractor():
    # Lens light:
    x,y = 0.5*NX,0.5*NY
    lenspos = wcs.pixelToPosition(x,y)
-   md = tractor.Mags(z=20.0)
+   md = tractor.Mags(z=17.0)
    print md
    re = 1.0  # arcsec
    q = 1.0   # axis ratio
@@ -232,6 +239,8 @@ def ps1tractor():
    print "DEBUGGING: After freezing, PSF = ",chug.getImage(0).psf
    print "DEBUGGING: pars to be optimized are:",chug.getParamNames()
 
+   print chug.getStepSizes()
+
    # Optimize sources with initial PSF:
    for i in range(Nsteps_optimizing_catalog):
       # dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
@@ -270,7 +279,7 @@ def plot_state(t,suffix):
    a multi-panel figure of image, synthetic image and chi, for each image being 
    modelled.
    
-   t is a tractor object, containing a list of images.
+   t is a Tractor object, containing a list of images.
    '''
    
    px,py = 2,2
@@ -290,6 +299,7 @@ def plot_state(t,suffix):
       else:
          imname = image.name
       scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
+      print "plot_state: scale = ",scale
  
       ima = dict(interpolation='nearest', origin='lower',
                      vmin=-30.*scale, vmax=3.*scale)
@@ -309,6 +319,7 @@ def plot_state(t,suffix):
       plt.title('Observed image')
 
       model = t.getModelImages()[i]
+      print "plot_state: minmax of model = ",np.min(model),np.max(model)
       plt.subplot(py,px,2)
       plt.imshow(-model, **ima)
       # plt.colorbar()

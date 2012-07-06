@@ -7,7 +7,8 @@ Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 Description
 -----------
 
-Data management classes and functions. Read in a deck of postcard images in
+Data management classes and functions *for the PS1 survey*. RENAME!
+Read in a deck of postcard images in
 FITS files, match them up and return an array of tractor image data
 structures. [Write out model images, residuals etc with sensible filenames.
 Record key statistics in easily-parsed log files.]
@@ -174,18 +175,41 @@ def PS1WCS(hdr):
          
 # ============================================================================
 
-def LensPlaneWCS(pos):
+class PS1MagsPhotoCal(tractor.BaseParams):
       '''
-      The "local" WCS -- useful when you need to work on the sky, but in
-      small offsets from RA, Dec in arcsec. Initialisation is with the
-      coordinates of the central pixel, which is set to be the origin of
-      the "pixel coordinate" system. Return a WCS object.
+      A photocal for a Mags brightness object.
       '''
-      
-      onearcsec = 1.0/3600.0
-      
-      return tractor.FitsWcs(Tan(pos.ra,pos.dec,1.0,1.0,-onearcsec,0.0,0.0,onearcsec,0,0))
+      def __init__(self, zpt, bandname):
+            self.bandname = bandname
+            self.zpt = zpt
 
+      def __str__(self):
+            return (self.getName()+': '+self.bandname+' band, zpt='+str(self.getParams()))
+      
+      @staticmethod
+      def getName():
+            return 'PS1MagsPhotoCal'
+      def getParams(self):
+            return [self.zpt]
+      def getStepSizes(self):
+            return [0.01]
+      def setParam(self, i, p):
+            assert(i == 0)
+            self.zpt = p
+      def getParamNames(self):
+            return ['zpt']
+      def hashkey(self):
+            return (self.getName(), self.bandname, self.zpt)
+
+      def brightnessToCounts(self, brightness):
+            mag = brightness.getMag(self.bandname)
+            if not np.isfinite(mag):
+                  return 0.
+            # MAGIC
+            if mag > 50.:
+                  return 0.
+            # Assume zeropoint is the whole story:
+            return 10.**(-0.4 * (mag - self.zpt))
 
 # ============================================================================
 
