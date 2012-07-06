@@ -1,7 +1,7 @@
-### LensFinder
+### LensTractor
 
 Finding gravitationally-lensed quasars in multi-epoch ground-based
-imaging data by model comparison to a flexible non-trivial galaxy
+imaging data, by model comparison with a flexible non-trivial galaxy
 morphological model.
 
 ## Authors:
@@ -20,6 +20,7 @@ rights reserved.
 
 * `numpy`
 * `matplotlib`
-* `Tractor`: LensFinder uses The Tractor (Hogg & Lang) to do the
+* `Tractor`: LensTractor uses The Tractor (Hogg & Lang) to do the
   comparison between predicted image positions and the data: that is,
-  The Tractor synthesizes images and computes likelihoods.
+  The Tractor synthesizes images and computes likelihoods, and then 
+  optimizes the model parameters.
