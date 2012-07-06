@@ -1,22 +1,22 @@
-### LensTractor
+## LensTractor
 
 Finding gravitationally-lensed quasars in multi-epoch ground-based
 imaging data, by model comparison with a flexible non-trivial galaxy
 morphological model.
 
-## Authors:
+### Authors:
 
 * Philip J. Marshall, Oxford University
   <http://www.slac.stanford.edu/~pjm/>
 * David W. Hogg, New York University
   <http://cosmo.nyu.edu/hogg/>
 
-## License:
+### License:
 
 Copyright 2012 Phil Marshall (Oxford) & David W. Hogg (NYU).  All
 rights reserved.
 
-## Dependencies:
+### Dependencies:
 
 * `numpy`
 * `matplotlib`
