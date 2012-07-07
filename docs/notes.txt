@@ -56,4 +56,7 @@ open *lens_progress*png
 
 # Report to dstn re memory leak.
 
+# Tried adding a CompositeGalaxy to the Nebula model - slowed things down and
+# made it harder for points to move, somehow...
+
 # ========================================================================================

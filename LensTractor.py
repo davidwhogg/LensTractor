@@ -128,7 +128,7 @@ def main():
    scifiles,varfiles = lenstractor.Riffle(inputfiles,vb=vb)
    
    # Read into Tractor Image objects, and see what filters we have:   
-   images,bandnames = lenstractor.Deal(scifiles,varfiles,SURVEY='PS1',vb=vb)
+   images,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY='PS1',vb=vb)
    
    # -------------------------------------------------------------------------
    # Initialize the catalog.
@@ -138,21 +138,27 @@ def main():
    wcs = images[0].wcs
    NX,NY = np.shape(images[0].data)
    
+   # m0 = 15.0
+   # magnitudes = m0*np.ones(len(bandnames))
    # MAGIC initial magnitude. This should be estimated from
    # the total flux in each (background-subtracted) image...
    
-   # magnitudes = np.ones(len(bandnames))
-   # for i,band in enumerate(bandnames):
-   #    ...
-   #    magnitudes[i] = ...
+   bandnames = np.unique(bands)
+   print bandnames
+   magnitudes = np.zeros(len(bandnames))
+   for i,bandname in enumerate(bandnames):
+       index = np.where(bands == bandname)
+       magnitudes[i] = np.median(total_mags[index])
    
-   m0 = 16.0
-   magnitudes = m0*np.ones(len(bandnames))
    if vb: print "Generic initial SED ",dict(zip(bandnames,magnitudes))
-  
+   
+   
    # This will be in a 2-model loop eventually:
-   # model = 'nebula'
-   model = 'lens'
+   
+   model = 'nebula'
+   
+   # model = 'lens'
+   
    
    if vb: print "Initializing model: "+model
        
@@ -160,24 +166,47 @@ def main():
    
        # srcs = [InitializeNebula(wcs,bandnames)]
 
-       # Placeholder: 4 point sources:
-       x,y = NX/2.0,NY/2.0
-       e = 3.0 # pixels
+       # Nebula - a flexible galaxy plus four point sources, 
+       #   5 sources in total. Start them off with equal magnitudes:
        
-       mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
-       srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),mags),
+       x,y = 0.5*NX,0.5*NY
+       fudge = 2
+       equalmagnitudes = magnitudes + 2.5*np.log10(5*fudge)
+     
+       # Composite galaxy:
+       galpos = wcs.pixelToPosition(x,y)
+       mg = tractor.Mags(order=bandnames, **dict(zip(bandnames,equalmagnitudes)))
+       re = 1.0    # arcsec
+       q = 1.0     # axis ratio
+       theta = 0.0 # degrees
+       galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)       
+       nebulousgalaxy = tractor.sdss_galaxy.CompositeGalaxy(galpos,mg,galshape,mg,galshape)
+       if vb: print nebulousgalaxy
+       
+       # plus 4 point sources, arranged in a small cross:
+       e = 3.0 # pixels
+       mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,equalmagnitudes)))
+       srcs = [nebulousgalaxy,
+               tractor.PointSource(wcs.pixelToPosition(x+e,y),mags),
                tractor.PointSource(wcs.pixelToPosition(x-e,y),mags),
                tractor.PointSource(wcs.pixelToPosition(x,y+e),mags),
                tractor.PointSource(wcs.pixelToPosition(x,y-e),mags)]
        
- 
+       # Old setup - just 4 point sources:
+       # srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),mags),
+       #         tractor.PointSource(wcs.pixelToPosition(x-e,y),mags),
+       #         tractor.PointSource(wcs.pixelToPosition(x,y+e),mags),
+       #         tractor.PointSource(wcs.pixelToPosition(x,y-e),mags)]
+       
+
    elif model == 'lens':
           
        # srcs = [InitializeLens(wcs,bandnames)]
        
        # Source to be lensed:
        xs,ys = 0.5*NX, 0.5*NY
-       ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
+       unlensedmagnitudes = magnitudes + 2.5*np.log10(10.0)
+       ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,unlensedmagnitudes)))
        if vb: print ms
        sourcepos = wcs.pixelToPosition(xs,ys)
        if vb: print sourcepos
@@ -197,7 +226,8 @@ def main():
        x,y = 0.5*NX,0.5*NY
        lenspos = wcs.pixelToPosition(x,y)
        if vb: print lenspos
-       md = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
+       halfmagnitudes = magnitudes + 2.5*np.log10(2.0)
+       md = tractor.Mags(order=bandnames, **dict(zip(bandnames,halfmagnitudes)))
        if vb: print md
        re = 1.0  # arcsec
        q = 1.0   # axis ratio
@@ -231,15 +261,15 @@ def main():
       chug.addSource(src)
 
    # Plot initial state:
-   if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_initial')
+   lenstractor.Plot_state(chug,model+'_progress_initial')
 
    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
    if not opt.MCMC:
    # Optimize the model parameters:
    
-         Nsteps_optimizing_catalog = 5
-         Nsteps_optimizing_PSFs = 2    # To save time while developing
+         Nsteps_optimizing_catalog = 20
+         Nsteps_optimizing_PSFs = 1    # To save time while developing
 
          if vb: 
             print "Optimizing model:"
@@ -252,12 +282,13 @@ def main():
             image.freezeParams('photocal', 'wcs', 'psf')
          print "DEBUGGING: After freezing, PSF = ",chug.getImage(0).psf
          print "DEBUGGING: Catalog parameters to be optimized are:",chug.getParamNames()
+         
+         # THIS LINE FAILS FOR LENS MODEL:
          print "DEBUGGING: Step sizes:",chug.getStepSizes()
 
          # Optimize sources with initial PSF:
          for i in range(Nsteps_optimizing_catalog):
-            # dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
-            dlnp2,X,a = chug.optimize()
+            dlnp,X,a = chug.optimize()
             if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-catalog_step-%02d'%i)
             print "DEBUGGING: pars being optimized are:",chug.getParamNames()
 
@@ -274,7 +305,7 @@ def main():
 
          # Optimize everything that is not frozen:
          for i in range(Nsteps_optimizing_catalog,Nsteps_optimizing_catalog+Nsteps_optimizing_PSFs):
-            dlnp2,X,a = chug.optimize()
+            dlnp,X,a = chug.optimize()
             if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-psf_step-%02d'%i)
             print "DEBUGGING: pars being optimized are:",chug.getParamNames()
 

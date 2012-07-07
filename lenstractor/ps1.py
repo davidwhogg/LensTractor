@@ -75,7 +75,14 @@ class PS1MagsPhotoCal(tractor.BaseParams):
             if mag > 50.:
                   return 0.
             # Assume zeropoint is the whole story:
-            return 10.**(-0.4 * (mag - self.zpt))
+            return 10.**(0.4 * (self.zpt - mag))
+
+      def countsToMag(self, counts):
+            # Returns cheap scalar magnitude
+            if counts <= 0.0:
+                  return 99.0
+            # Assume zeropoint is the whole story:
+            return self.zpt - 2.5*np.log10(counts)
 
 # ============================================================================
 # Return a PS1MagsPhotoCal object given a FITS file header.

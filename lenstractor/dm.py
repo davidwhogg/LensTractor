@@ -75,6 +75,7 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
    images = []
    bands = []
    epochs = []
+   total_mags = []
    
    for scifile,varfile in zip(scifiles,varfiles):
       
@@ -84,7 +85,12 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
          print "Making Tractor image from "+name+"_*.fits:"
 
       # Read in sci and wht images. Note assumptions about file format:
-      sci,invvar,hdr = Read_in_data(scifile,varfile,vb)
+      sci,invvar,hdr,total_flux = Read_in_data(scifile,varfile,vb)
+      
+      if total_flux == 0.0:
+         print "No flux found in image from "+scifile
+         print "Skipping to next image!"
+         continue
       
       # Initialize a PSF object (single Gaussian by default), first 
       # getting FWHM from somewhere. Start with FWHM a little small, 
@@ -109,7 +115,11 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       if vb: print photocal
       bands.append(band)
       epochs.append(lenstractor.PS1_epoch(hdr))
-      
+      # Use photocal to return a total magnitude:
+      total_mag = photocal.countsToMag(total_flux)
+      if vb: print "Total brightness of image (mag):",total_mag
+      total_mags.append(total_mag)
+
       # Set up sky to be varied:
       sky = tractor.ConstantSky(0.0)
       if vb: print sky
@@ -131,7 +141,7 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       print "  at",len(epochs),"epochs"
       print " "
 
-   return images,np.array(uniqbands)
+   return images,np.array(total_mags),np.array(bands)
       
 # ============================================================================
 # Read in sci and wht images. Note assumptions about file format:
@@ -155,30 +165,33 @@ def Read_in_data(scifile,varfile,vb=False):
    invvar[var != var] = 0.0
    invvar[var <= 0] = 0.0
 
-   good = np.where(invvar > 0)
    bad = np.where(invvar == 0)
-
    # Zero out sci image where wht is 0.0:
    sci[bad] = 0.0
 
    assert(all(np.isfinite(sci.ravel())))
    assert(all(np.isfinite(invvar.ravel())))
 
-   # Very rough estimates of background level and rms, never used:
-   sciback = np.median(sci[good])
-   scirms = np.sqrt(np.median(var[good]))
+   # Measure total flux in sci image:
+   total_flux = np.sum(sci)
 
    # Report on progress so far:
    if vb:
-      # print 'Sci header:', hdr
       print 'Read in sci image:', sci.shape #, sci
+      print 'Total flux:', total_flux
       print 'Read in var image:', var.shape #, var
-      # print 'Made mask image:', mask.shape, mask
-      print 'Useful variance range:', var[good].min(), var[good].max()
-      print 'Useful image median level:', sciback
-      print 'Useful image median pixel uncertainty:', scirms
+
+   if total_flux != 0.0:
+      # Very rough estimates of background level and rms, never used:
+      good = np.where(invvar > 0)
+      sciback = np.median(sci[good])
+      scirms = np.sqrt(np.median(var[good]))
+      if vb:
+         print 'Useful variance range:', var[good].min(), var[good].max()
+         print 'Useful image median level:', sciback
+         print 'Useful image median pixel uncertainty:', scirms
       
-   return sci,invvar,hdr
+   return sci,invvar,hdr,total_flux
       
 # ============================================================================
 # Initialize a PSF object - by default, a single circularly symmetric Gaussian 
