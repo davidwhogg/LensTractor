@@ -181,6 +181,8 @@ class PointSourceLens(tractor.MultiParams):
 
                return patch
 	         
+
+#        Suggested by Dstn:
 #        def getParamDerivatives(self, img, brightnessonly=False):
 #                # Basic parameter derivatives by finite differencing:
 #                pars0 = self.getParams()

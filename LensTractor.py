@@ -12,7 +12,7 @@ centre image of the field and then optimize the catalog and PSF.
 Example use
 -----------
 
- python LensTractor.py -v examples/H1413+117*.fits
+ python LensTractor.py -n examples/H1413+117*.fits
 
 Bugs
 ----
@@ -20,8 +20,11 @@ Bugs
  - Header PSF FWHM sometimes NaN, hard to recover from
  - Lens model not being optimized, step sizes and derivatives wrong
  - StepSizes need optimizing for rapid start-up
- - Magic numbers for initial mags, needs automating
  - Memory leak: restrict no. of sampling iterations :-(
+ - PhotoCal may need optimizing if zpts are untrustworthy!
+ - Point sources are not variable, microlensing etc is unaccounted for
+ - Initialisation may be fragile, in terms of source positions etc...
+ - BIC is not coded yet
 '''
 
 if __name__ == '__main__':
@@ -155,9 +158,9 @@ def main():
    
    # This will be in a 2-model loop eventually:
    
-   model = 'nebula'
+   # model = 'nebula'
    
-   # model = 'lens'
+   model = 'lens'
    
    
    if vb: print "Initializing model: "+model
@@ -283,8 +286,10 @@ def main():
          print "DEBUGGING: After freezing, PSF = ",chug.getImage(0).psf
          print "DEBUGGING: Catalog parameters to be optimized are:",chug.getParamNames()
          
+         # ************************************************
          # THIS LINE FAILS FOR LENS MODEL:
          print "DEBUGGING: Step sizes:",chug.getStepSizes()
+         # ************************************************
 
          # Optimize sources with initial PSF:
          for i in range(Nsteps_optimizing_catalog):
