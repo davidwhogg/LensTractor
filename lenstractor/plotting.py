@@ -51,7 +51,7 @@ def Plot_state(t,suffix):
       scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
  
       ima = dict(interpolation='nearest', origin='lower',
-                     vmin=-30.*scale, vmax=3.*scale)
+                     vmin=-50.*scale, vmax=3.*scale)
       chia = dict(interpolation='nearest', origin='lower',
                         vmin=-5., vmax=5.)
       psfa = dict(interpolation='nearest', origin='lower')

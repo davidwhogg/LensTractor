@@ -138,8 +138,8 @@ def main():
    NX,NY = np.shape(images[0].data)
    
    # This will be in a 2-model loop eventually:
-   # model = 'nebula'
-   model = 'lens'
+   model = 'nebula'
+   # model = 'lens'
    
    # MAGIC initial magnitude
    m0 = 16.0
@@ -206,7 +206,7 @@ def main():
        srcs = [lenstractor.PointSourceLens(lensgalaxy, pointsource)]
 
    if vb: 
-      print srcs
+      print "Model =",srcs
       print " "
 
    # -------------------------------------------------------------------------
@@ -303,41 +303,53 @@ def main():
          sampler = emcee.EnsembleSampler(nw, ndim, chug, live_dangerously=True)
 
          # Start the walkers off near the initialisation point - this can be 
-         # arbitrarily small, and we need it to be subpixel in position. The
-         # following gets us 0.1" in dec:
-         psteps = np.zeros_like(p0) + 0.00002
+         # arbitrarily small, and we need it to be ~1 pixel in position. The
+         # following gets us 0.2" in dec:
+         psteps = np.zeros_like(p0) + 0.00004
          # This could be optimized, to allow more initial freedom in eg flux.
+         
+         # Good first guess should be some fraction of the optimization step sizes:
+         psteps = 0.2*np.array(chug.getStepSizes())
+         print "Initial size (in each dimension) of sample ball = ",psteps
+         # This fails for the lens model...
          
          pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
          rstate = None
          lnp = None
          
-         for step in range(1, 99):
+         for step in range(1, 100):
+               
                print 'Run MCMC step', step
-               # kwargs = dict(storechain=False)
-               kwargs = dict()
                # t0 = Time()
-               pp,lnp,rstate = sampler.run_mcmc(pp, 1, lnprob0=lnp, rstate0=rstate, **kwargs)
+               pp,lnp,rstate = sampler.run_mcmc(pp, 5, lnprob0=lnp, rstate0=rstate)
+               
                print 'Mean acceptance fraction after', sampler.iterations, 'iterations =',np.mean(sampler.acceptance_fraction)
                # t_mcmc = (Time() - t0)
                
-               # Take the current posterior means and restart from that:
+               # Find the current posterior means:
                pbar = np.mean(pp,axis=0)
-               print "pbar: ",pbar,np.mean(lnp)
-               chug.setParams(pbar)
-               if not opt.noplots and (step % 5)==0: lenstractor.Plot_state(chug,model+'_progress_sampling_step-%02d'%step)
+               print "Mean parameters: ",pbar,np.mean(lnp)
+               
+               # Find the current best sample:
+               maxlnp = np.max(lnp)
+               best = np.where(lnp == maxlnp)
+               pbest = np.ravel(pp[best,:])
+               print "Best parameters: ",pbest,maxlnp
+                             
+               if not opt.noplots: 
+                  chug.setParams(pbest)
+                  lenstractor.Plot_state(chug,model+'_progress_sampling_step-%02d'%step)
 
          print 'Best lnprob:', np.max(lnp)
-         print 'dlnprobs:', ', '.join(['%.1f' % d for d in lnp - np.max(lnp)])
+         # print 'dlnprobs:', ', '.join(['%.1f' % d for d in lnp - np.max(lnp)])
          # print 'MCMC took', t_mcmc, 'sec'
 
-
-         # Take the last sample and call it a result:
-         # chug.setParams(pp)
+         # Take the last best sample and call it a result:
+         chug.setParams(pbest)
 
    # -------------------------------------------------------------------------
    
-   lenstractor.Plot_state(chug,model+'_progress_complete')
+   lenstractor.Plot_state(chug,model+'_progress_zcomplete')
    
    print "Tractor stopping."
       
