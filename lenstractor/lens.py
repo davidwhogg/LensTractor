@@ -175,23 +175,25 @@ class PointSourceLens(tractor.MultiParams):
                   PS = self.pointsourcecache[i]
                   PS.setPosition(imageposition)
                   PS.setBrightness(self.pointsource.getBrightness()*imagemagnification)
+                  # This is brittle - if the Patch is entirely outside the FoV, getModelPatch returns None, 
+                  # which cannot be added...
                   patch += PS.getModelPatch(img)
 
                return patch
 
-       def getParamDerivatives(self, img, brightnessonly=False):
-               # Basic parameter derivatives by finite differencing:
-               pars0 = self.getParams()
-               patch0 = self.getModelPatch(img)
-               derivs = []
-               for i,(step,name) in enumerate(zip(self.getStepSizes(), self.getParamNames())):
-                       print 'Img', img.name, 'deriv', i, name
-                       oldval = self.setParam(i, pars0[i] + step)
-                       patchi = self.getModelPatch(img)
-                       self.setParam(i, oldval)
-                       dpatch = (patchi - patch0) / step
-                       derivs.append(Patch(0, 0, dpatch))
-               return derivs
+#        def getParamDerivatives(self, img, brightnessonly=False):
+#                # Basic parameter derivatives by finite differencing:
+#                pars0 = self.getParams()
+#                patch0 = self.getModelPatch(img)
+#                derivs = []
+#                for i,(step,name) in enumerate(zip(self.getStepSizes(), self.getParamNames())):
+#                        print 'Img', img.name, 'deriv', i, name
+#                        oldval = self.setParam(i, pars0[i] + step)
+#                        patchi = self.getModelPatch(img)
+#                        self.setParam(i, oldval)
+#                        dpatch = (patchi - patch0) / step
+#                        derivs.append(Patch(0, 0, dpatch))
+#                return derivs
 
 
 # ============================================================================

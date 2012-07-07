@@ -19,7 +19,8 @@ Bugs
 
  - PSF not being optimized correctly - missing derivatives?
  - Header PSF FWHM sometimes NaN, hard to recover from
- - lens model not being optimized, step sizes and derivatives wrong
+ - Lens model not being optimized, step sizes and derivatives wrong
+ - When sampling objects disappear from FoV to reduce mismatch
 
 '''
 
@@ -34,6 +35,7 @@ import os
 import logging
 import numpy as np
 import pyfits
+import time
 
 # from astrometry.util.file import *
 from astrometry.util import util
@@ -41,6 +43,7 @@ from astrometry.util import util
 
 import tractor
 import lenstractor
+import emcee
 
 # ============================================================================
 
@@ -58,26 +61,34 @@ def main():
    COMMENTS
 
    FLAGS
-     -h            Print this message [0]
-     -v            Verbose operation [0]
+     -h --help        Print this message
+     -v --verbose     Verbose operation
+     -s --sample      Sample the posterior PDF instead of optimizing
+     -n --no-plots    Do not plot progress
 
    INPUTS
-     *.fits        Deck of postcard images
+     *.fits           Deck of postcard images
 
    OPTIONAL INPUTS
-     --no-plots    Do not plot progress [0]
 
    OUTPUTS
      stdout                       Useful information
      *.png                        Plots in png format
-     lenstractor_progress.log     Logged output
-     lenstractor_results.txt      Model comparison results
-     lenstractor_lens.cat         Lens model parameters, including lightcurves
-     lenstractor_nebula.cat         Nebula model parameters, including lightcurves
+     
+     To be implemented:
+       lenstractor_progress.log     Logged output
+       lenstractor_results.txt      Model comparison results
+       lenstractor_lens.cat         Lens model parameters, including lightcurves
+       lenstractor_nebula.cat       Nebula model parameters, including lightcurves
 
    EXAMPLES
 
      LensTractor.py -v examples/*.fits
+
+   DEPENDENCIES
+     * The Tractor     astrometry.net/svn/trunk/projects/tractor
+     * emcee           github.com/danfm/emcee
+     * astrometry.net  astrometry.net/svn/trunk/util
 
    BUGS
      - PSFs not being optimized correctly - missing derivatives?
@@ -96,6 +107,8 @@ def main():
    # Verbosity:
    parser.add_option('-v', '--verbose', dest='verbose', action='count', default=False, help='Make more verbose')
    vb = True  # for usual outputs.
+   # Sampling:
+   parser.add_option('-s', '--sample', dest='MCMC', action='count', default=False, help='Sample posterior PDF')
    # Plotting:
    parser.add_option('-n', '--no-plots', dest='noplots', action='count', default=False, help='Skip plotting')
    
@@ -128,6 +141,9 @@ def main():
    # model = 'nebula'
    model = 'lens'
    
+   # MAGIC initial magnitude
+   m0 = 16.0
+   
    if vb: print "Initializing model: "+model
        
    if model == 'nebula':
@@ -137,7 +153,7 @@ def main():
        # Placeholder: 4 point sources:
        x,y = NX/2.0,NY/2.0
        e = 3.0 # pixels
-       magnitudes = 16.0*np.ones(len(bandnames))
+       magnitudes = m0*np.ones(len(bandnames))
        if vb: print "Initial SED ",dict(zip(bandnames,magnitudes))
        
        mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
@@ -153,7 +169,7 @@ def main():
        
        # Source to be lensed:
        xs,ys = 0.5*NX, 0.5*NY
-       magnitudes = 17.0*np.ones(len(bandnames))
+       magnitudes = m0*np.ones(len(bandnames))
        if vb: print "Initial source SED ",dict(zip(bandnames,magnitudes))
        ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
        if vb: print ms
@@ -174,7 +190,7 @@ def main():
        # Lens light:
        x,y = 0.5*NX,0.5*NY
        lenspos = wcs.pixelToPosition(x,y)
-       magnitudes = 17.0*np.ones(len(bandnames))
+       magnitudes = m0*np.ones(len(bandnames))
        if vb: print "Initial lens SED ",dict(zip(bandnames,magnitudes))
        md = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
        if vb: print md
@@ -203,15 +219,6 @@ def main():
    logging.basicConfig(level=lvl, format='%(message)s', stream=sys.stdout)
 
    # -------------------------------------------------------------------------
-   # Optimize the model parameters.
-   
-   Nsteps_optimizing_catalog = 5
-   Nsteps_optimizing_PSFs = 2    # To save time while developing
-   
-   if vb: 
-      print "Optimizing model:"
-      print "   - no. of iterations to be spent on catalog: ",Nsteps_optimizing_catalog
-      print "   - no. of iterations to be spent on PSFs: ",Nsteps_optimizing_PSFs
 
    # Start a tractor, and let it make a catalog one src at a time:
    chug = tractor.Tractor(images)
@@ -221,42 +228,113 @@ def main():
    # Plot initial state:
    if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_initial')
 
-   # Freeze the PSF, sky and photocal, leaving the sources:
-   print "DEBUGGING: Before freezing, PSF = ",chug.getImage(0).psf
-   for image in chug.getImages():
-      image.freezeParams('photocal', 'wcs', 'psf')
-   print "DEBUGGING: After freezing, PSF = ",chug.getImage(0).psf
-   print "DEBUGGING: Catalog parameters to be optimized are:",chug.getParamNames()
-   print "DEBUGGING: Step sizes:",chug.getStepSizes()
+   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-   # Optimize sources with initial PSF:
-   for i in range(Nsteps_optimizing_catalog):
-      # dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
-      dlnp2,X,a = chug.optimize()
-      if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-catalog_step-%02d'%i)
-      print "DEBUGGING: pars being optimized are:",chug.getParamNames()
-                  
-   # BUG: lens not being optimized correctly - missing derivatives?
-      
-   # Freeze the sources and thaw the psfs:
-   print "DEBUGGING: Before thawing, PSF = ",chug.getImage(0).psf
-   chug.freezeParam('catalog')
-   for image in chug.getImages():
-      image.thawParams('psf')
-   print "DEBUGGING: After thawing, PSF = ",chug.getImage(0).psf
-   print "DEBUGGING: PSF parameters to be optimized are:",chug.getParamNames()
-   print "DEBUGGING: Step sizes:",chug.getStepSizes()
+   if not opt.MCMC:
+   # Optimize the model parameters:
+   
+         Nsteps_optimizing_catalog = 5
+         Nsteps_optimizing_PSFs = 2    # To save time while developing
 
-   # Optimize everything that is not frozen:
-   for i in range(Nsteps_optimizing_catalog,Nsteps_optimizing_catalog+Nsteps_optimizing_PSFs):
-      dlnp2,X,a = chug.optimize()
-      if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-psf_step-%02d'%i)
-      print "DEBUGGING: pars being optimized are:",chug.getParamNames()
-   
-   print "DEBUGGING: After optimizing, PSF = ",chug.getImage(0).psf
-   
-   # BUG: PSF not being optimized correctly - missing derivatives?
-      
+         if vb: 
+            print "Optimizing model:"
+            print "   - no. of iterations to be spent on catalog: ",Nsteps_optimizing_catalog
+            print "   - no. of iterations to be spent on PSFs: ",Nsteps_optimizing_PSFs
+
+         # Freeze the PSF, sky and photocal, leaving the sources:
+         print "DEBUGGING: Before freezing, PSF = ",chug.getImage(0).psf
+         for image in chug.getImages():
+            image.freezeParams('photocal', 'wcs', 'psf')
+         print "DEBUGGING: After freezing, PSF = ",chug.getImage(0).psf
+         print "DEBUGGING: Catalog parameters to be optimized are:",chug.getParamNames()
+         print "DEBUGGING: Step sizes:",chug.getStepSizes()
+
+         # Optimize sources with initial PSF:
+         for i in range(Nsteps_optimizing_catalog):
+            # dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
+            dlnp2,X,a = chug.optimize()
+            if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-catalog_step-%02d'%i)
+            print "DEBUGGING: pars being optimized are:",chug.getParamNames()
+
+         # BUG: lens not being optimized correctly - missing derivatives?
+
+         # Freeze the sources and thaw the psfs:
+         print "DEBUGGING: Before thawing, PSF = ",chug.getImage(0).psf
+         chug.freezeParam('catalog')
+         for image in chug.getImages():
+            image.thawParams('psf')
+         print "DEBUGGING: After thawing, PSF = ",chug.getImage(0).psf
+         print "DEBUGGING: PSF parameters to be optimized are:",chug.getParamNames()
+         print "DEBUGGING: Step sizes:",chug.getStepSizes()
+
+         # Optimize everything that is not frozen:
+         for i in range(Nsteps_optimizing_catalog,Nsteps_optimizing_catalog+Nsteps_optimizing_PSFs):
+            dlnp2,X,a = chug.optimize()
+            if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-psf_step-%02d'%i)
+            print "DEBUGGING: pars being optimized are:",chug.getParamNames()
+
+         print "DEBUGGING: After optimizing, PSF = ",chug.getImage(0).psf
+
+         # BUG: PSF not being optimized correctly - missing derivatives?
+
+   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+   elif opt.MCMC:
+   # MCMC sample the model parameters.
+
+         if vb: 
+            print "Sampling model parameters with emcee:"
+ 
+         # Freeze the sky and photocal, leaving the PSFs and sources:
+         print "DEBUGGING: Before freezing, PSF = ",chug.getImage(0).psf
+         for image in chug.getImages():
+            image.freezeParams('photocal', 'wcs')
+            
+         # Get the thawed parameters:
+         p0 = np.array(chug.getParams())
+         print 'Tractor parameters:'
+         for i,parname in enumerate(chug.getParamNames()):
+               print '  ', parname, '=', p0[i]
+         ndim = len(p0)
+         print 'Number of parameter space dimensions: ',ndim
+
+         # Make an emcee sampler that uses our tractor to compute its logprob:
+         nw = 8*ndim
+         sampler = emcee.EnsembleSampler(nw, ndim, chug, live_dangerously=True)
+
+         # Start the walkers off near the initialisation point - this can be 
+         # arbitrarily small, and we need it to be subpixel in position. The
+         # following gets us 0.1" in dec:
+         psteps = np.zeros_like(p0) + 0.00002
+         # This could be optimized, to allow more initial freedom in eg flux.
+         
+         pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
+         rstate = None
+         lnp = None
+         
+         for step in range(1, 99):
+               print 'Run MCMC step', step
+               # kwargs = dict(storechain=False)
+               kwargs = dict()
+               # t0 = Time()
+               pp,lnp,rstate = sampler.run_mcmc(pp, 1, lnprob0=lnp, rstate0=rstate, **kwargs)
+               print 'Mean acceptance fraction after', sampler.iterations, 'iterations =',np.mean(sampler.acceptance_fraction)
+               # t_mcmc = (Time() - t0)
+               
+               # Take the current posterior means and restart from that:
+               pbar = np.mean(pp,axis=0)
+               print "pbar: ",pbar,np.mean(lnp)
+               chug.setParams(pbar)
+               if not opt.noplots and (step % 5)==0: lenstractor.Plot_state(chug,model+'_progress_sampling_step-%02d'%step)
+
+         print 'Best lnprob:', np.max(lnp)
+         print 'dlnprobs:', ', '.join(['%.1f' % d for d in lnp - np.max(lnp)])
+         # print 'MCMC took', t_mcmc, 'sec'
+
+
+         # Take the last sample and call it a result:
+         # chug.setParams(pp)
+
    # -------------------------------------------------------------------------
    
    lenstractor.Plot_state(chug,model+'_progress_complete')
