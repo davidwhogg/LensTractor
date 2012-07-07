@@ -280,10 +280,10 @@ def main():
             print "   - no. of iterations to be spent on PSFs: ",Nsteps_optimizing_PSFs
 
          # Freeze the PSF, sky and photocal, leaving the sources:
-         print "DEBUGGING: Before freezing, PSF = ",chug.getImage(0).psf
+         print "DEBUGGING: Before freezing, zeroth PSF = ",chug.getImage(0).psf
          for image in chug.getImages():
             image.freezeParams('photocal', 'wcs', 'psf')
-         print "DEBUGGING: After freezing, PSF = ",chug.getImage(0).psf
+         print "DEBUGGING: After freezing, zeroth PSF = ",chug.getImage(0).psf
          print "DEBUGGING: Catalog parameters to be optimized are:",chug.getParamNames()
          
          # ************************************************
@@ -300,11 +300,11 @@ def main():
          # BUG: lens not being optimized correctly - missing derivatives?
 
          # Freeze the sources and thaw the psfs:
-         print "DEBUGGING: Before thawing, PSF = ",chug.getImage(0).psf
+         print "DEBUGGING: Before thawing, zeroth PSF = ",chug.getImage(0).psf
          chug.freezeParam('catalog')
          for image in chug.getImages():
             image.thawParams('psf')
-         print "DEBUGGING: After thawing, PSF = ",chug.getImage(0).psf
+         print "DEBUGGING: After thawing, zeroth PSF = ",chug.getImage(0).psf
          print "DEBUGGING: PSF parameters to be optimized are:",chug.getParamNames()
          print "DEBUGGING: Step sizes:",chug.getStepSizes()
 
@@ -314,7 +314,7 @@ def main():
             if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-psf_step-%02d'%i)
             print "DEBUGGING: pars being optimized are:",chug.getParamNames()
 
-         print "DEBUGGING: After optimizing, PSF = ",chug.getImage(0).psf
+         print "DEBUGGING: After optimizing, zeroth PSF = ",chug.getImage(0).psf
 
          # BUG: PSF not being optimized correctly - missing derivatives?
 

@@ -128,9 +128,9 @@ class PointSourceLens(tractor.MultiParams):
        Source behind it. The lensed image positions are determined by the
        lensing deflection; the magnified fluxes need to be perturbed in order
        to fit the data. Initialise with a LensGalaxy object, a PointSource
-       object, and internally with four magnification perturbations (of which
-       only 2, 3 or 4 are used in any given image configuration and which are
-       initially set  to unity.
+       object, and internally with four magnification perturbations 
+       [to be implemented] (of which only 2, 3 or 4 are used in any given 
+       image configuration and which are initially set  to unity.
        '''
 
        def __init__(self, lensgalaxy, pointsource):
@@ -180,22 +180,20 @@ class PointSourceLens(tractor.MultiParams):
                   patch += PS.getModelPatch(img)
 
                return patch
-	         
-
-#        Suggested by Dstn:
-#        def getParamDerivatives(self, img, brightnessonly=False):
-#                # Basic parameter derivatives by finite differencing:
-#                pars0 = self.getParams()
-#                patch0 = self.getModelPatch(img)
-#                derivs = []
-#                for i,(step,name) in enumerate(zip(self.getStepSizes(), self.getParamNames())):
-#                        print 'Img', img.name, 'deriv', i, name
-#                        oldval = self.setParam(i, pars0[i] + step)
-#                        patchi = self.getModelPatch(img)
-#                        self.setParam(i, oldval)
-#                        dpatch = (patchi - patch0) / step
-#                        derivs.append(Patch(0, 0, dpatch))
-#                return derivs
+         
+       def getParamDerivatives(self, img, brightnessonly=False):
+               # Basic parameter derivatives by finite differencing:
+               pars0 = self.getParams()
+               patch0 = self.getModelPatch(img)
+               derivs = []
+               for i,(step,name) in enumerate(zip(self.getStepSizes(), self.getParamNames())):
+                       print 'Img', img.name, 'deriv', i, name
+                       oldval = self.setParam(i, pars0[i] + step)
+                       patchi = self.getModelPatch(img)
+                       self.setParam(i, oldval)
+                       dpatch = (patchi - patch0) / step
+                       derivs.append(Patch(0, 0, dpatch))
+               return derivs
 
 
 # ============================================================================
