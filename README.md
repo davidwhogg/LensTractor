@@ -24,3 +24,5 @@ rights reserved.
   comparison between predicted image positions and the data: that is,
   The Tractor synthesizes images and computes likelihoods, and then 
   optimizes the model parameters.
+* `emcee`: As an alternative to optimization, LensTractor is MCMC-enabled, using Foreman-Mackey et al's emcee ensemble sampler.
+* `astrometry.net`: LensTractor uses the `util` library to get its images' WCS right.
