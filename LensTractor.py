@@ -138,7 +138,6 @@ def main():
        x,y = NX/2.0,NY/2.0
        e = 3.0 # pixels
        magnitudes = 16.0*np.ones(len(bandnames))
-       
        if vb: print "Initial SED ",dict(zip(bandnames,magnitudes))
        
        mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
@@ -154,8 +153,9 @@ def main():
        
        # Source to be lensed:
        xs,ys = 0.5*NX, 0.5*NY
-       mags = [17.0]
-       ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,mags)))
+       magnitudes = 17.0*np.ones(len(bandnames))
+       if vb: print "Initial source SED ",dict(zip(bandnames,magnitudes))
+       ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
        if vb: print ms
        sourcepos = wcs.pixelToPosition(xs,ys)
        if vb: print sourcepos
@@ -174,8 +174,9 @@ def main():
        # Lens light:
        x,y = 0.5*NX,0.5*NY
        lenspos = wcs.pixelToPosition(x,y)
-       mags = [17.0]
-       md = tractor.Mags(order=bandnames, **dict(zip(bandnames,mags)))
+       magnitudes = 17.0*np.ones(len(bandnames))
+       if vb: print "Initial lens SED ",dict(zip(bandnames,magnitudes))
+       md = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
        if vb: print md
        re = 1.0  # arcsec
        q = 1.0   # axis ratio
