@@ -5,21 +5,21 @@ Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
 Description
 -----------
 
-Running the tractor on PS1 *single object cutout* images.
+Run the Tractor on a deck of single object cutout images.
 Read in an image and its weight map, guess the PSF, put an object at the
-centre image of the field and update the catalog.
+centre image of the field and then optimize the catalog and PSF.
 
 Example use
 -----------
 
- python ps1tractor.py -v \
-    examples/H1413+117_10x10arcsec_55377.34051_z_sci.fits \
-    examples/H1413+117_10x10arcsec_55377.34051_z_var.fits
+ python LensTractor.py -v examples/H1413+117*.fits
 
 Bugs
 ----
 
- BUG: PSF not being optimized correctly - missing derivatives?
+ - PSF not being optimized correctly - missing derivatives?
+ - Header PSF FWHM sometimes NaN, hard to recover from
+ - lens model not being optimized, step sizes and derivatives wrong
 
 '''
 
@@ -33,40 +33,168 @@ if __name__ == '__main__':
 import os
 import logging
 import numpy as np
-import pylab as plt
 import pyfits
 
-from astrometry.util.file import *
+# from astrometry.util.file import *
 from astrometry.util import util
-from astrometry.util.pyfits_utils import *
+# from astrometry.util.pyfits_utils import *
 
 import tractor
 import lenstractor
 
 # ============================================================================
 
-def ps1tractor():
+def main():
+
+   """
+   NAME
+     LensTractor.py
+
+   PURPOSE
+     Run the Tractor on a deck of single object cutout images.
+     Read in an image and its weight map, guess the PSF, put an object at the
+     centre image of the field and then optimize the catalog and PSF.
+
+   COMMENTS
+
+   FLAGS
+     -h            Print this message [0]
+     -v            Verbose operation [0]
+
+   INPUTS
+     *.fits        Deck of postcard images
+
+   OPTIONAL INPUTS
+     --no-plots    Do not plot progress [0]
+
+   OUTPUTS
+     stdout                       Useful information
+     *.png                        Plots in png format
+     lenstractor_progress.log     Logged output
+     lenstractor_results.txt      Model comparison results
+     lenstractor_lens.cat         Lens model parameters, including lightcurves
+     lenstractor_nebula.cat         Nebula model parameters, including lightcurves
+
+   EXAMPLES
+
+     LensTractor.py -v examples/*.fits
+
+   BUGS
+     - PSFs not being optimized correctly - missing derivatives?
+
+   HISTORY
+     2012-07-06       First predicted Lens images Marshall/Hogg (Oxford/NYU)
+   """
+
+   # --------------------------------------------------------------------
 
    from optparse import OptionParser
    import sys
 
    # Set available options:
-   parser = OptionParser(usage=('%prog <sci> <var>'))
+   parser = OptionParser(usage=('%prog *.fits'))
    # Verbosity:
-   parser.add_option('-v', '--verbose', dest='verbose', action='count', \
-                     default=False, help='Make more verbose')
+   parser.add_option('-v', '--verbose', dest='verbose', action='count', default=False, help='Make more verbose')
+   vb = True  # for usual outputs.
+   # Plotting:
+   parser.add_option('-n', '--no-plots', dest='noplots', action='count', default=False, help='Skip plotting')
    
    # Read in options and arguments - note only sci and wht images are supplied:
    opt,args = parser.parse_args()
    
-   if len(args) != 2:
+   if len(args) < 2:
       parser.print_help()
       sys.exit(-1)
-   scifile, varfile = args
+    
+   # The rest of the command line is assumed to be a list of files:
+   inputfiles = args
  
    # -------------------------------------------------------------------------
-   # Logging to terminal:
    
+   # Organise the deck of inputfiles into scifiles and varfiles:
+   scifiles,varfiles = lenstractor.Riffle(inputfiles,vb=vb)
+   
+   # Read into Tractor Image objects, and see what filters we have:   
+   images,bandnames,epochs = lenstractor.Deal(scifiles,varfiles,SURVEY='PS1',vb=vb)
+   
+   # -------------------------------------------------------------------------
+   # Initialize the catalog.
+   
+   # Get rough idea of object position from wcs first image.
+   wcs = images[0].wcs
+   NX,NY = np.shape(images[0].data)
+   
+   # This will be in a 2-model loop eventually:
+   # model = 'nebula'
+   model = 'lens'
+   
+   if vb: print "Initializing model: "+model
+       
+   if model == 'nebula':
+   
+       # srcs = [InitializeNebula(wcs,bandnames)]
+
+       # Placeholder: 4 point sources:
+       x,y = NX/2.0,NY/2.0
+       e = 3.0 # pixels
+       magnitudes = 16.0*np.ones(len(bandnames))
+       
+       if vb: print "Initial SED ",dict(zip(bandnames,magnitudes))
+       
+       mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
+       srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),mags),
+               tractor.PointSource(wcs.pixelToPosition(x-e,y),mags),
+               tractor.PointSource(wcs.pixelToPosition(x,y+e),mags),
+               tractor.PointSource(wcs.pixelToPosition(x,y-e),mags)]
+       
+ 
+   elif model == 'lens':
+          
+       # srcs = [InitializeLens(wcs,bandnames)]
+       
+       # Source to be lensed:
+       xs,ys = 0.5*NX, 0.5*NY
+       mags = [17.0]
+       ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,mags)))
+       if vb: print ms
+       sourcepos = wcs.pixelToPosition(xs,ys)
+       if vb: print sourcepos
+
+       pointsource = tractor.PointSource(sourcepos,ms)
+       if vb: print pointsource
+
+       # Lens mass:
+       thetaE = lenstractor.EinsteinRadius(0.75) # arcsec
+       if vb: print thetaE
+       gamma = 0.2 # to make quad
+       phi   = 0.0 # deg
+       xshear = lenstractor.ExternalShear(gamma,phi)
+       if vb: print xshear
+
+       # Lens light:
+       x,y = 0.5*NX,0.5*NY
+       lenspos = wcs.pixelToPosition(x,y)
+       mags = [17.0]
+       md = tractor.Mags(order=bandnames, **dict(zip(bandnames,mags)))
+       if vb: print md
+       re = 1.0  # arcsec
+       q = 1.0   # axis ratio
+       theta = 0.0 # degrees
+       galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
+       if vb: print galshape
+
+       lensgalaxy = lenstractor.LensGalaxy(lenspos,md,galshape,thetaE,xshear)
+       if vb: print lensgalaxy
+
+       srcs = [lenstractor.PointSourceLens(lensgalaxy, pointsource)]
+
+   if vb: 
+      print srcs
+      print " "
+
+   # -------------------------------------------------------------------------
+
+   # Set up logging to theterminal by The Tractor:   
    if opt.verbose:
       lvl = logging.DEBUG
    else:
@@ -74,197 +202,63 @@ def ps1tractor():
    logging.basicConfig(level=lvl, format='%(message)s', stream=sys.stdout)
 
    # -------------------------------------------------------------------------
+   # Optimize the model parameters.
    
-   name = scifile.replace('_sci.fits','')
+   Nsteps_optimizing_catalog = 5
+   Nsteps_optimizing_PSFs = 2    # To save time while developing
    
-   # Get sci and wht images, and make mask:
-   
-   hdulist = pyfits.open(scifile)
-   sci = hdulist[0].data
-   hdr = hdulist[0].header
-   hdulist.close()
-   NX,NY = sci.shape
+   if vb: 
+      print "Optimizing model:"
+      print "   - no. of iterations to be spent on catalog: ",Nsteps_optimizing_catalog
+      print "   - no. of iterations to be spent on PSFs: ",Nsteps_optimizing_PSFs
 
-   hdulist = pyfits.open(varfile)
-   var = hdulist[0].data
-   hdulist.close()
-   assert sci.shape == var.shape
-   
-   mask = numpy.ones([NX,NY],dtype=np.int16)
-   mask[numpy.where(var == 0)] = 0
-   
-   # Convert var to wht, and find median uncertainty as well:
-   invvar = 1.0/var
-   # Assign zero weight to var=nan, var<=0:
-   invvar[var != var] = 0.0
-   invvar[var <= 0] = 0.0
-   
-   good = np.where(invvar > 0)
-   bad = np.where(invvar == 0)
-   
-   # Zero out sci image where wht is 0.0:
-   sci[bad] = 0.0
-
-   assert(all(np.isfinite(sci.ravel())))
-   assert(all(np.isfinite(invvar.ravel())))
-
-   # Rough estimates of background level and rms:
-   sciback = np.sqrt(np.median(var[good]))
-   scirms = np.sqrt(np.median(var[good]))
-   
-   # Report on progress so far:
-   if opt.verbose:
-      print 'Image name:', name
-      print 'Sci header:', hdr
-      print 'Read in sci image:', sci.shape, sci
-      print 'Read in var image:', var.shape, var
-      print 'Made mask image:', mask.shape, mask
-      print 'Useful variance range:', var[good].min(), var[good].max()
-      print 'Useful image median level:', sciback
-      print 'Useful image median pixel uncertainty:', scirms
-
-   # -------------------------------------------------------------------------
-   # Make a first guess at a PSF - a single circularly symmetric Gaussian 
-   # defined on same grid as sci image:
-
-   w = np.array([1.0])             # amplitude at peak
-   mu = np.array([[0.0,0.0]])      # centroid position in pixels 
-   FWHM = 4 # pixels
-   var = (FWHM/2.35)**2.0
-   cov = np.array([[[var,0.0],[0.0,var]]])  # pixels^2, variance matrix
-   psf = tractor.GaussianMixturePSF(w,mu,cov)
-      
-   # # Double Gaussian alternative:
-   # w = np.array([1.0,1.0])           # amplitude at peak
-   # mu = np.array([[0.0,0.0],[0.0,0.0]])      # centroid position in pixels 
-   # FWHM = 7 # pixels
-   # var = (FWHM/2.35)**2.0
-   # cov = np.array([[[1.0,0.0],[0.0,1.0]],[[var,0.0],[0.0,var]]])  # pixels^2, variance matrices
-   # psf = tractor.GaussianMixturePSF(w,mu,cov)
-      
-   # -------------------------------------------------------------------------
-
-   # Photometric calibration from PS1 image - Null, because we're working in flux
-   # units, not calibrated mags; this corresponds to using tractor.Flux() below
-   # when creating the Source objects.
-#    photocal = tractor.NullPhotoCal()
-
-   band = hdr['HIERARCH FPA.FILTER'][0]
-   zpt = hdr['HIERARCH FPA.ZP']
-   photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
-   print photocal
-
-   # Set up sky to be varied:
-   sky = tractor.ConstantSky(0.0)
-   print sky
-   
-   # -------------------------------------------------------------------------
-   # Make a first guess at a catalog - 4 point sources. Find centre of 
-   # field using fitsWCS:
-
-   wcs = lenstractor.PS1WCS(hdr)
-   print wcs
-   
-   # Test: 4 point sources:
-   #  x,y,f = NX/2,NY/2, 100*scirms
-   #  e = 1 # pixels
-   #  srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),tractor.Flux(f)),
-   #          tractor.PointSource(wcs.pixelToPosition(x-e,y),tractor.Flux(f)),
-   #          tractor.PointSource(wcs.pixelToPosition(x,y+e),tractor.Flux(f)),
-   #          tractor.PointSource(wcs.pixelToPosition(x,y-e),tractor.Flux(f))]
-   
-   # Source:
-   xs,ys, ms = 0.5*NX, 0.5*NY, tractor.Mags(z=16.0)
-   print ms
-   sourcepos = wcs.pixelToPosition(xs,ys)
-   print sourcepos
-   
-   pointsource = tractor.PointSource(sourcepos,ms)
-   print pointsource
-   
-   # Lens mass:
-   thetaE = lenstractor.EinsteinRadius(0.75) # arcsec
-   print thetaE
-   gamma = 0.2 # to make quad
-   phi   = 0.0 # deg
-   xshear = lenstractor.ExternalShear(gamma,phi)
-   print xshear
-   
-   # Lens light:
-   x,y = 0.5*NX,0.5*NY
-   lenspos = wcs.pixelToPosition(x,y)
-   md = tractor.Mags(z=17.0)
-   print md
-   re = 1.0  # arcsec
-   q = 1.0   # axis ratio
-   theta = 0.0 # degrees
-   galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
-   print galshape
-      
-   lensgalaxy = lenstractor.LensGalaxy(lenspos,md,galshape,thetaE,xshear)
-   print lensgalaxy
-   
-   psl = lenstractor.PointSourceLens(lensgalaxy, pointsource)
-   print psl
-      
-   srcs = [psl]
-
-   # -------------------------------------------------------------------------
-   
-   # Make a tractor Image object out of all this stuff:
-   
-   initimage = tractor.Image(data=sci, invvar=invvar, name=name,
-				 psf=psf, wcs=wcs, sky=sky, photocal=photocal)
-
-   # Optimization plan:
-   
-   Nsteps_optimizing_catalog = 20
-   Nsteps_optimizing_PSFs = 0 # To save time.
-
-   # Start a tractor, and feed it the catalog one src at a time:
-
-   chug = tractor.Tractor([initimage])
+   # Start a tractor, and let it make a catalog one src at a time:
+   chug = tractor.Tractor(images)
    for src in srcs:
       chug.addSource(src)
-   print 'Obtained a total of', len(chug.catalog), 'sources'
 
-   # Plot:
-   plot_state(chug,'progress_initial')
+   # Plot initial state:
+   if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_initial')
 
    # Freeze the PSF, sky and photocal, leaving the sources:
    print "DEBUGGING: Before freezing, PSF = ",chug.getImage(0).psf
    for image in chug.getImages():
       image.freezeParams('photocal', 'wcs', 'psf')
    print "DEBUGGING: After freezing, PSF = ",chug.getImage(0).psf
-   print "DEBUGGING: pars to be optimized are:",chug.getParamNames()
-
-   print chug.getStepSizes()
+   print "DEBUGGING: Catalog parameters to be optimized are:",chug.getParamNames()
+   print "DEBUGGING: Step sizes:",chug.getStepSizes()
 
    # Optimize sources with initial PSF:
    for i in range(Nsteps_optimizing_catalog):
       # dlnp2,X,a = chug.optimizeCatalogAtFixedComplexityStep()
       dlnp2,X,a = chug.optimize()
-      plot_state(chug,'progress_optimizing-catalog_step-%02d'%i)
+      if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-catalog_step-%02d'%i)
       print "DEBUGGING: pars being optimized are:",chug.getParamNames()
                   
+   # BUG: lens not being optimized correctly - missing derivatives?
+      
    # Freeze the sources and thaw the psfs:
    print "DEBUGGING: Before thawing, PSF = ",chug.getImage(0).psf
    chug.freezeParam('catalog')
    for image in chug.getImages():
       image.thawParams('psf')
    print "DEBUGGING: After thawing, PSF = ",chug.getImage(0).psf
-   print "DEBUGGING: pars to be optimized are:",chug.getParamNames()
+   print "DEBUGGING: PSF parameters to be optimized are:",chug.getParamNames()
+   print "DEBUGGING: Step sizes:",chug.getStepSizes()
 
    # Optimize everything that is not frozen:
    for i in range(Nsteps_optimizing_catalog,Nsteps_optimizing_catalog+Nsteps_optimizing_PSFs):
       dlnp2,X,a = chug.optimize()
-      plot_state(chug,'progress_optimizing-psf_step-%02d'%i)
+      if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-psf_step-%02d'%i)
       print "DEBUGGING: pars being optimized are:",chug.getParamNames()
    
    print "DEBUGGING: After optimizing, PSF = ",chug.getImage(0).psf
+   
    # BUG: PSF not being optimized correctly - missing derivatives?
       
    # -------------------------------------------------------------------------
+   
+   lenstractor.Plot_state(chug,model+'_progress_complete')
    
    print "Tractor stopping."
       
@@ -272,87 +266,7 @@ def ps1tractor():
 
 # ============================================================================
 
-def plot_state(t,suffix):
-   '''
-   Make all the plots we need to assess the state of the tractor. Mainly, 
-   a multi-panel figure of image, synthetic image and chi, for each image being 
-   modelled.
-   
-   t is a Tractor object, containing a list of images.
-   '''
-   
-   px,py = 2,2
-   figprops = dict(figsize=(5*px,5*py), dpi=128)                                          # Figure properties
-   adjustprops = dict(\
-      left=0.05,\
-      bottom=0.05,\
-      right=0.95,\
-      top=0.95,\
-      wspace=0.1,\
-      hspace=0.1)
-        
-   
-   for i,image in enumerate(t.images):
-      if image.name is None:
-         imname = suffix+str(i)
-      else:
-         imname = image.name
-      scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
-      print "plot_state: scale = ",scale
- 
-      ima = dict(interpolation='nearest', origin='lower',
-                     vmin=-30.*scale, vmax=3.*scale)
-      chia = dict(interpolation='nearest', origin='lower',
-                        vmin=-5., vmax=5.)
-      psfa = dict(interpolation='nearest', origin='lower')
-
-      fig = plt.figure(**figprops)
-      fig.subplots_adjust(**adjustprops)
-      plt.clf()
-      plt.gray()
-
-      plt.subplot(py,px,1)
-      plt.imshow(-image.data, **ima)
-      # plt.colorbar()
-      tidyup_plot()
-      plt.title('Observed image')
-
-      model = t.getModelImages()[i]
-      print "plot_state: minmax of model = ",np.min(model),np.max(model)
-      plt.subplot(py,px,2)
-      plt.imshow(-model, **ima)
-      # plt.colorbar()
-      tidyup_plot()
-      plt.title('Predicted image')
-
-      chi = t.getChiImage(i)
-      plt.subplot(py,px,3)
-      plt.imshow(-chi, **chia)
-      # plt.colorbar()
-      tidyup_plot()
-      plt.title('Residuals ($\pm 5\sigma$)')
-
-      psfimage = image.psf.getPointSourcePatch(*model.shape).patch
-      plt.subplot(py,px,4)
-      plt.imshow(-psfimage, **psfa)
-      # plt.colorbar()
-      tidyup_plot()
-      plt.title('PSF')
-
-      plt.savefig(imname+'_'+suffix+'.png')   
-   
-   return
-
-def tidyup_plot():
-   # Turn off the axis ticks and labels:
-   ax = plt.gca()
-   ax.xaxis.set_ticks([])
-   ax.yaxis.set_ticks([])
-   return
-
-# ============================================================================
-
 if __name__ == '__main__':
    
-   ps1tractor()
+   main()
 
