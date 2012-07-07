@@ -16,12 +16,12 @@ Example use
 
 Bugs
 ----
-
  - PSF not being optimized correctly - missing derivatives?
  - Header PSF FWHM sometimes NaN, hard to recover from
  - Lens model not being optimized, step sizes and derivatives wrong
- - When sampling objects disappear from FoV to reduce mismatch
-
+ - StepSizes need optimizing for rapid start-up
+ - Magic numbers for initial mags, needs automating
+ - Memory leak: restrict no. of sampling iterations :-(
 '''
 
 if __name__ == '__main__':
@@ -128,21 +128,31 @@ def main():
    scifiles,varfiles = lenstractor.Riffle(inputfiles,vb=vb)
    
    # Read into Tractor Image objects, and see what filters we have:   
-   images,bandnames,epochs = lenstractor.Deal(scifiles,varfiles,SURVEY='PS1',vb=vb)
+   images,bandnames = lenstractor.Deal(scifiles,varfiles,SURVEY='PS1',vb=vb)
    
    # -------------------------------------------------------------------------
    # Initialize the catalog.
    
-   # Get rough idea of object position from wcs first image.
+   # Get rough idea of object position from wcs of first image- works
+   # well if all images are the same size and well registered!
    wcs = images[0].wcs
    NX,NY = np.shape(images[0].data)
    
-   # This will be in a 2-model loop eventually:
-   model = 'nebula'
-   # model = 'lens'
+   # MAGIC initial magnitude. This should be estimated from
+   # the total flux in each (background-subtracted) image...
    
-   # MAGIC initial magnitude
+   # magnitudes = np.ones(len(bandnames))
+   # for i,band in enumerate(bandnames):
+   #    ...
+   #    magnitudes[i] = ...
+   
    m0 = 16.0
+   magnitudes = m0*np.ones(len(bandnames))
+   if vb: print "Generic initial SED ",dict(zip(bandnames,magnitudes))
+  
+   # This will be in a 2-model loop eventually:
+   # model = 'nebula'
+   model = 'lens'
    
    if vb: print "Initializing model: "+model
        
@@ -153,8 +163,6 @@ def main():
        # Placeholder: 4 point sources:
        x,y = NX/2.0,NY/2.0
        e = 3.0 # pixels
-       magnitudes = m0*np.ones(len(bandnames))
-       if vb: print "Initial SED ",dict(zip(bandnames,magnitudes))
        
        mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
        srcs = [tractor.PointSource(wcs.pixelToPosition(x+e,y),mags),
@@ -169,8 +177,6 @@ def main():
        
        # Source to be lensed:
        xs,ys = 0.5*NX, 0.5*NY
-       magnitudes = m0*np.ones(len(bandnames))
-       if vb: print "Initial source SED ",dict(zip(bandnames,magnitudes))
        ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
        if vb: print ms
        sourcepos = wcs.pixelToPosition(xs,ys)
@@ -190,8 +196,7 @@ def main():
        # Lens light:
        x,y = 0.5*NX,0.5*NY
        lenspos = wcs.pixelToPosition(x,y)
-       magnitudes = m0*np.ones(len(bandnames))
-       if vb: print "Initial lens SED ",dict(zip(bandnames,magnitudes))
+       if vb: print lenspos
        md = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
        if vb: print md
        re = 1.0  # arcsec
@@ -199,7 +204,7 @@ def main():
        theta = 0.0 # degrees
        galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
        if vb: print galshape
-
+       
        lensgalaxy = lenstractor.LensGalaxy(lenspos,md,galshape,thetaE,xshear)
        if vb: print lensgalaxy
 
@@ -302,29 +307,35 @@ def main():
          nw = 8*ndim
          sampler = emcee.EnsembleSampler(nw, ndim, chug, live_dangerously=True)
 
-         # Start the walkers off near the initialisation point - this can be 
-         # arbitrarily small, and we need it to be ~1 pixel in position. The
-         # following gets us 0.2" in dec:
-         psteps = np.zeros_like(p0) + 0.00004
-         # This could be optimized, to allow more initial freedom in eg flux.
+         # Start the walkers off near the initialisation point - 
+         # We need it to be ~1 pixel in position, and not too much
+         # flux restrction... 
          
-         # Good first guess should be some fraction of the optimization step sizes:
-         psteps = 0.2*np.array(chug.getStepSizes())
+         if model=='lens':
+            # The following gets us 0.2" in dec:
+            psteps = np.zeros_like(p0) + 0.00004
+            # This could be optimized, to allow more initial freedom in eg flux.
+         
+         elif model=='nebula':
+            # Good first guess should be some fraction of the optimization step sizes:
+            psteps = 0.2*np.array(chug.getStepSizes())
+         
          print "Initial size (in each dimension) of sample ball = ",psteps
-         # This fails for the lens model...
          
          pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
          rstate = None
          lnp = None
          
-         for step in range(1, 100):
+         # Take a few steps - memory leaks fast! (~10Mb per sec)
+         for step in range(1, 4):
                
-               print 'Run MCMC step', step
-               # t0 = Time()
+               print 'Run MCMC step set:', step
+               t0 = tractor.Time()
                pp,lnp,rstate = sampler.run_mcmc(pp, 5, lnprob0=lnp, rstate0=rstate)
                
                print 'Mean acceptance fraction after', sampler.iterations, 'iterations =',np.mean(sampler.acceptance_fraction)
-               # t_mcmc = (Time() - t0)
+               t_mcmc = (tractor.Time() - t0)
+               print 'Runtime:', t_mcmc
                
                # Find the current posterior means:
                pbar = np.mean(pp,axis=0)

@@ -31,6 +31,29 @@ python LensTractor.py -v \
 # Replace 4 point srcs with 1 LensedPointSource, and optimize that. Need
 # to create class, and work on getModelPatch.
 
+# ========================================================================================
+# 2012-07-07 (Saturday) 14:32 CEST
 
+# Got emcee sampling working on both lens and nebula! - StepSizes still 
+# needed for lens, to make sensible...
+
+python LensTractor.py -s examples/H1413+117_10x10arcsec_55*fits > & junk &
+
+open *lens_progress*png
+
+# :-)
+
+# Current bugs list:
+# 
+# Bugs
+# ----
+#  - PSF not being optimized correctly - missing derivatives?
+#  - Header PSF FWHM sometimes NaN, hard to recover from
+#  - Lens model not being optimized, step sizes and derivatives wrong
+#  - StepSizes need optimizing for rapid start-up
+#  - Magic numbers for initial mags, needs automating
+#  - Memory leak: restrict no. of sampling iterations :-(
+
+# Report to dstn re memory leak.
 
 # ========================================================================================

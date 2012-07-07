@@ -131,7 +131,7 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       print "  at",len(epochs),"epochs"
       print " "
 
-   return images,np.array(uniqbands),np.array(epochs)
+   return images,np.array(uniqbands)
       
 # ============================================================================
 # Read in sci and wht images. Note assumptions about file format:
