@@ -173,7 +173,7 @@ def main():
        fudge = 2
        equalmagnitudes = magnitudes + 2.5*np.log10(5*fudge)
      
-       # Composite galaxy:
+       # Composite galaxy...
        galpos = wcs.pixelToPosition(x,y)
        mg = tractor.Mags(order=bandnames, **dict(zip(bandnames,equalmagnitudes)))
        re = 1.0    # arcsec
@@ -183,7 +183,7 @@ def main():
        nebulousgalaxy = tractor.sdss_galaxy.CompositeGalaxy(galpos,mg,galshape,mg,galshape)
        if vb: print nebulousgalaxy
        
-       # plus 4 point sources, arranged in a small cross:
+       # ...plus 4 point sources, arranged in a small cross:
        e = 3.0 # pixels
        mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,equalmagnitudes)))
        srcs = [nebulousgalaxy,
