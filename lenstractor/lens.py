@@ -48,7 +48,7 @@ class ExternalShear(tractor.ParamList):
             return ExternalShear(*self.vals)
       def getParamNames(self):
             return ['gamma', 'phi']
-      def getStepSizes(self, img):
+      def getStepSizes(self, *args, **kwargs):
             return [ 0.1, 1.0 ]
 
 # ============================================================================
@@ -191,8 +191,8 @@ class PointSourceLens(tractor.MultiParams):
                        oldval = self.setParam(i, pars0[i] + step)
                        patchi = self.getModelPatch(img)
                        self.setParam(i, oldval)
-                       dpatch = (patchi - patch0) / step
-                       derivs.append(Patch(0, 0, dpatch))
+                       dpatch = (patchi - patch0) * (1./ step)
+                       derivs.append(dpatch)
                return derivs
 
 
