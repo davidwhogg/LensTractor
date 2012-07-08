@@ -18,11 +18,10 @@ Bugs
 ----
  - PSF not being optimized correctly - missing derivatives?
  - Header PSF FWHM sometimes NaN, hard to recover from
- - Lens model not being optimized, step sizes and derivatives wrong
- - StepSizes need optimizing for rapid start-up
+ - StepSizes need optimizing for lens model, esp source position
  - Memory leak: restrict no. of sampling iterations :-(
  - PhotoCal may need optimizing if zpts are untrustworthy!
- - Point sources are not variable, microlensing etc is unaccounted for
+ - Point source mags are not variable, microlensing etc is unaccounted for
  - Initialisation may be fragile, in terms of source positions etc...
  - BIC is not coded yet
 '''
@@ -88,15 +87,15 @@ def main():
 
    EXAMPLES
 
-     LensTractor.py -v -x examples/*.fits
-
+     python LensTractor.py -x examples/H1413+117_10x10arcsec_55*fits > examples/H1413+117_10x10arcsec_lenstractor.log
+   
    DEPENDENCIES
      * The Tractor     astrometry.net/svn/trunk/projects/tractor
      * emcee           github.com/danfm/emcee
      * astrometry.net  astrometry.net/svn/trunk/util
 
    BUGS
-     - PSFs not being optimized correctly - missing derivatives?
+     - PSFs not being optimized correctly - permafrost?
 
    HISTORY
      2012-07-06       First predicted Lens images Marshall/Hogg (Oxford/NYU)
@@ -232,7 +231,7 @@ def main():
 
            # Source to be lensed:
            xs,ys = 0.5*NX, 0.5*NY
-           unlensedmagnitudes = magnitudes + 2.5*np.log10(10.0)
+           unlensedmagnitudes = magnitudes + 2.5*np.log10(40.0)
            ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,unlensedmagnitudes)))
            if vb: print ms
            sourcepos = wcs.pixelToPosition(xs,ys)
