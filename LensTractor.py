@@ -136,8 +136,9 @@ def main():
    elif opt.nebula:
       models = ['nebula']
    else:
-      models = ['lens','nebula']   
+      models = ['nebula','lens',]   
    # NB. default operation is to fit both and compare.
+   # Do nebula first: PSF and sky then roll over into lens.
    
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
@@ -283,8 +284,10 @@ def main():
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-       # Start a tractor, and let it make a catalog one src at a time:
-       chug = tractor.Tractor(images)
+       # Start a tractor, and let it make a catalog one src at a time.
+       # Pass in a copy of the image list, so that PSF etc are 
+       # initialised correctly for each model. 
+       chug = tractor.Tractor(list(images))
        for src in srcs:
           chug.addSource(src)
 
@@ -296,45 +299,59 @@ def main():
        if not opt.MCMC:
        # Optimize the model parameters:
 
-             Nsteps_optimizing_catalog = 50
-             Nsteps_optimizing_PSFs = 2    # To save time while developing
+             if model=='nebula':
+                Nrounds = 2
+                Nsteps_optimizing_catalog = 20
+                Nsteps_optimizing_PSFs = 10
+             elif model=='lens':
+                Nrounds = 2
+                Nsteps_optimizing_catalog = 40
+                Nsteps_optimizing_PSFs = 5
 
              if vb: 
                 print "Optimizing model:"
-                print "   - no. of iterations to be spent on catalog: ",Nsteps_optimizing_catalog
-                print "   - no. of iterations to be spent on PSFs: ",Nsteps_optimizing_PSFs
+                print "   - no. of iterations per round to be spent on catalog: ",Nsteps_optimizing_catalog
+                print "   - no. of iterations per round to be spent on PSFs: ",Nsteps_optimizing_PSFs
+                print "   - no. of rounds: ",Nrounds
 
-             # Freeze the PSF, sky and photocal, leaving the sources:
-             for image in chug.getImages():
-                image.freezeParams('photocal', 'wcs', 'psf')
-             print "Fitting "+model+": Catalog parameters to be optimized are:",chug.getParamNames()
-             print "Fitting "+model+": Initial values are:",chug.getParams()
-             print "Fitting "+model+": Step sizes:",chug.getStepSizes()
+             k = 0
+             for round in range(Nrounds):
+                   
+                   print "Fitting "+model+": seconds out, round",round
+            
+                   # Freeze the PSF, sky and photocal, leaving the sources:
+                   chug.thawParam('catalog')
+                   for image in chug.getImages():
+                     image.thawParams('sky')
+                     image.freezeParams('photocal', 'wcs', 'psf')
+                   print "Fitting "+model+": Catalog parameters to be optimized are:",chug.getParamNames()
+                   print "Fitting "+model+": Initial values are:",chug.getParams()
+                   print "Fitting "+model+": Step sizes:",chug.getStepSizes()
 
-             # Optimize sources with initial PSF:
-             for i in range(Nsteps_optimizing_catalog):
-                dlnp,X,a = chug.optimize()
-                if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-catalog_step-%02d'%i)
-                print "Fitting "+model+": at step",i,"parameter values are:",chug.getParams()
+                   # Optimize sources with initial PSF:
+                   for i in range(Nsteps_optimizing_catalog):
+                      dlnp,X,a = chug.optimize()
+                      if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+                      print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
+                      k += 1
 
-             # BUG: lens not being optimized correctly - missing derivatives?
+                   # Freeze the sources and thaw the psfs:
+                   chug.freezeParam('catalog')
+                   for image in chug.getImages():
+                      image.thawParams('psf')
+                      image.freezeParams('photocal', 'wcs', 'sky')
+                   print "Fitting PSF: After thawing, zeroth PSF = ",chug.getImage(0).psf
+                   print "Fitting PSF: PSF parameters to be optimized are:",chug.getParamNames()
+                   print "Fitting PSF: Initial values are:",chug.getParams()
+                   print "Fitting PSF: Step sizes:",chug.getStepSizes()
 
-             # Freeze the sources and thaw the psfs:
-             chug.freezeParam('catalog')
-             for image in chug.getImages():
-                image.freezeParams('sky')
-                image.thawParams('psf')
-             print "Fitting "+model+": After thawing, zeroth PSF = ",chug.getImage(0).psf
-             print "Fitting "+model+": PSF parameters to be optimized are:",chug.getParamNames()
-             print "Fitting "+model+": Initial values are:",chug.getParams()
-             print "Fitting "+model+": Step sizes:",chug.getStepSizes()
-
-             # Optimize everything that is not frozen:
-             for i in range(Nsteps_optimizing_catalog,Nsteps_optimizing_catalog+Nsteps_optimizing_PSFs):
-                dlnp,X,a = chug.optimize()
-                if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing-psf_step-%02d'%i)
-                print "Fitting "+model+": at step",i,"parameter values are:",chug.getParams()
-             print "Fitting "+model+": After optimizing, zeroth PSF = ",chug.getImage(0).psf
+                   # Optimize everything that is not frozen:
+                   for i in range(Nsteps_optimizing_PSFs):
+                      dlnp,X,a = chug.optimize()
+                      if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+                      print "Fitting PSF: at step",k,"parameter values are:",chug.getParams()
+                      k += 1
+                   print "Fitting PSF: After optimizing, zeroth PSF = ",chug.getImage(0).psf
 
              # BUG: PSF not being optimized correctly - missing derivatives?
 
