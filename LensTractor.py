@@ -136,7 +136,8 @@ def main():
    elif opt.nebula:
       models = ['nebula']
    else:
-      models = ['nebula','lens',]   
+      models = ['nebula','lens']
+   BIC = dict(zip(models,np.zeros(len(models))))
    # NB. default operation is to fit both and compare.
    # Do nebula first: PSF and sky then roll over into lens.
    
@@ -442,16 +443,23 @@ def main():
        
        # Collect statistics about this model's fit:
        
-       pass
+       chisq = -2.0*chug.getLogLikelihood()
+       chug.thawParam('catalog')
+       for image in chug.getImages():
+         image.thawParams('sky', 'psf')
+         image.freezeParams('photocal', 'wcs')
+       K = len(chug.getParams())
+       N = chug.getNdata()
+       BIC[model] = chisq + K*np.log(1.0*N)
+       print "Fitting "+model+": chisq, K, N, BIC =",chisq,K,N,BIC[model]
        
    # -------------------------------------------------------------------------
    
    if len(models) == 2:
    # Compare models and report:
-   
-       if vb: 
-           print "Neither model fits very well yet, does it?"
-           print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
+       print "BIC = ",BIC
+       print "Fitting result: Bayes factor in favour of nebula is exp[",-0.5*(BIC['nebula'] - BIC['lens']),"]"
+       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
 
    # -------------------------------------------------------------------------
    

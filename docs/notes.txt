@@ -63,5 +63,31 @@ open *lens_progress*png
 
 python LensTractor.py -x examples/H1413+117_10x10arcsec_55*fits > examples/H1413+117_10x10arcsec_lenstractor.log
 
+# 2012-07-08 (Sunday) 14:44 CEST
+
+# Dstn got steps and derivs working, now optimizing away!
+# Lens is poor fit due to over large step sizes in source plane probably.
+
+# Code up BIC:
+# Fitting nebula: chisq, K, N, BIC = 8228.97169136 44 7203 8619.7908183
+# Fitting lens: chisq, K, N, BIC = 19256.0491193 35 7203 19566.9279702
+# BIC =  {'lens': 19566.927970225803, 'nebula': 8619.7908182981228}
+# Fitting result: Bayes factor in favour of nebula is exp[ 5473.56857596 ]
+
+# So, for lens to be a competitive model, it needs a chisq that is less then 
+# X greater than Nebula's, where X = (44-35)*log(7203) ~ 80 units
+# Fitting result: Bayes factor in favour of nebula is exp[ 5473.56857596 ]
+
+time python LensTractor.py -x examples/H1413+117_10x10arcsec_55*fits > examples/H1413+117_10x10arcsec_lenstractor.log
+
+# 73.442u 1.882s 1:17.67 96.9%    0+0k 275+121io 1pf+0w
+# Pretty slow - 1 min 20 secs.
+# Idea: do nebula first and check to see if it is lens consistent (ie > 1 resolved, 
+#    detected point source? Then spend time saved on good systems.
+
+# Results and code saved in:
+
+mv *png *log 2012-07-08_optimized-both/
+cp -r ../LensTractor.py ../lenstractor 2012-07-08_optimized-both/
 
 # ========================================================================================
