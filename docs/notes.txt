@@ -59,4 +59,9 @@ open *lens_progress*png
 # Tried adding a CompositeGalaxy to the Nebula model - slowed things down and
 # made it harder for points to move, somehow...
 
+# Fixed this! PSF still not optimizing but lens and nebula are going well:
+
+python LensTractor.py -x examples/H1413+117_10x10arcsec_55*fits > examples/H1413+117_10x10arcsec_lenstractor.log
+
+
 # ========================================================================================

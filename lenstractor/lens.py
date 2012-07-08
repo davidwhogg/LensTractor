@@ -187,7 +187,7 @@ class PointSourceLens(tractor.MultiParams):
                patch0 = self.getModelPatch(img)
                derivs = []
                for i,(step,name) in enumerate(zip(self.getStepSizes(), self.getParamNames())):
-                       print 'Img', img.name, 'deriv', i, name
+                       # print 'Img', img.name, 'deriv', i, name
                        oldval = self.setParam(i, pars0[i] + step)
                        patchi = self.getModelPatch(img)
                        self.setParam(i, oldval)
