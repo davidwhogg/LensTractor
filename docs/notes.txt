@@ -90,4 +90,35 @@ time python LensTractor.py -x examples/H1413+117_10x10arcsec_55*fits > examples/
 mv *png *log 2012-07-08_optimized-both/
 cp -r ../LensTractor.py ../lenstractor 2012-07-08_optimized-both/
 
+# Advice from Dstn re optimization:
+
+#   "The step sizes are only used to take the finite-difference approximate
+#   derivative.  Ideally the step should be big enough that the model's
+#   predictions are different enough so that the numerical errors aren't too
+#   big.  (You don't want to be subtracting (1-epsilon) from 1.)  But you want
+#   the step to be small enough that the linear approximation is ok."
+# 
+#   "One thing you could look at is the update direction -- tractor.optimize()
+#   returns (delta-logprob, delta-params, alpha) -- (by the way, instead of just
+#   optimizing for N steps you could opt until the delta-logprob is small or
+#   zero). Look at the delta-params -- how does it want to change the model?  Is
+#   it trying to take a huge step in some crazy direction?  You can force only
+#   small steps by setting the damping parameter: eg, 
+#   tractor.optimize(damp=10.)  If you turn on verbose logging you should see it
+#   trying to step in the delta-params direction with different step sizes (by
+#   default, from 1e-3 to 1 in factors of sqrt(2), I think)."
+
+# Try and implement some of this.
+
+# ========================================================================================
+# 2012-08-15 (Wednesday) 08:46 MST
+
+# At LSST AHM with Dstn. Try and implement source position step sizes 
+# that depend on magnification.
+
+time python LensTractor.py -l -v examples/H1413+117_10x10arcsec_55377.34051_*.fits \
+  > examples/H1413+117_10x10arcsec_55377.34051_z_lenstractor_lens-step-size-testing.log
+
+# OK, this takes 16 sec or so, fine. Should be enough to test step sizes.
+
 # ========================================================================================

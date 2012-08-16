@@ -23,7 +23,6 @@ Bugs
  - PhotoCal may need optimizing if zpts are untrustworthy!
  - Point source mags are not variable, microlensing etc is unaccounted for
  - Initialisation may be fragile, in terms of source positions etc...
- - BIC is not coded yet
 '''
 
 if __name__ == '__main__':
@@ -305,9 +304,9 @@ def main():
                 Nsteps_optimizing_catalog = 20
                 Nsteps_optimizing_PSFs = 10
              elif model=='lens':
-                Nrounds = 2
-                Nsteps_optimizing_catalog = 40
-                Nsteps_optimizing_PSFs = 5
+                Nrounds = 3
+                Nsteps_optimizing_catalog = 7
+                Nsteps_optimizing_PSFs = 3
 
              if vb: 
                 print "Optimizing model:"

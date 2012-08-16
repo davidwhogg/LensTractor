@@ -144,7 +144,10 @@ class PointSourceLens(tractor.MultiParams):
             # Create 4 local cached PointSource instances for the purpose of 
             # patch-making later:
             self.pointsourcecache = [pointsource.copy() for i in range(4)]
-          
+            
+            # Total magnification of the lens, for step sizes:
+            self.mu = 1.0
+            
             return
 
        def __str__(self):
@@ -168,7 +171,9 @@ class PointSourceLens(tractor.MultiParams):
                # Solve the lens equation to get the image positions and fluxes.
                # Note: images are returned time-ordered:
                imagepositions, imagemagnifications = self.lensgalaxy.getLensedImages(self.pointsource)
-                              
+               # Keep track of total magnification of lens: 
+               self.mu = np.sum(np.abs(imagemagnifications))
+               
                # Add point image patches to the patch, applying dmags:
                for i,(imageposition,imagemagnification) in enumerate(zip(imagepositions,imagemagnifications)):
                   # Recall: pointsourcecache is a list of 4 pointsource instances, to be pointed at.
@@ -178,13 +183,16 @@ class PointSourceLens(tractor.MultiParams):
                   # This is brittle - if the Patch is entirely outside the FoV, getModelPatch returns None, 
                   # which cannot be added...
                   patch += PS.getModelPatch(img)
-
+                                 
                return patch
          
        def getParamDerivatives(self, img, brightnessonly=False):
                # Basic parameter derivatives by finite differencing:
                pars0 = self.getParams()
                patch0 = self.getModelPatch(img)
+               # Step sizes (MAGIC 0.1):
+               self.pointsource.pos.setStepSizes(0.1*(self.lensgalaxy.Rein.val/3600.0)/self.mu)
+               # Derivatives:
                derivs = []
                for i,(step,name) in enumerate(zip(self.getStepSizes(), self.getParamNames())):
                        # print 'Img', img.name, 'deriv', i, name
