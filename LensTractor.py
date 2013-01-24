@@ -275,8 +275,8 @@ def main():
            for i in range(K):
                # Add a point source with random position near nebula centre:
                e = 2.0 # pixels
-               x,y = e*np.random.randn(2)
-               star = tractor.PointSource(wcs.pixelToPosition(x+e,y+e),mags.copy())
+               dx,dy = e*np.random.randn(2)
+               star = tractor.PointSource(wcs.pixelToPosition(x+dx,y+dy),mags.copy())
                if vb: print star
                srcs.append(star)
 
