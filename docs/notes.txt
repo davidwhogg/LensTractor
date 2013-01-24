@@ -131,7 +131,7 @@ time python LensTractor.py -l examples/H1413+117_10x10arcsec_55377.34051_*.fits 
 # Workflow for nebula: 1 -> 2 -> 4.
 # Point  sources placed randomly around extended object.
 
-START:
+# START:
 
 set expt = $LENSTRACTOR_DIR/examples/2013-01-24_nebula-1-2-4-random-init
 mkdir -p $expt
@@ -165,6 +165,7 @@ source $runfile
 # 
 # At most we have 5 filters * 12 epochs = 60 images
 # If we take 30 steps, that's about 2.5*30*60 = 75 mins! Can this be right?
+# Still plotting every step!
 # Test with more images; also look at dynamic opt, based on value of dlnp...
 
 mv $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.34051_*png $expt/
@@ -178,7 +179,55 @@ grep BIC $logfile
 
 goto FINISH
 
-# Now, expt with lens again...
+# Now, try with all 3 test images and PSF variation...
+
+START:
+
+set expt = $LENSTRACTOR_DIR/examples/2013-01-24_nebula+psf-1-2-4-random-init
+mkdir -p $expt
+chdir $expt
+
+set logfile = $expt/H1413+117_10x10arcsec_lenstractor_nebula-testing.log
+echo "Running LensTractor, output in $logfile"
+set runfile = $logfile:r.csh
+
+echo "\
+time python $LENSTRACTOR_DIR/LensTractor.py -x -n \\
+  $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55*.fits \\
+  --optimization-rounds 3 \\
+  --optimization-steps-catalog 10 \\
+  --optimization-steps-psf 10 \\
+    > $logfile"   > $runfile
+
+now > $logfile
+echo " " >> $logfile
+cat $runfile >> $logfile
+echo " " >> $logfile
+
+source $runfile
+# With all plots:
+# 231.842u 32.127s 5:23.63 81.5%  0+0k 233+346io 100333pf+0w
+# With some plots:
+# 33.090u 1.369s 0:35.63 96.6%    0+0k 224+193io 953pf+0w
+
+# 320 secs for 60 steps * 3 images = 1.8s / step / image
+# 36 secs -> 0.2 s/step/image OK FINE.
+
+# No plots, 10 PSF opt steps:
+# 45.235u 1.485s 0:48.34 96.6%    0+0k 0+22io 0pf+0w
+
+mv $LENSTRACTOR_DIR/examples/*png $expt/
+
+grep BIC $logfile
+# nebula1 results: chisq, K, N, BIC = 15090.4641175 32 7203 15374.6962098
+# nebula2 results: chisq, K, N, BIC = 14604.5413981 36 7203 14924.302502
+# nebula4 results: chisq, K, N, BIC = 10306.8428746 44 7203 10697.6620015
+
+# Clear favouring of 4 pts over 1 or 2!
+
+goto FINISH
+
+
 
 # ========================================================================================
 FINISH:

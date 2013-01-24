@@ -153,7 +153,6 @@ def main():
      * astrometry.net  astrometry.net/svn/trunk/util
 
    BUGS
-     - PSFs not being optimized correctly - permafrost?
 
    HISTORY
      2012-07-06       First predicted Lens images Marshall/Hogg (Oxford/NYU)
