@@ -127,6 +127,11 @@ def main():
      *.fits           Deck of postcard images
 
    OPTIONAL INPUTS
+     --optimization-rounds        Nr   Number of rounds of optimization [2]
+     --optimization-steps-catalog Nc   Number of steps per round spent
+                                        optimizing source catalog [10]
+     --optimization-steps-psf     Np   Number of steps per round spent
+                                        optimizing source catalog [2]
 
    OUTPUTS
      stdout                       Useful information
@@ -157,37 +162,42 @@ def main():
 
    # --------------------------------------------------------------------
 
-   from optparse import OptionParser
+   from argparse import ArgumentParser
    import sys
 
    # Set available options:
-   parser = OptionParser(usage=('%prog *.fits'))
+   parser = ArgumentParser()
+   # List of files:
+   parser.add_argument('inputfiles', metavar='N', nargs='+')
    # Verbosity:
-   parser.add_option('-v', '--verbose', dest='verbose', action='count', default=False, help='Make more verbose')
-   vb = True  # for usual outputs.
+   parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False, help='Make more verbose')
    # Sampling:
-   parser.add_option('-s', '--sample', dest='MCMC', action='count', default=False, help='Sample posterior PDF')
+   parser.add_argument('-s', '--sample', dest='MCMC', action='store_true', default=False, help='Sample posterior PDF')
    # Plotting:
-   parser.add_option('-x', '--no-plots', dest='noplots', action='count', default=False, help='Skip plotting')
+   parser.add_argument('-x', '--no-plots', dest='noplots', action='store_true', default=False, help='Skip plotting')
    # Lens model only:
-   parser.add_option('-l', '--lens', dest='lens', action='count', default=False, help='Fit lens model')
+   parser.add_argument('-l', '--lens', dest='lens', action='store_true', default=False, help='Fit lens model')
    # Nebula model only:
-   parser.add_option('-n', '--nebula', dest='nebula', action='count', default=False, help='Fit nebula model')
-   
+   parser.add_argument('-n', '--nebula', dest='nebula', action='store_true', default=False, help='Fit nebula model')
+   # optimization workflow:
+   parser.add_argument('--optimization-rounds', dest='Nr', type=int, default=3, help='No. of optimization rounds')
+   parser.add_argument('--optimization-steps-catalog', dest='Nc', type=int, default=10, help='No. of optimization steps spent on source catalog')
+   parser.add_argument('--optimization-steps-psf', dest='Np', type=int, default=2, help='No. of optimization steps spent on PSFs')
+
    # Read in options and arguments - note only sci and wht images are supplied:
-   opt,args = parser.parse_args()
+   args = parser.parse_args()
    
-   if len(args) < 2:
+      
+   if len(args.inputfiles) < 2:
       parser.print_help()
       sys.exit(-1)
-    
-   # The rest of the command line is assumed to be a list of files:
-   inputfiles = args
+   
+   vb = args.verbose
    
    # Workflow:
-   if opt.lens:
+   if args.lens:
       models = ['lens']
-   elif opt.nebula:
+   elif args.nebula:
       models = ['nebula1','nebula2','nebula4',]
    else:
       models = ['nebula1','nebula2','nebula4','lens']
@@ -203,7 +213,7 @@ def main():
    # -------------------------------------------------------------------------
    
    # Organise the deck of inputfiles into scifiles and varfiles:
-   scifiles,varfiles = lenstractor.Riffle(inputfiles,vb=vb)
+   scifiles,varfiles = lenstractor.Riffle(args.inputfiles,vb=vb)
    
    # Read into Tractor Image objects, and see what filters we have:   
    images,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY='PS1',vb=vb)
@@ -242,8 +252,8 @@ def main():
        # Figure out what type of model this is:
        modeltype =  model[0:6]
        
-       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-       
+       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
+              
        if modeltype == 'nebula':
 
            # Nebula - a flexible galaxy plus K point sources, 
@@ -280,16 +290,16 @@ def main():
                if vb: print star
                srcs.append(star)
 
-       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
+       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
+       
        # Original Nebula4 initialisation went as follows:
        #   tractor.PointSource(wcs.pixelToPosition(x+e,y),mags.copy()),
        #   tractor.PointSource(wcs.pixelToPosition(x-e,y),mags.copy()),
        #   tractor.PointSource(wcs.pixelToPosition(x,y+e),mags.copy()),
        #   tractor.PointSource(wcs.pixelToPosition(x,y-e),mags.copy())]
 
-       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-       
+       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
+              
        elif modeltype == 'lens':
 
            # Source to be lensed:
@@ -329,16 +339,17 @@ def main():
 
            srcs = [lenstractor.PointSourceLens(lensgalaxy, pointsource)]
 
-       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        
        if vb: 
-          print "Model =",srcs
-          print " "
+           print "Initialization complete."
+           print "Model =",srcs
+           print " "
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
        # Set up logging to the terminal by The Tractor:   
-       if opt.verbose:
+       if vb:
           lvl = logging.DEBUG
        else:
           lvl = logging.INFO
@@ -358,17 +369,20 @@ def main():
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-       if not opt.MCMC:
+       # Do the fit - either by maximizing the posterior PDF ("optimizing")
+       # or by exploring the posterior PDF ("MCMC").
+
+       if not args.MCMC:
        # Optimize the model parameters:
 
              if modeltype=='nebula':
-                Nrounds = 1 # 2
-                Nsteps_optimizing_catalog = 10 # 20
-                Nsteps_optimizing_PSFs = 1 # 10
+                Nrounds = args.Nr
+                Nsteps_optimizing_catalog = args.Nc
+                Nsteps_optimizing_PSFs = args.Np
              elif modeltype=='lens':
-                Nrounds = 3
-                Nsteps_optimizing_catalog = 7
-                Nsteps_optimizing_PSFs = 3
+                Nrounds = args.Nr
+                Nsteps_optimizing_catalog = args.Nc
+                Nsteps_optimizing_PSFs = args.Np
 
              if vb: 
                 print "Optimizing model:"
@@ -393,7 +407,7 @@ def main():
                    # Optimize sources with initial PSF:
                    for i in range(Nsteps_optimizing_catalog):
                       dlnp,X,a = chug.optimize(damp=3)
-                      if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+                      if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
                       print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
                       k += 1
 
@@ -410,7 +424,7 @@ def main():
                    # Optimize everything that is not frozen:
                    for i in range(Nsteps_optimizing_PSFs):
                       dlnp,X,a = chug.optimize()
-                      if not opt.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+                      if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
                       print "Fitting PSF: at step",k,"parameter values are:",chug.getParams()
                       k += 1
                    print "Fitting PSF: After optimizing, zeroth PSF = ",chug.getImage(0).psf
@@ -418,11 +432,10 @@ def main():
              # BUG: PSF not being optimized correctly - missing derivatives?
 
              lenstractor.Plot_state(chug,model+'_progress_optimizing_zcomplete')
-             
 
-       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-       elif opt.MCMC:
+       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
+       
+       elif args.MCMC:
        # MCMC sample the model parameters.
 
              if vb: 
@@ -484,7 +497,7 @@ def main():
                    pbest = np.ravel(pp[best,:])
                    print "Best parameters: ",pbest,maxlnp
 
-                   if not opt.noplots: 
+                   if not args.noplots: 
                       chug.setParams(pbest)
                       lenstractor.Plot_state(chug,model+'_progress_sampling_step-%02d'%step)
 
@@ -497,7 +510,10 @@ def main():
 
              lenstractor.Plot_state(chug,model+'_progress_sampling_zcomplete')
 
-       if vb: 
+       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
+       
+       if vb:
+           print "Fit complete."
            print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
        
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -512,15 +528,17 @@ def main():
        K = len(chug.getParams())
        N = chug.getNdata()
        BIC[model] = chisq + K*np.log(1.0*N)
-       print "Fitting "+model+": chisq, K, N, BIC =",chisq,K,N,BIC[model]
+       print model+" results: chisq, K, N, BIC =",chisq,K,N,BIC[model]
        
    # -------------------------------------------------------------------------
    
-   if len(models) == 2:
-   # Compare models and report:
-       print "BIC = ",BIC
-       print "Fitting result: Bayes factor in favour of nebula is exp[",-0.5*(BIC['nebula'] - BIC['lens']),"]"
-       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
+   # Make some decision about the nature of this system.
+   
+   #    if len(models) > 1:
+   #    # Compare models and report:
+   #        print "BIC = ",BIC
+   #        print "Hypothesis test result: Bayes factor in favour of nebula is exp[",-0.5*(BIC['nebula'] - BIC['lens']),"]"
+   #        print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
 
    # -------------------------------------------------------------------------
    

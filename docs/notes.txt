@@ -1,3 +1,4 @@
+goto START
 # ========================================================================================
 # 2012-04-05 (Thursday) 10:52 BST
 # 
@@ -124,3 +125,46 @@ time python LensTractor.py -l examples/H1413+117_10x10arcsec_55377.34051_*.fits 
 # With dstn's help, now have control over step sizes. No improvement so far.
 
 # ========================================================================================
+# 2013-01-24 (Thursday) 11:44 EST
+
+# Experimenting with initialization.
+# Workflow for nebula: 1 -> 2 -> 4.
+# Point  sources placed randomly around extended object.
+
+START:
+
+set expt = $LENSTRACTOR_DIR/examples/2013-01-24_nebula-1-2-4-random-init
+mkdirf $expt
+
+set logfile = $expt/H1413+117_10x10arcsec_55377.34051_z_lenstractor_nebula-testing.log
+time python $LENSTRACTOR_DIR/LensTractor.py -n \
+  $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.34051_*.fits \
+  --optimization-rounds 3 \
+  --optimization-steps-catalog 10 \
+  --optimization-steps-psf 0 \
+    > $logfile
+# 64.250u 5.589s 1:19.79 87.5%    0+0k 212+220io 1726pf+0w
+# 80s for 30 opt steps, cf 60s for 20
+# 
+# 80 = c + m*30
+# 55 = c + m*20
+# -------------
+# 25 =     m*10 -> 2.5s per step per 1 image; c = 5s
+# 
+# At most we have 5 filters * 12 epochs = 60 images
+# If we take 30 steps, that's about 2.5*30*60 = 75 mins! Can this be right?
+# Test with more images; also look at dynamic opt, based on value of dlnp.
+
+mv $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.34051_*png $expt/
+
+grep BIC $logfile
+# nebula1 results: chisq, K, N, BIC = 7190.3225888 16 2401 7314.86083834
+# nebula2 results: chisq, K, N, BIC = 5374.75617851 19 2401 5522.64534984
+# nebula4 results: chisq, K, N, BIC = 3624.25259014 25 2401 3818.84360505
+
+goto FINISH
+
+# Now, expt with lens again...
+
+# ========================================================================================
+FINISH:
