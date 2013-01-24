@@ -116,9 +116,11 @@ cp -r ../LensTractor.py ../lenstractor 2012-07-08_optimized-both/
 # At LSST AHM with Dstn. Try and implement source position step sizes 
 # that depend on magnification.
 
-time python LensTractor.py -l -v examples/H1413+117_10x10arcsec_55377.34051_*.fits \
+time python LensTractor.py -l examples/H1413+117_10x10arcsec_55377.34051_*.fits \
   > examples/H1413+117_10x10arcsec_55377.34051_z_lenstractor_lens-step-size-testing.log
 
 # OK, this takes 16 sec or so, fine. Should be enough to test step sizes.
+
+# With dstn's help, now have control over step sizes. No improvement so far.
 
 # ========================================================================================

@@ -21,6 +21,8 @@ import numpy as np
 from astrometry.util import util
 
 import tractor
+from tractor import sdss_galaxy
+
 import lenstractor
 
 
@@ -56,7 +58,7 @@ class ExternalShear(tractor.ParamList):
 #  - deV galaxy
 #  - SIS + shear mass distribution to act as a gravitational lens
 
-class LensGalaxy(tractor.sdss_galaxy.DevGalaxy):
+class LensGalaxy(sdss_galaxy.DevGalaxy):
       '''
       A LensGalaxy has mass, and emits light. Initialise with a position,
       brightness and shape for the Galaxy (which is assumed to have a De 
@@ -191,7 +193,9 @@ class PointSourceLens(tractor.MultiParams):
                pars0 = self.getParams()
                patch0 = self.getModelPatch(img)
                # Step sizes (MAGIC 0.1):
-               self.pointsource.pos.setStepSizes(0.1*(self.lensgalaxy.Rein.val/3600.0)/self.mu)
+               delta = 0.1*self.lensgalaxy.Rein.val/self.mu
+               print "Source position step size (arcsec) = ",delta
+               self.pointsource.pos.setStepSizes(delta/3600.0)
                # Derivatives:
                derivs = []
                for i,(step,name) in enumerate(zip(self.getStepSizes(), self.getParamNames())):
