@@ -409,6 +409,7 @@ def main():
                       dlnp,X,a = chug.optimize(damp=3)
                       if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
                       print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
+                      print "Progress: k,dlnp = ",k,dlnp
                       k += 1
 
                    # Freeze the sources and thaw the psfs:

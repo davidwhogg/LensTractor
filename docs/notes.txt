@@ -134,15 +134,27 @@ time python LensTractor.py -l examples/H1413+117_10x10arcsec_55377.34051_*.fits 
 START:
 
 set expt = $LENSTRACTOR_DIR/examples/2013-01-24_nebula-1-2-4-random-init
-mkdirf $expt
+mkdir -p $expt
+chdir $expt
 
 set logfile = $expt/H1413+117_10x10arcsec_55377.34051_z_lenstractor_nebula-testing.log
-time python $LENSTRACTOR_DIR/LensTractor.py -n \
-  $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.34051_*.fits \
-  --optimization-rounds 3 \
-  --optimization-steps-catalog 10 \
-  --optimization-steps-psf 0 \
-    > $logfile
+echo "Running LensTractor, output in $logfile"
+set runfile = $logfile:r.csh
+
+echo "\
+time python $LENSTRACTOR_DIR/LensTractor.py -n \\
+  $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.34051_*.fits \\
+  --optimization-rounds 3 \\
+  --optimization-steps-catalog 10 \\
+  --optimization-steps-psf 0 \\
+    > $logfile"   > $runfile
+
+now > $logfile
+echo " " >> $logfile
+cat $runfile >> $logfile
+echo " " >> $logfile
+
+source $runfile
 # 64.250u 5.589s 1:19.79 87.5%    0+0k 212+220io 1726pf+0w
 # 80s for 30 opt steps, cf 60s for 20
 # 
@@ -153,9 +165,11 @@ time python $LENSTRACTOR_DIR/LensTractor.py -n \
 # 
 # At most we have 5 filters * 12 epochs = 60 images
 # If we take 30 steps, that's about 2.5*30*60 = 75 mins! Can this be right?
-# Test with more images; also look at dynamic opt, based on value of dlnp.
+# Test with more images; also look at dynamic opt, based on value of dlnp...
 
 mv $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.34051_*png $expt/
+
+# Typically dlnp is still 10-100 after 30 steps, so still optimizing...
 
 grep BIC $logfile
 # nebula1 results: chisq, K, N, BIC = 7190.3225888 16 2401 7314.86083834
