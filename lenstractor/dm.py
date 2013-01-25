@@ -121,7 +121,11 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       total_mags.append(total_mag)
 
       # Set up sky to be varied:
-      sky = tractor.ConstantSky(0.0)
+      median = np.median(sci[invvar > 0])
+      sky = tractor.ConstantSky(median)
+      delta = 0.1*np.sqrt(1.0/np.sum(invvar))
+      assert delta > 0
+      sky.stepsize = delta
       if vb: print sky
 
       # Get WCS from FITS header:

@@ -30,6 +30,10 @@ import lenstractor
 # Gravitational Lens parameters need to be "Params" objects of some kind.
 
 class EinsteinRadius(tractor.ScalarParam):
+      def __init__(self, val):
+            self.val = val
+            self.stepsize = 0.01*val
+            assert self.stepsize > 0.0
       def getName(self):
             return 'Einstein radius'
 
@@ -50,8 +54,8 @@ class ExternalShear(tractor.ParamList):
             return ExternalShear(*self.vals)
       def getParamNames(self):
             return ['gamma', 'phi']
-      def getStepSizes(self, *args, **kwargs):
-            return [ 0.1, 1.0 ]
+#       def getStepSizes(self, *args, **kwargs):
+#             return [ 0.1, 1.0 ]
 
 # ============================================================================
 # Composite object, consisting of:
@@ -92,7 +96,7 @@ class LensGalaxy(sdss_galaxy.DevGalaxy):
             # Unpack the lens:
             lensRein = self.Rein.getValue()
             lensgamma = self.xshear[0]
-            lensphi = np.deg2rad(self.xshear[0]) # lens solver expects radians.
+            lensphi = np.deg2rad(self.xshear[1]) # lens solver expects radians.
             
             # Define a "trivial" coordinate system, centred on the lens, that
             # has 1 arcsec "pixels":
@@ -114,7 +118,9 @@ class LensGalaxy(sdss_galaxy.DevGalaxy):
             # What to do when solver fails? 0.07% of the time...
             # Answer - deal with it. One or two images will be incorrectly 
             # merged or something, fine.
-            if fail: pass 
+            if fail: 
+               print "Lens model failure, image positions:",imagepixelpos
+               pass 
 
             # Convert image positions back to sky:
             imagepositions = [lenswcs.pixelToPosition(p[0],p[1]) for p in imagepixelpos]
@@ -167,7 +173,7 @@ class PointSourceLens(tractor.MultiParams):
                '''
                Render the image of the PointSourceLens on the image grid provided.
                '''
-               # Lens galaxy:
+               # Lens galaxy:               
                patch = self.lensgalaxy.getModelPatch(img)
                
                # Solve the lens equation to get the image positions and fluxes.

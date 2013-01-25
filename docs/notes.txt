@@ -181,7 +181,7 @@ goto FINISH
 
 # Now, try with all 3 test images and PSF variation...
 
-START:
+# START:
 
 set expt = $LENSTRACTOR_DIR/examples/2013-01-24_nebula+psf-1-2-4-random-init
 mkdir -p $expt
@@ -228,8 +228,49 @@ grep BIC $logfile
 goto FINISH
 
 # ========================================================================================
+# 2013-01-25 (Friday) 10:54 EST
 
-# Initializing Lens model...
+# Initializing Lens model.
+
+# Need a method that takes in a nebula and initializes hte lens model.
+# Recipes:
+# - galaxy center -> lens center?
+# - galaxy q -> lens q
+# - select pt srcs by proximity
+# - brightest image plus lens center -> sour position
+
+
+START:
+
+set expt = $LENSTRACTOR_DIR/examples/2013-01-25_lens-init-testing
+mkdir -p $expt
+chdir $expt
+
+set logfile = $expt/H1413+117_10x10arcsec_lenstractor_lens-testing.log
+echo "Running LensTractor, output in $logfile"
+set runfile = $logfile:r.csh
+
+echo "\
+time python $LENSTRACTOR_DIR/LensTractor.py -x -l \\
+  $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.3405*.fits \\
+  --optimization-rounds 1 \\
+  --optimization-steps-catalog 50 \\
+  --optimization-steps-psf 0 \\
+    > $logfile"   > $runfile
+
+now > $logfile
+echo " " >> $logfile
+cat $runfile >> $logfile
+echo " " >> $logfile
+
+source $runfile
+
+mv $LENSTRACTOR_DIR/examples/*png $expt/
+
+grep BIC $logfile
+
+goto FINISH
+
 
 # ========================================================================================
 FINISH:

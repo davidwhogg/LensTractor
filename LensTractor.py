@@ -17,8 +17,9 @@ Example use
 Bugs
 ----
  - Lens initialisation, esp source positions, needs careful attention
- - StepSizes need optimizing for lens model, esp source position
 
+ - StepSizes need optimizing for lens model, esp source position
+     
  - Point source mags are not variable
  
  - PSF not being optimized correctly - missing derivatives?
@@ -303,6 +304,10 @@ def main():
 
            # Source to be lensed:
            xs,ys = 0.5*NX, 0.5*NY
+           # Tiny random offset (pixels):
+           e = 0.5
+           dx,dy = e*np.random.randn(2)
+           xs,ys = xs+dx,ys+dy
            unlensedmagnitudes = magnitudes + 2.5*np.log10(40.0)
            ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,unlensedmagnitudes)))
            if vb: print ms
@@ -324,8 +329,8 @@ def main():
            x,y = 0.5*NX,0.5*NY
            lenspos = wcs.pixelToPosition(x,y)
            if vb: print lenspos
-           halfmagnitudes = magnitudes + 2.5*np.log10(2.0)
-           md = tractor.Mags(order=bandnames, **dict(zip(bandnames,halfmagnitudes)))
+           lensmagnitudes = magnitudes + 2.5*np.log10(10.0)
+           md = tractor.Mags(order=bandnames, **dict(zip(bandnames,lensmagnitudes)))
            if vb: print md
            re = 1.0  # arcsec
            q = 1.0   # axis ratio
@@ -395,10 +400,13 @@ def main():
                    print "Fitting "+model+": seconds out, round",round
             
                    # Freeze the PSF, sky and photocal, leaving the sources:
+                   print "Thawing catalog..."
                    chug.thawParam('catalog')
                    for image in chug.getImages():
-                     image.thawParams('sky')
-                     image.freezeParams('photocal', 'wcs', 'psf')
+                      print "Thawing sky..."
+                      image.thawParams('sky')
+                      print "Freezing photocal, WCS, PSF..."
+                      image.freezeParams('photocal', 'wcs', 'psf')
                    print "Fitting "+model+": Catalog parameters to be optimized are:",chug.getParamNames()
                    print "Fitting "+model+": Initial values are:",chug.getParams()
                    print "Fitting "+model+": Step sizes:",chug.getStepSizes()
@@ -407,14 +415,23 @@ def main():
                    for i in range(Nsteps_optimizing_catalog):
                       dlnp,X,a = chug.optimize(damp=3)
                       if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
-                      print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
+                      # print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
                       print "Progress: k,dlnp = ",k,dlnp
+                      print ""
+                      print "Catalog:",chug.getParams()
+                      if dlnp == 0: 
+                         print "Converged? Exiting..."
+                         # Although this only leaves *this* loop...
+                         break
                       k += 1
 
-                   # Freeze the sources and thaw the psfs:
+                   # Freeze the sources and sky and thaw the psfs:
+                   print "Freezing catalog..."
                    chug.freezeParam('catalog')
                    for image in chug.getImages():
+                      print "Thawing PSF..."
                       image.thawParams('psf')
+                      print "Freezing photocal, WCS, sky..."
                       image.freezeParams('photocal', 'wcs', 'sky')
                    print "Fitting PSF: After thawing, zeroth PSF = ",chug.getImage(0).psf
                    print "Fitting PSF: PSF parameters to be optimized are:",chug.getParamNames()
