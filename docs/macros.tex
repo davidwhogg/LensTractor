@@ -1,0 +1,167 @@
+% JOURNALS
+\newcommand {\apj} {ApJ}
+\newcommand {\apjl} {ApJL}
+\newcommand {\apjs} {ApJS}
+\newcommand {\mnras} {MNRAS}
+\newcommand {\apss} {Ap \& SS}
+\newcommand {\aap} {A\&A}
+\newcommand {\aj} {AJ}
+\newcommand {\prd} {Phys. Rev. D}
+\newcommand {\nat} {Nature}
+\newcommand {\araa} {ARA\&A}
+\newcommand {\jgr} {J. Geophys. Res.}
+\newcommand {\pasp} {PASP}
+
+% MISC
+\newcommand {\etal} {et~al.~}
+\def \spose#1{\hbox  to 0pt{#1\hss}}  
+\newcommand {\lta} {\mathrel{\spose{\lower 3pt\hbox{$\sim$}}\raise  2.0pt\hbox{$<$}}}
+\newcommand {\gta} {\mathrel{\spose{\lower  3pt\hbox{$\sim$}}\raise 2.0pt\hbox{$>$}}}
+\def \ion#1#2{#1{\footnotesize{#2}}\relax}
+\newcommand {\ha}  {\ifmmode H\alpha \else H$\alpha $ \fi} 
+\newcommand {\hi} {\ion{H}{I} } 
+% \newcommand {\Sref} {\S}
+\def\Sref#1{Section~\ref{#1}\xspace}
+\def\Fref#1{Figure~\ref{#1}\xspace}
+\def\Tref#1{Table~\ref{#1}\xspace}
+\def\Eref#1{Equation~\ref{#1}\xspace}
+\def\Eqref#1{Eq.~(\ref{#1})\xspace}
+
+% UNITS
+\newcommand {\kms} {\ifmmode  \,\rm km\,s^{-1} \else $\,\rm km\,s^{-1}  $ \fi }
+\newcommand {\kpc} {\ifmmode  {\rm kpc}  \else ${\rm  kpc}$ \fi  }  
+\newcommand {\pc} {\ifmmode  {\rm pc}  \else ${\rm pc}$ \fi  }  
+\newcommand {\Msun} {\ifmmode {\rm M_{\odot}} \else ${\rm M_{\odot}}$ \fi} 
+\newcommand {\Zsun} {\ifmmode {\rm Z_{\odot}} \else ${\rm Z_{\odot}}$ \fi} 
+\newcommand {\yr} {\ifmmode yr^{-1} \else $yr^{-1}$ \fi} 
+\newcommand {\hMsun} {\ifmmode h^{-1}\,\rm M_{\odot} \else $h^{-1}\,\rm M_{\odot}$ \fi}
+
+% COSMOLOGY
+%\newcommand {\LCDM} {\ifmmode \Lambda{\rm CDM} \else $\Lambda{\rm CDM}$ \fi}
+
+% LENSING
+\def\zd{z_{\rm d}}
+\def\zs{z_{\rm s}}
+\def\zspdf{z_{\rm s,pdf}\;}
+\def\Dd{D_{\rm d}}
+\def\Ds{D_{\rm s}}
+\def\Dds{D_{\rm ds}}
+\def\Sigmacrit{\Sigma_{\rm crit}}
+\def\REin{R_{\rm Ein}}
+\def\MEin{M_{\rm Ein}}
+\def\sigmasie{\sigma_{\mathrm{SIE}}}
+\def\Mvir{M_{\rm vir}}
+\def\Mhalo{M_{\rm h}}
+\def\Vhalo{V_{\rm c,h}}
+\def\rhalo{r_{\rm c,h}}
+\def\qhalo{q_{3,\rm h}}
+\def\vc{V_{\rm c}}
+\def\rc{r_{\rm c}}
+\def\q3{q_{3}}
+\def\bsis{b_{\rm SIS}}
+
+% SED/PHOTOMETRIC FITTING
+\def\Mstar{M_{*}}
+\def\logMstar{\log_{10}\left(\Mstar/\Msun\right)}
+\def\Mstarb{M_{*,\rm b}}
+\def\logMstarb{\log_{10}\left(\Mstarb/\Msun\right)}
+\def\Mstard{M_{*,\rm d}}
+\def\logMstard{\log_{10}\left(\Mstard/\Msun\right)}
+% \def\Reff{R_{\rm eff}}
+% \def\Reffb{R_{\rm eff,b}}
+% \def\Reffd{R_{\rm eff,d}}
+\def\Reff{R_{\rm 50}}
+\def\Reffb{R_{\rm 50,b}}
+\def\Reffd{R_{\rm 50,d}}
+\def\sersic{S\'ersic}
+\def\nb{n_{\rm b}}
+\def\qb{q_{\rm b}}
+\def\phib{phi_{\rm b}}
+\def\nd{n_{\rm d}}
+\def\qd{q_{\rm d}}
+\def\phid{phi_{\rm d}}
+
+% SOFTWARE/HARDWARE
+\def\SExtractor{{\sc SExtractor}\xspace}
+\def\hst{{\it HST}\xspace}
+\def\acs{\hst/ACS\xspace}
+\def\galfit{{\sc galfit}\xspace}
+\def\idl{{\sc idl}\xspace}
+\def\python{{\sc python}\xspace}
+\def\SPASMOID{{\sc SPASMOID}\xspace}
+
+% FILTERS
+\def\Bfilter{F450W\xspace}
+\def\Vfilter{F606W\xspace}
+\def\Ifilter{F814W\xspace}
+\def\Kfilter{K'\xspace}
+\def\Bband{\Bfilter-band\xspace}
+\def\Vband{\Vfilter-band\xspace}
+\def\Iband{\Ifilter-band\xspace}
+\def\Kband{\Kfilter-band\xspace}
+
+% PROBABILITY THEORY
+\def\pr{{\rm Pr}}
+\def\data{{\mathbf{d}}}
+\def\datap{{\mathbf{d}^{\rm p}}}
+\def\datai{d_i}
+\def\datapi{d^{\rm p}_i}
+\def\masspars{\boldsymbol{\theta}_{\rm m}}
+\def\srcpars{\boldsymbol{\theta}_{\rm s}}
+\def\vrot{{\mathbf{v}}}
+\def\vrotp{{\mathbf{v}^{\rm p}}}
+\def\vrotmodel{\hat{\mathbf{v}}}
+\def\vrotj{v_j}
+\def\vrotpj{v^{\rm p}_j}
+
+% SPECTROSCOPY
+\def\Angstrom{A\xspace}
+\def\CaII{Ca\,{\sc ii}\xspace}
+\def\NaII{Na\,{\sc ii}\xspace}
+\def\NaD{Na\,{\sc D}\xspace} % ??
+\def\NII{N\,{\sc ii}\xspace}
+\def\HeII{He\,{\sc ii}\xspace}
+%\def\Mgb{Mg\,{\sc ii}} Mg II is something else, at 2800 A no?
+\def\Mgb{Mg\,{\rm b}\xspace}
+\def\Ha{H$\alpha$\xspace}
+\def\Hb{H$\beta$\xspace}
+\def\OII{[O\,{\sc ii}]\xspace}
+\def\OIII{O\,{\sc iii}]\xspace}
+\def\CIII{C\,{\sc iii}]\xspace}
+\def\CIV{C\,{\sc iv}\xspace}
+\def\FeII{[Fe\,{\sc ii}]\xspace}
+\def\sigmap{$\sigma_{\rm ap}$}
+\def\sigmasdss{$\sigma_{\rm SDSS}$}
+
+% PAPER SERIES
+\def\paperI{{Paper~I}\xspace}
+\def\paperIfirsttime{{Treu \etal submitted, referred to hereafter as \paperI}\xspace}
+\def\paperII{{Paper~II}\xspace}
+\def\paperIIfirsttime{{Dutton \etal submitted, referred to hereafter as \paperII}\xspace}
+\def\paperIII{{Paper~III}\xspace}
+\def\paperIIIfirsttime{{Brewer \etal submitted, referred to hereafter as \paperIII}\xspace}
+
+% SAMPLE PROPERTIES
+\def\NSWELLS{27}
+\def\NSWELLSNEW{19}
+\def\NSWELLSHST{16}
+\def\NSWELLSAO{3}
+\def\NSWELLSA{8}
+\def\NSWELLSB{1}
+\def\NSWELLSC{6}
+\def\NSWELLSX{4}
+%10 spirals from slacs, including 8 ``edge-on''
+\def\NSSLACS{10}
+\def\NSESLACS{8}
+\def\NTOTALA{16}
+
+% COMMENTING
+\usepackage[usenames]{color}
+\newcommand{\aaron}[1]{\textcolor{Brown}{\bf #1}}
+\newcommand{\phil}[1]{\textcolor{blue}{\bf #1}}
+\newcommand{\brendon}[1]{\textcolor{Violet}{\bf #1}}
+\newcommand{\tommaso}[1]{\textcolor{green}{\bf #1}}
+\newcommand{\matt}[1]{\textcolor{orange}{\bf #1}}
+\newcommand{\matteo}[1]{\textcolor{Magenta}{\bf #1}}
+\newcommand{\flag}[1]{\textcolor{red}{\bf #1}}
+\newcommand{\achtung}[2]{\textcolor{red}{\it\bf ATTENTION #1! #2}}

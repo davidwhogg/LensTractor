@@ -1,0 +1,162 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% LensTractor Method Paper
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[useAMS,usenatbib]{mn2e}
+%% letterpaper
+%% a4paper
+
+% \voffset=-0.8in
+
+% Packages:
+\input psfig.sty
+\usepackage{xspace}
+\usepackage{graphicx}
+
+% Macros:
+\input{macros.tex}
+\input{addresses.tex}
+\newcommand\nodata{ ~$\cdots$~ }%
+
+
+%%%%%%% RESULTS %%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title[Automated Gravitational Lens Detection]
+{Automated Detection of Gravitationally Lensed Quasars in Multi-epoch
+Ground-based Imaging Data}
+    
+\author[]{%
+  Philip J. Marshall$^{1,2}$\thanks{\pjmemail},
+  David W. Hogg$^{3}$,
+  Dustin Lang$^{4}$,
+  Eric P. Morganson$^{5}$ 
+  \medskip\\
+  $^1$\oxford\\
+  $^2$\kipac\\
+  $^3$\nyu\\
+  $^4$\cmu\\
+  $^5$\mpia
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+             
+\date{to be submitted to MNRAS}
+             
+\pagerange{\pageref{firstpage}--\pageref{lastpage}}\pubyear{2010}
+
+\maketitle           
+
+\label{firstpage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{abstract}
+\end{abstract}
+
+% Full list of options at http://www.journals.uchicago.edu/ApJ/instruct.key.html
+
+\begin{keywords}
+  gravitational lensing
+\end{keywords}
+
+\setcounter{footnote}{1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  SECTION 1: INTRODUCTION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+\label{sec:intro}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  SECTION 2: SELECTION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Model}
+\label{sec:model}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  SECTION 3: DATA
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Test Dataset}
+\label{sec:data}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  SECTION 4: RESULTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Results}
+\label{sec:results}
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%
+% \begin{figure*}
+% \centerline{
+% \includegraphics[width=0.9\linewidth]{figs/sth.png}}
+% \caption{}
+% \label{fig:sth}
+% \end{figure*}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  SECTION 5: CONCLUSIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusions}
+\label{sec:concl}
+
+Our main results can be summarised as follows:
+
+\begin{enumerate}
+
+\item We now understand this.
+
+\item And that.
+
+\end{enumerate}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  ACKNOWLEDGMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Acknowledgments}
+ 
+We thank X for useful discussions and suggestions.
+
+\input{acknowledgments.tex}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  REFERENCES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% MNRAS does not use bibtex, input .bbl file instead. 
+% Generate this in the makefile using bubble script in scriptutils:
+
+%   bubble -f swells-survey.tex references.bib 
+
+\bibliographystyle{apj}
+\bibliography{references}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\label{lastpage}
+\bsp
+
+\end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

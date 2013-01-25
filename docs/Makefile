@@ -1,6 +1,6 @@
 .SUFFIXES: .tex .ps .pdf .png .jpg
 
-all: blob.pdf
+all: paper1.pdf
 
 %.pdf: %.tex
 	pdflatex $<
