@@ -27,10 +27,8 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\title[Automated Gravitational Lens Detection]
-{Automated Detection of Gravitationally Lensed Quasars in Multi-epoch
-Ground-based Imaging Data}
-    
+\title[finding lensed quasars]{A simple probabilistic approach to finding strongly lensed quasars in ground-based imaging}
+
 \author[]{%
   Philip J. Marshall$^{1,2}$\thanks{\pjmemail},
   David W. Hogg$^{3}$,
@@ -59,6 +57,29 @@ Ground-based Imaging Data}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{abstract}
+In some heuristic sense, we end up believing that a particular source
+is a galaxy-scale strong gravitational lens because it is more
+plausible to explain it as a superposition of a gravitationally
+distorted background source and a foreground lensing galaxy than it is
+to explain it as a single object with very odd morphology.  Here we
+construct a quantitative approximation to this comparison of
+plausibilities by fitting multi-epoch, multi-band ground-based imaging
+of gravitational-lens candidates with two image models, one of which
+is a strongly lensed point source and simple lensing galaxy, and the
+other is a complex galaxy constructed from a simple galaxy and $K$
+point sources.  The relative plausibility of the lensing hypothesis is
+approximated by a likelihood ratio between these models, evaluated at
+best-fit (that is, not marginalized), penalized by a factor accounting
+for relative model freedom.  We fit these models and compute lensing
+plausibility for four candidate lens sources with \panstarrs\ $grizY$
+imaging.  Two of the sources are known lenses, and two are not; we
+find we can confidently identify the lenses and rule out the
+non-lenses with our plausibility.  Even though the plausibility
+calculation involves fitting highly parametrized models of
+astronomical sources and the varying point-spread function in many
+pixels of imaging, it can be calculated in seconds on contemporary
+hardware; it can be run at scale on lens candidates in \panstarrs\ and
+other surveys.
 \end{abstract}
 
 % Full list of options at http://www.journals.uchicago.edu/ApJ/instruct.key.html
