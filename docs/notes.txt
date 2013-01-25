@@ -239,6 +239,8 @@ goto FINISH
 # - select pt srcs by proximity
 # - brightest image plus lens center -> sour position
 
+# First up: fix stepsizes and try and optimize lens, and compare with
+# nebula - for one image, no PSF optimization.
 
 START:
 
@@ -251,9 +253,9 @@ echo "Running LensTractor, output in $logfile"
 set runfile = $logfile:r.csh
 
 echo "\
-time python $LENSTRACTOR_DIR/LensTractor.py -x -l \\
+time python $LENSTRACTOR_DIR/LensTractor.py  \\
   $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.3405*.fits \\
-  --optimization-rounds 1 \\
+  --optimization-rounds 3 \\
   --optimization-steps-catalog 50 \\
   --optimization-steps-psf 0 \\
     > $logfile"   > $runfile
@@ -264,10 +266,18 @@ cat $runfile >> $logfile
 echo " " >> $logfile
 
 source $runfile
+# 49.450u 1.476s 0:51.30 99.2%    0+0k 0+13io 0pf+0w
 
 mv $LENSTRACTOR_DIR/examples/*png $expt/
 
 grep BIC $logfile
+# nebula1 results: chisq, K, N, BIC = 5899.02491102 16 2401 6023.56316056
+# nebula2 results: chisq, K, N, BIC = 3766.20330502 19 2401 3914.09247634
+# nebula4 results: chisq, K, N, BIC = 2440.7156839 25 2401 2635.30669881
+# lens results:    chisq, K, N, BIC = 6557.08384528 19 2401 6704.9730166
+
+# Lens still doesn't fit well - but stepsizes seem sensible.
+# alpha still heading to zero though. 
 
 goto FINISH
 

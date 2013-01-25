@@ -332,9 +332,9 @@ def main():
            lensmagnitudes = magnitudes + 2.5*np.log10(10.0)
            md = tractor.Mags(order=bandnames, **dict(zip(bandnames,lensmagnitudes)))
            if vb: print md
-           re = 1.0  # arcsec
-           q = 1.0   # axis ratio
-           theta = 0.0 # degrees
+           re = 0.5  # arcsec
+           q = 0.8   # axis ratio
+           theta = 90.0 # degrees
            galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
            if vb: print galshape
 
@@ -414,7 +414,6 @@ def main():
                    # Optimize sources with initial PSF:
                    for i in range(Nsteps_optimizing_catalog):
                       dlnp,X,a = chug.optimize(damp=3)
-                      if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
                       # print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
                       print "Progress: k,dlnp = ",k,dlnp
                       print ""
@@ -424,6 +423,7 @@ def main():
                          # Although this only leaves *this* loop...
                          break
                       k += 1
+                   if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
 
                    # Freeze the sources and sky and thaw the psfs:
                    print "Freezing catalog..."
@@ -441,10 +441,10 @@ def main():
                    # Optimize everything that is not frozen:
                    for i in range(Nsteps_optimizing_PSFs):
                       dlnp,X,a = chug.optimize()
-                      if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
                       print "Fitting PSF: at step",k,"parameter values are:",chug.getParams()
                       k += 1
                    print "Fitting PSF: After optimizing, zeroth PSF = ",chug.getImage(0).psf
+                   if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
 
              # BUG: PSF not being optimized correctly - missing derivatives?
 

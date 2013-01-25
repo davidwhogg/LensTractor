@@ -30,14 +30,17 @@ import lenstractor
 # Gravitational Lens parameters need to be "Params" objects of some kind.
 
 class EinsteinRadius(tractor.ScalarParam):
-      def __init__(self, val):
-            self.val = val
-            self.stepsize = 0.01*val
+      def __init__(self, Rein):
+            super(EinsteinRadius, self).__init__(Rein)
+            self.stepsize = 0.01 * Rein
             assert self.stepsize > 0.0
       def getName(self):
             return 'Einstein radius'
 
 class ExternalShear(tractor.ParamList):
+      def __init__(self, gamma, phi):
+            super(ExternalShear, self).__init__(gamma, phi)
+            self.stepsizes = [0.0001, 1.]
       def getName(self):
             return 'External shear'
       def getNamedParams(self):
