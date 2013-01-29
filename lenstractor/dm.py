@@ -102,8 +102,8 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
          Raise("Unrecognised survey %s" % SURVEY)
       if vb: print "  PSF FWHM =",FWHM,"pixels"
 
-      # MAGIC 0.6 shrinkage factor:
-      psf = Initial_PSF(0.8*FWHM)
+      # MAGIC 0.7 shrinkage factor:
+      psf = Initial_PSF(0.7*FWHM)
       if vb: print psf
 
       # Now get the photometric calibration from the image header.

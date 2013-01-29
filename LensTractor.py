@@ -302,6 +302,12 @@ def main():
               
        elif modeltype == 'lens':
 
+           # If nebula has been run, use the best nebula model (by BIC)
+           # to initialise the lens model. If it hasn't, do something
+           # sensible.
+           
+           
+           
            # Source to be lensed:
            xs,ys = 0.5*NX, 0.5*NY
            # Tiny random offset (pixels):
@@ -377,78 +383,83 @@ def main():
        # or by exploring the posterior PDF ("MCMC").
 
        if not args.MCMC:
+       
+       # Pre-op! Cycle over N initialisations, trying 5 steps each. Then
+       # Optimize from the best of these.
+       
+       
        # Optimize the model parameters:
 
-             if modeltype=='nebula':
-                Nrounds = args.Nr
-                Nsteps_optimizing_catalog = args.Nc
-                Nsteps_optimizing_PSFs = args.Np
-             elif modeltype=='lens':
-                Nrounds = args.Nr
-                Nsteps_optimizing_catalog = args.Nc
-                Nsteps_optimizing_PSFs = args.Np
+          if modeltype=='nebula':
+             Nrounds = args.Nr
+             Nsteps_optimizing_catalog = args.Nc
+             Nsteps_optimizing_PSFs = args.Np
+          elif modeltype=='lens':
+             Nrounds = args.Nr
+             Nsteps_optimizing_catalog = args.Nc
+             Nsteps_optimizing_PSFs = args.Np
 
-             if vb: 
-                print "Optimizing model:"
-                print "   - no. of iterations per round to be spent on catalog: ",Nsteps_optimizing_catalog
-                print "   - no. of iterations per round to be spent on PSFs: ",Nsteps_optimizing_PSFs
-                print "   - no. of rounds: ",Nrounds
+          if vb: 
+             print "Optimizing model:"
+             print "   - no. of iterations per round to be spent on catalog: ",Nsteps_optimizing_catalog
+             print "   - no. of iterations per round to be spent on PSFs: ",Nsteps_optimizing_PSFs
+             print "   - no. of rounds: ",Nrounds
 
-             k = 0
-             for round in range(Nrounds):
-                   
-                   print "Fitting "+model+": seconds out, round",round
-            
-                   # Freeze the PSF, sky and photocal, leaving the sources:
-                   print "Thawing catalog..."
-                   chug.thawParam('catalog')
-                   for image in chug.getImages():
-                      print "Thawing sky..."
-                      image.thawParams('sky')
-                      print "Freezing photocal, WCS, PSF..."
-                      image.freezeParams('photocal', 'wcs', 'psf')
-                   print "Fitting "+model+": Catalog parameters to be optimized are:",chug.getParamNames()
-                   print "Fitting "+model+": Initial values are:",chug.getParams()
-                   print "Fitting "+model+": Step sizes:",chug.getStepSizes()
+          k = 0
+          for round in range(Nrounds):
+                
+             print "Fitting "+model+": seconds out, round",round
+             
+             # Freeze the PSF, sky and photocal, leaving the sources:
+             print "Thawing catalog..."
+             chug.thawParam('catalog')
+             for image in chug.getImages():
+                print "Thawing sky..."
+                image.thawParams('sky')
+                print "Freezing photocal, WCS, PSF..."
+                image.freezeParams('photocal', 'wcs', 'psf')
+             print "Fitting "+model+": Catalog parameters to be optimized are:",chug.getParamNames()
+             print "Fitting "+model+": Initial values are:",chug.getParams()
+             print "Fitting "+model+": Step sizes:",chug.getStepSizes()
 
-                   # Optimize sources with initial PSF:
-                   for i in range(Nsteps_optimizing_catalog):
-                      dlnp,X,a = chug.optimize(damp=3)
-                      # print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
-                      print "Progress: k,dlnp = ",k,dlnp
-                      print ""
-                      print "Catalog:",chug.getParams()
-                      if dlnp == 0: 
-                         print "Converged? Exiting..."
-                         # Although this only leaves *this* loop...
-                         break
-                      k += 1
-                   if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+             # Optimize sources with initial PSF:
+             for i in range(Nsteps_optimizing_catalog):
+                dlnp,X,a = chug.optimize(damp=3)
+                # print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
+                print "Progress: k,dlnp = ",k,dlnp
+                print ""
+                print "Catalog:",chug.getParams()
+                if dlnp == 0: 
+                   print "Converged? Exiting..."
+                   # Although this only leaves *this* loop...
+                   break
+                k += 1
+             if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
 
-                   # Freeze the sources and sky and thaw the psfs:
-                   print "Freezing catalog..."
-                   chug.freezeParam('catalog')
-                   for image in chug.getImages():
-                      print "Thawing PSF..."
-                      image.thawParams('psf')
-                      print "Freezing photocal, WCS, sky..."
-                      image.freezeParams('photocal', 'wcs', 'sky')
-                   print "Fitting PSF: After thawing, zeroth PSF = ",chug.getImage(0).psf
-                   print "Fitting PSF: PSF parameters to be optimized are:",chug.getParamNames()
-                   print "Fitting PSF: Initial values are:",chug.getParams()
-                   print "Fitting PSF: Step sizes:",chug.getStepSizes()
+             # Freeze the sources and sky and thaw the psfs:
+             print "Freezing catalog..."
+             chug.freezeParam('catalog')
+             for image in chug.getImages():
+                print "Thawing PSF..."
+                image.thawParams('psf')
+                print "Freezing photocal, WCS, sky..."
+                image.freezeParams('photocal', 'wcs', 'sky')
+             print "Fitting PSF: After thawing, zeroth PSF = ",chug.getImage(0).psf
+             print "Fitting PSF: PSF parameters to be optimized are:",chug.getParamNames()
+             print "Fitting PSF: Initial values are:",chug.getParams()
+             print "Fitting PSF: Step sizes:",chug.getStepSizes()
 
-                   # Optimize everything that is not frozen:
-                   for i in range(Nsteps_optimizing_PSFs):
-                      dlnp,X,a = chug.optimize()
-                      print "Fitting PSF: at step",k,"parameter values are:",chug.getParams()
-                      k += 1
-                   print "Fitting PSF: After optimizing, zeroth PSF = ",chug.getImage(0).psf
-                   if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+             # Optimize everything that is not frozen:
+             for i in range(Nsteps_optimizing_PSFs):
+                dlnp,X,a = chug.optimize()
+                print "Fitting PSF: at step",k,"parameter values are:",chug.getParams()
+                k += 1
+             print "Fitting PSF: After optimizing, zeroth PSF = ",chug.getImage(0).psf
+             if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
 
-             # BUG: PSF not being optimized correctly - missing derivatives?
+          # BUG: PSF not being optimized correctly - missing derivatives?
 
-             lenstractor.Plot_state(chug,model+'_progress_optimizing_zcomplete')
+          lenstractor.Plot_state(chug,model+'_progress_optimizing_zcomplete')
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        
@@ -458,9 +469,11 @@ def main():
              if vb: 
                 print "Sampling model parameters with emcee:"
 
-             # Freeze the sky and photocal, leaving the PSFs and sources:
+             # Freeze the wcs and photocal, leaving the PSFs, sky and sources:
              for image in chug.getImages():
                 image.freezeParams('photocal', 'wcs')
+                # Temporary expt:
+                image.freezeParams('psf')
 
              # Get the thawed parameters:
              p0 = np.array(chug.getParams())
@@ -472,7 +485,7 @@ def main():
 
              # Make an emcee sampler that uses our tractor to compute its logprob:
              nw = 8*ndim
-             sampler = emcee.EnsembleSampler(nw, ndim, chug, live_dangerously=True)
+             sampler = emcee.EnsembleSampler(nw, ndim, chug, threads=4)
 
              # Start the walkers off near the initialisation point - 
              # We need it to be ~1 pixel in position, and not too much
@@ -487,6 +500,9 @@ def main():
                 # Good first guess should be some fraction of the optimization step sizes:
                 psteps = 0.2*np.array(chug.getStepSizes())
 
+             # BUG - nebula+lens workflow not yet enabled!
+             
+
              print "Initial size (in each dimension) of sample ball = ",psteps
 
              pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
@@ -494,37 +510,41 @@ def main():
              lnp = None
 
              # Take a few steps - memory leaks fast! (~10Mb per sec)
-             for step in range(1, 4):
+             for step in range(10):
 
-                   print 'Run MCMC step set:', step
+                   print 'EMCEE: Run MCMC step set:', step
                    t0 = tractor.Time()
-                   pp,lnp,rstate = sampler.run_mcmc(pp, 5, lnprob0=lnp, rstate0=rstate)
+                   pp,lnp,rstate = sampler.run_mcmc(pp, 50, lnprob0=lnp, rstate0=rstate)
 
-                   print 'Mean acceptance fraction after', sampler.iterations, 'iterations =',np.mean(sampler.acceptance_fraction)
+                   print 'EMCEE: Mean acceptance fraction after', sampler.iterations, 'iterations =',np.mean(sampler.acceptance_fraction)
                    t_mcmc = (tractor.Time() - t0)
-                   print 'Runtime:', t_mcmc
+                   print 'EMCEE: Runtime:', t_mcmc
 
                    # Find the current posterior means:
-                   pbar = np.mean(pp,axis=0)
-                   print "Mean parameters: ",pbar,np.mean(lnp)
+                   # pbar = np.mean(pp,axis=0)
+                   # print "Mean parameters: ",pbar,np.mean(lnp)
 
                    # Find the current best sample:
                    maxlnp = np.max(lnp)
                    best = np.where(lnp == maxlnp)
                    pbest = np.ravel(pp[best,:])
-                   print "Best parameters: ",pbest,maxlnp
-
+                   print "EMCEE: Best parameters: ",maxlnp,pbest
+                   chug.setParams(pbest)
+                   chisq = -2.0*chug.getLogLikelihood()
+                   print "EMCEE: chisq at Best pt: ",chisq
                    if not args.noplots: 
                       chug.setParams(pbest)
                       lenstractor.Plot_state(chug,model+'_progress_sampling_step-%02d'%step)
 
-             print 'Best lnprob:', np.max(lnp)
-             # print 'dlnprobs:', ', '.join(['%.1f' % d for d in lnp - np.max(lnp)])
-             # print 'MCMC took', t_mcmc, 'sec'
 
              # Take the last best sample and call it a result:
              chug.setParams(pbest)
 
+             print 'EMCEE: Best lnprob, chisq:', maxlnp,chisq
+             # print 'dlnprobs:', ', '.join(['%.1f' % d for d in lnp - np.max(lnp)])
+             # print 'MCMC took', t_mcmc, 'sec'
+             
+             # Make the final plot:
              lenstractor.Plot_state(chug,model+'_progress_sampling_zcomplete')
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
