@@ -33,13 +33,13 @@ rights reserved.
 Assuming you have numpy etc installed, first you'll need to download and install astrometry.net and The Tractor. 
 Fortunately these come bundled together, so you can just do this:
 
- svn cat http://astrometry.net/svn/trunk/projects/tractor/checkout.sh | bash
+    svn cat http://astrometry.net/svn/trunk/projects/tractor/checkout.sh | bash
 
 Now check that The Tractor runs:
 
- cd tractor
- python tractor-sdss-synth.py
+    cd tractor
+    python tractor-sdss-synth.py
 
 With the tractor on your python path you should be able to run the LensTractor example, as described in the output of 
 
- python LensTractor.py -h
+    python LensTractor.py -h
