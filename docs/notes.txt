@@ -242,13 +242,13 @@ goto FINISH
 # First up: fix stepsizes and try and optimize lens, and compare with
 # nebula - for one image, no PSF optimization.
 
-START:
+# START:
 
-set expt = $LENSTRACTOR_DIR/examples/2013-01-25_lens-init-testing
+set expt = $LENSTRACTOR_DIR/examples/2013-01-25_stepsize-testing
 mkdir -p $expt
 chdir $expt
 
-set logfile = $expt/H1413+117_10x10arcsec_lenstractor_lens-testing.log
+set logfile = $expt/H1413+117_10x10arcsec_lenstractor_stepsize-testing.log
 echo "Running LensTractor, output in $logfile"
 set runfile = $logfile:r.csh
 
@@ -273,7 +273,48 @@ mv $LENSTRACTOR_DIR/examples/*png $expt/
 grep BIC $logfile
 # nebula1 results: chisq, K, N, BIC = 5899.02491102 16 2401 6023.56316056
 # nebula2 results: chisq, K, N, BIC = 3766.20330502 19 2401 3914.09247634
-# nebula4 results: chisq, K, N, BIC = 2440.7156839 25 2401 2635.30669881
+# nebula4 results: chisq, K, N, BIC = 2440.71568390 25 2401 2635.30669881
+# lens results:    chisq, K, N, BIC = 6557.08384528 19 2401 6704.9730166
+
+# Lens still doesn't fit well - but stepsizes seem sensible.
+# alpha still heading to zero though. 
+
+goto FINISH
+
+# OK, try initializing using nebula properties!
+
+# START:
+
+set expt = $LENSTRACTOR_DIR/examples/2013-01-25_lens-init-testing
+mkdir -p $expt
+chdir $expt
+
+set logfile = $expt/H1413+117_10x10arcsec_lenstractor_lens-testing.log
+echo "Running LensTractor, output in $logfile"
+set runfile = $logfile:r.csh
+
+echo "\
+time python -u $LENSTRACTOR_DIR/LensTractor.py -l \\
+  $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.3405*.fits \\
+  --optimization-rounds 1 \\
+  --optimization-steps-catalog 150 \\
+  --optimization-steps-psf 0 \\
+    > $logfile"   > $runfile
+
+now > $logfile
+echo " " >> $logfile
+cat $runfile >> $logfile
+echo " " >> $logfile
+
+source $runfile
+# 49.450u 1.476s 0:51.30 99.2%    0+0k 0+13io 0pf+0w
+
+mv $LENSTRACTOR_DIR/examples/*png $expt/
+
+grep BIC $logfile
+# nebula1 results: chisq, K, N, BIC = 5899.02491102 16 2401 6023.56316056
+# nebula2 results: chisq, K, N, BIC = 3766.20330502 19 2401 3914.09247634
+# nebula4 results: chisq, K, N, BIC = 2440.71568390 25 2401 2635.30669881
 # lens results:    chisq, K, N, BIC = 6557.08384528 19 2401 6704.9730166
 
 # Lens still doesn't fit well - but stepsizes seem sensible.
@@ -283,4 +324,47 @@ goto FINISH
 
 
 # ========================================================================================
+# 2013-02-11 (Monday) 10:30 GMT
+
+# Eric visiting. 
+# Investigate random initialisation of lens model
+
+# Try ten positions, and 15 optimisation steps each. Fixed PSF.
+
+START:
+
+set expt = $LENSTRACTOR_DIR/examples/2013-02-11_lens-init-testing
+mkdir -p $expt
+chdir $expt
+
+set logfile = $expt/H1413+117_10x10arcsec_lenstractor_lens-testing.log
+echo "Running LensTractor, output in $logfile"
+set runfile = $logfile:r.csh
+
+echo "\
+time python -u $LENSTRACTOR_DIR/LensTractor.py -l \\
+  $LENSTRACTOR_DIR/examples/H1413+117_10x10arcsec_55377.3405*.fits \\
+  --optimization-rounds 1 \\
+  --optimization-steps-catalog 15 \\
+  --optimization-steps-psf 0 \\
+    > $logfile"   > $runfile
+
+now > $logfile
+echo " " >> $logfile
+cat $runfile >> $logfile
+echo " " >> $logfile
+
+source $runfile
+
+mv $LENSTRACTOR_DIR/examples/*png $expt/
+
+grep BIC $logfile
+
+
+
+
+
+
+goto FINISH
+
 FINISH:
