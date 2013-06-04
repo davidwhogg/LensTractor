@@ -40,6 +40,6 @@ Now check that The Tractor runs:
     cd tractor
     python tractor-sdss-synth.py
 
-With the tractor on your python path you should be able to run the LensTractor example, as described in the output of 
+With the tractor on your python path you should be able to run the LensTractor example, as described in LensTractor.py. For help, see the output of 
 
     python LensTractor.py -h
