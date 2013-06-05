@@ -183,6 +183,7 @@ def main():
    parser.add_argument('--optimization-rounds', dest='Nr', type=int, default=3, help='No. of optimization rounds')
    parser.add_argument('--optimization-steps-catalog', dest='Nc', type=int, default=10, help='No. of optimization steps spent on source catalog')
    parser.add_argument('--optimization-steps-psf', dest='Np', type=int, default=2, help='No. of optimization steps spent on PSFs')
+   parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey, either PS1 or KIDS")
 
    # Read in options and arguments - note only sci and wht images are supplied:
    args = parser.parse_args()
@@ -216,7 +217,7 @@ def main():
    scifiles,varfiles = lenstractor.Riffle(args.inputfiles,vb=vb)
    
    # Read into Tractor Image objects, and see what filters we have:   
-   images,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY='PS1',vb=vb)
+   images,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
    
    # -------------------------------------------------------------------------
    # Generic items needed to initialize the Tractor's catalog.
