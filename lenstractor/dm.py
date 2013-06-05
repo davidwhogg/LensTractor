@@ -98,6 +98,8 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
 
       if SURVEY=='PS1':
          FWHM = lenstractor.PS1_IQ(hdr)
+      elif SURVEY=='KIDS':
+         FWHM = lenstractor.KIDS_IQ(hdr)
       else:
          Raise("Unrecognised survey %s" % SURVEY)
       if vb: print "  PSF FWHM =",FWHM,"pixels"
