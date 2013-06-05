@@ -112,11 +112,16 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
 
       if SURVEY=='PS1':
          band,photocal = lenstractor.PS1_photocal(hdr)
+      elif SURVEY=='KIDS':
+         band,photocal = lenstractor.KIDS_photocal(hdr)
       else:
          Raise("Unrecognised survey %s" % SURVEY)
       if vb: print photocal
       bands.append(band)
-      epochs.append(lenstractor.PS1_epoch(hdr))
+      if SURVEY=='PS1':
+         epochs.append(lenstractor.PS1_epoch(hdr))
+      elif SURVEY=='KIDS':
+         epochs.append(lenstractor.KIDS_epoch(hdr))
       # Use photocal to return a total magnitude:
       total_mag = photocal.countsToMag(total_flux)
       if vb: print "Total brightness of image (mag):",total_mag
@@ -131,7 +136,10 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       if vb: print sky
 
       # Get WCS from FITS header:
-      wcs = lenstractor.PS1WCS(hdr)
+      if SURVEY=='PS1':
+         wcs = lenstractor.PS1WCS(hdr)
+      elif SURVEY=='KIDS':
+         wcs = lenstractor.KIDSWCS(hdr)
       if vb: print wcs
 
       # Make a tractor Image object out of all this stuff, and add it to the array:
