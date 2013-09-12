@@ -118,6 +118,23 @@ def PS1_IQ(hdr):
    return FWHM
 
 # ============================================================================
+# Return scales to use in Plot_state() of plotting.py
+# image is an Image instance from tractor.
+
+def PS1_imshow_settings(image, chi):
+    scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
+    ima = dict(interpolation='nearest', origin='lower',
+               vmin=-100.*scale, vmax=3.*scale)
+
+    chia = dict(interpolation='nearest', origin='lower',
+                vmin=-5., vmax=5.)
+
+    psfa = dict(interpolation='nearest', origin='lower')
+    
+    return (ima, chia, psfa)
+
+
+# ============================================================================
 
 if __name__ == '__main__':
 
