@@ -83,3 +83,28 @@ def KIDS_epoch(hdr):
    #       the 'MJD-OBS' in PS1 is a number converted to a string.
    return hdr['OBS_STRT']
 
+# ============================================================================
+# Return scales to use in Plot_state() of plotting.py
+# image is an Image instance from tractor.
+
+def KIDS_imshow_settings(image, chi):
+    # The image is inverted when plotting, therefore
+    # 'min' and 'max' are inverted here as well. 
+    theimage = image.getImage()
+    ima = dict(interpolation='nearest', origin='lower',
+               vmin=-theimage.max(), vmax=-theimage.min())
+
+    # The values in the differential chi images are in the range
+    # of 0.0001, while the plotting routines expects them to be
+    # within the range of 1. The values are apparently supposed to
+    # be 'sigmas' but this cannot be the case for KIDS.
+    # The assumption that the chi images represent sigmas might
+    # be made at other places in the code as well, which might
+    # be a problem.
+    chia = dict(interpolation='nearest', origin='lower',
+                vmin=-chi.max(), vmax=-chi.min())
+
+    psfa = dict(interpolation='nearest', origin='lower')
+ 
+    return (ima, chia, psfa)
+
