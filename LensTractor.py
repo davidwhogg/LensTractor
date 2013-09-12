@@ -376,7 +376,10 @@ def main():
           chug.addSource(src)
 
        # Plot initial state:
-       lenstractor.Plot_state(chug,model+'_progress_initial')
+       lenstractor.Plot_state(
+           chug,
+           model+'_progress_initial',
+           SURVEY=args.survey)
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -435,7 +438,10 @@ def main():
                    # Although this only leaves *this* loop...
                    break
                 k += 1
-             if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+             if not args.noplots: lenstractor.Plot_state(
+                 chug,
+                 model+'_progress_optimizing_step-%02d_catalog'%k,
+                 SURVEY=args.survey)
 
              # Freeze the sources and sky and thaw the psfs:
              print "Freezing catalog..."
@@ -456,11 +462,17 @@ def main():
                 print "Fitting PSF: at step",k,"parameter values are:",chug.getParams()
                 k += 1
              print "Fitting PSF: After optimizing, zeroth PSF = ",chug.getImage(0).psf
-             if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+             if not args.noplots: lenstractor.Plot_state(
+                 chug,
+                 model+'_progress_optimizing_step-%02d_catalog'%k,
+                 SURVEY=args.survey)
 
           # BUG: PSF not being optimized correctly - missing derivatives?
 
-          lenstractor.Plot_state(chug,model+'_progress_optimizing_zcomplete')
+          lenstractor.Plot_state(
+              chug,
+              model+'_progress_optimizing_zcomplete',
+              SURVEY=args.survey)
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        
@@ -535,7 +547,10 @@ def main():
                    print "EMCEE: chisq at Best pt: ",chisq
                    if not args.noplots: 
                       chug.setParams(pbest)
-                      lenstractor.Plot_state(chug,model+'_progress_sampling_step-%02d'%step)
+                      lenstractor.Plot_state(
+                          chug,
+                          model+'_progress_sampling_step-%02d'%step,
+                          SURVEY=args.survey)
 
 
              # Take the last best sample and call it a result:
@@ -546,7 +561,10 @@ def main():
              # print 'MCMC took', t_mcmc, 'sec'
              
              # Make the final plot:
-             lenstractor.Plot_state(chug,model+'_progress_sampling_zcomplete')
+             lenstractor.Plot_state(
+                 chug,
+                 model+'_progress_sampling_zcomplete',
+                 SURVEY=args.survey)
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        
