@@ -32,7 +32,7 @@ adjustprops = dict(\
 # ============================================================================
 # All progress plots.
 
-def Plot_state(t,suffix):
+def Plot_state(t, suffix, SURVEY='PS1'):
    '''
    Make all the plots we need to assess the state of the tractor. Mainly, 
    a multi-panel figure of image, synthetic image and chi, for each image being 
@@ -48,13 +48,22 @@ def Plot_state(t,suffix):
       else:
          imname = image.name
 
-      scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
- 
-      ima = dict(interpolation='nearest', origin='lower',
+      chi = t.getChiImage(i)
+      
+      if SURVEY=='PS1':
+          ima, chia, psfa = lenstractor.PS1_imshow_settings(image,chi)
+      elif SURVEY=='KIDS':
+          ima, chia, psfa = lenstractor.KIDS_imshow_settings(image,chi)
+      else:
+          # Do the same as for PS1
+          scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
+          ima = dict(interpolation='nearest', origin='lower',
                      vmin=-100.*scale, vmax=3.*scale)
-      chia = dict(interpolation='nearest', origin='lower',
-                        vmin=-5., vmax=5.)
-      psfa = dict(interpolation='nearest', origin='lower')
+      
+          chia = dict(interpolation='nearest', origin='lower',
+                      vmin=-5., vmax=5.)
+      
+          psfa = dict(interpolation='nearest', origin='lower')
 
       fig = plt.figure(**figprops)
       fig.subplots_adjust(**adjustprops)
@@ -73,11 +82,17 @@ def Plot_state(t,suffix):
       tidyup_plot()
       plt.title('Predicted image')
 
-      chi = t.getChiImage(i)
       plt.subplot(py,px,3)
       plt.imshow(-chi, **chia)
       tidyup_plot()
-      plt.title('Residuals ($\pm 5\sigma$)')
+      if SURVEY=='KIDS':
+          # It is not clear why the residual image is not in units of
+          # sigma. Perhaps this causes problems in the modelling.
+          # This code is not refactored into kids.py since it should
+          # not be necessary in the first place.
+          plt.title('Residuals (flexible scale)')
+      else:
+          plt.title('Residuals ($\pm 5\sigma$)')
 
       psfimage = image.psf.getPointSourcePatch(*model.shape).patch
       plt.subplot(py,px,4)
@@ -86,7 +101,7 @@ def Plot_state(t,suffix):
       plt.title('PSF')
 
       plt.savefig(imname+'_'+suffix+'.png')   
-   
+ 
    return
 
 # ----------------------------------------------------------------------------
