@@ -75,24 +75,22 @@ def main():
      
      The default workflow is as follows:
      
-       Is the target a lens?
+       * Fit PSF images with PSF models; fix PSFs
        
        * Try Nebula1
        
-       * Try Nebula2
-       
+       * Try Nebula2 
            if Nebula1 beats Nebula2: 
              Return NO
            else:
              Nebula = Nebula2
        
-       * Try Nebula4
-       
-           if Nebula4 beats Nebula2: 
-             Nebula = Nebula4
-
+       * For K in 3,4:
+           Try NebulaK 
+             if NebulaK beats Nebula: 
+               Nebula = NebulaK
                       
-       * Try Lens (via Nebula)
+       * Try Lens (inititialsed with Nebula)
            if Lens beats Nebula: 
              Return YES
            else:
@@ -111,6 +109,7 @@ def main():
          candidate anyway.
          NO: using the extended object to model a high S/N merging image
          system should not be punished
+      To be investigated.
       
       How are we going to interpret the point image positions if we do not
       have an estimated deflector position?
@@ -132,7 +131,7 @@ def main():
      --optimization-steps-catalog Nc   Number of steps per round spent
                                         optimizing source catalog [10]
      --optimization-steps-psf     Np   Number of steps per round spent
-                                        optimizing source catalog [2]
+                                        optimizing PSF catalog [2]
 
    OUTPUTS
      stdout                       Useful information
@@ -176,9 +175,9 @@ def main():
    # Plotting:
    parser.add_argument('-x', '--no-plots', dest='noplots', action='store_true', default=False, help='Skip plotting')
    # Lens model only:
-   parser.add_argument('-l', '--lens', dest='lens', action='store_true', default=False, help='Fit lens model')
+   parser.add_argument('-l', '--lens', dest='lens', action='store_true', default=False, help='Fit Lens model')
    # Nebula model only:
-   parser.add_argument('-n', '--nebula', dest='nebula', action='store_true', default=False, help='Fit nebula model')
+   parser.add_argument('-n', '--nebula', dest='K', type=int, default=1, help='Fit NebulaK model, provide K')
    # optimization workflow:
    parser.add_argument('--optimization-rounds', dest='Nr', type=int, default=3, help='No. of optimization rounds')
    parser.add_argument('--optimization-steps-catalog', dest='Nc', type=int, default=10, help='No. of optimization steps spent on source catalog')
@@ -196,14 +195,15 @@ def main():
    
    # Workflow:
    if args.lens:
-      models = ['lens']
-   elif args.nebula:
-      models = ['nebula1','nebula2','nebula4',]
+      models = ['Lens']
+   elif args.K > 0:
+      models = ['Nebula'+str(args.K)]
    else:
-      models = ['nebula1','nebula2','nebula4','lens']
-   BIC = dict(zip(models,np.zeros(len(models))))
-   # NB. default operation is to fit both and compare.
+      models = ['Nebula1','Nebula2','Nebula3','Nebula4','Lens']
+   # NB. default operation is to run through detection workflow.
    
+   BIC = dict(zip(models,np.zeros(len(models))))
+
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
       print "                               LensTractor "
@@ -241,20 +241,20 @@ def main():
    
    # -------------------------------------------------------------------------
    
-   # Loop over models:
+   # Loop over models, initialising and fitting.
       
    for model in models: 
       
        if vb: 
            print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
-           print "Initializing model: "+model
-
+           print "Initializing model: "+model       
+       
        # Figure out what type of model this is:
        modeltype =  model[0:6]
        
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
               
-       if modeltype == 'nebula':
+       if modeltype == 'Nebula':
 
            # Nebula - a flexible galaxy plus K point sources, 
 
@@ -300,7 +300,7 @@ def main():
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
               
-       elif modeltype == 'lens':
+       elif modeltype == 'Lens':
 
            # If nebula has been run, use the best nebula model (by BIC)
            # to initialise the lens model. If it hasn't, do something
@@ -390,11 +390,11 @@ def main():
        
        # Optimize the model parameters:
 
-          if modeltype=='nebula':
+          if modeltype=='Nebula':
              Nrounds = args.Nr
              Nsteps_optimizing_catalog = args.Nc
              Nsteps_optimizing_PSFs = args.Np
-          elif modeltype=='lens':
+          elif modeltype=='Lens':
              Nrounds = args.Nr
              Nsteps_optimizing_catalog = args.Nc
              Nsteps_optimizing_PSFs = args.Np
@@ -491,12 +491,12 @@ def main():
              # We need it to be ~1 pixel in position, and not too much
              # flux restrction... 
 
-             if model=='lens':
+             if modeltype=='Lens':
                 # The following gets us 0.2" in dec:
                 psteps = np.zeros_like(p0) + 0.00004
                 # This could be optimized, to allow more initial freedom in eg flux.
 
-             elif model=='nebula':
+             elif modeltype=='Nebula':
                 # Good first guess should be some fraction of the optimization step sizes:
                 psteps = 0.2*np.array(chug.getStepSizes())
 
