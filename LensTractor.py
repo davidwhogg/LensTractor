@@ -182,6 +182,7 @@ def main():
    parser.add_argument('--optimization-rounds', dest='Nr', type=int, default=3, help='No. of optimization rounds')
    parser.add_argument('--optimization-steps-catalog', dest='Nc', type=int, default=10, help='No. of optimization steps spent on source catalog')
    parser.add_argument('--optimization-steps-psf', dest='Np', type=int, default=2, help='No. of optimization steps spent on PSFs')
+   parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey, either PS1 or KIDS")
 
    # Read in options and arguments - note only sci and wht images are supplied:
    args = parser.parse_args()
@@ -216,7 +217,7 @@ def main():
    scifiles,varfiles = lenstractor.Riffle(args.inputfiles,vb=vb)
    
    # Read into Tractor Image objects, and see what filters we have:   
-   images,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY='PS1',vb=vb)
+   images,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
    
    # -------------------------------------------------------------------------
    # Generic items needed to initialize the Tractor's catalog.
@@ -375,7 +376,10 @@ def main():
           chug.addSource(src)
 
        # Plot initial state:
-       lenstractor.Plot_state(chug,model+'_progress_initial')
+       lenstractor.Plot_state(
+           chug,
+           model+'_progress_initial',
+           SURVEY=args.survey)
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -434,7 +438,10 @@ def main():
                    # Although this only leaves *this* loop...
                    break
                 k += 1
-             if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+             if not args.noplots: lenstractor.Plot_state(
+                 chug,
+                 model+'_progress_optimizing_step-%02d_catalog'%k,
+                 SURVEY=args.survey)
 
              # Freeze the sources and sky and thaw the psfs:
              print "Freezing catalog..."
@@ -455,11 +462,17 @@ def main():
                 print "Fitting PSF: at step",k,"parameter values are:",chug.getParams()
                 k += 1
              print "Fitting PSF: After optimizing, zeroth PSF = ",chug.getImage(0).psf
-             if not args.noplots: lenstractor.Plot_state(chug,model+'_progress_optimizing_step-%02d_catalog'%k)
+             if not args.noplots: lenstractor.Plot_state(
+                 chug,
+                 model+'_progress_optimizing_step-%02d_catalog'%k,
+                 SURVEY=args.survey)
 
           # BUG: PSF not being optimized correctly - missing derivatives?
 
-          lenstractor.Plot_state(chug,model+'_progress_optimizing_zcomplete')
+          lenstractor.Plot_state(
+              chug,
+              model+'_progress_optimizing_zcomplete',
+              SURVEY=args.survey)
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        
@@ -534,7 +547,10 @@ def main():
                    print "EMCEE: chisq at Best pt: ",chisq
                    if not args.noplots: 
                       chug.setParams(pbest)
-                      lenstractor.Plot_state(chug,model+'_progress_sampling_step-%02d'%step)
+                      lenstractor.Plot_state(
+                          chug,
+                          model+'_progress_sampling_step-%02d'%step,
+                          SURVEY=args.survey)
 
 
              # Take the last best sample and call it a result:
@@ -545,7 +561,10 @@ def main():
              # print 'MCMC took', t_mcmc, 'sec'
              
              # Make the final plot:
-             lenstractor.Plot_state(chug,model+'_progress_sampling_zcomplete')
+             lenstractor.Plot_state(
+                 chug,
+                 model+'_progress_sampling_zcomplete',
+                 SURVEY=args.survey)
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        

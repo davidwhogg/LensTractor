@@ -172,7 +172,10 @@ class PointSourceLens(tractor.MultiParams):
 #                return dict(lensgalaxy=0, pointsource=1, dmag=2)
                return dict(lensgalaxy=0, pointsource=1)
 
-       def getModelPatch(self,img):
+       # Only 'img' is used in the function below.
+       # The extra parmeters in the function definition are necessary to
+       # match the calling of this function in tractor/engine.py.
+       def getModelPatch(self, img, src=None, minsb=0., **kwargs):
                '''
                Render the image of the PointSourceLens on the image grid provided.
                '''
