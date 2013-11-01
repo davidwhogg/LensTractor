@@ -145,7 +145,7 @@ def main():
 
    EXAMPLES
 
-     python LensTractor.py -x examples/H1413+117_10x10arcsec_55*fits > examples/H1413+117_10x10arcsec_lenstractor.log
+     python LensTractor.py -x ps1/examples/H1413+117_10x10arcsec_55*fits > examples/H1413+117_10x10arcsec_lenstractor.log
    
    DEPENDENCIES
      * The Tractor     astrometry.net/svn/trunk/projects/tractor
@@ -156,7 +156,7 @@ def main():
 
    HISTORY
      2012-07-06       First predicted Lens images Marshall/Hogg (Oxford/NYU)
-     2013-01-23       Sequential Nebula 1,2,4 scheme implemented
+     2013-08-         Adapted for KIDS Buddelmeier (Kapteyn)
    """
 
    # --------------------------------------------------------------------
