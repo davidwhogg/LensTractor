@@ -23,9 +23,10 @@ if __name__ == '__main__':
     from matplotlib import rc
     rc('font',**{'family':'serif','serif':'Computer Modern Roman','size':18})
     rc('text', usetex=True)
+
 import numpy as np
 import pylab as plt
-import matplotlib.nxutils as nx
+from matplotlib.path import Path
 
 # Global verbosity:
 vb = 0
@@ -112,6 +113,7 @@ class GravitationalLens:
         caustic = np.outer(np.ones_like(dphi), self.position)
         caustic += np.outer(self.einsteinradius * cosphi, eig1)
         caustic += np.outer(self.einsteinradius * sinphi, eig2)
+        
         return caustic
 
     def tangential_caustic(self, npts=1024):
@@ -125,6 +127,7 @@ class GravitationalLens:
         caustic = np.outer(np.ones_like(dphi), self.position)
         caustic += np.outer(-betaplus*coscubedphi, eig1)
         caustic += np.outer(betaminus*sincubedphi, eig2)
+        
         return caustic
 
 # ----------------------------------------------------------------------------
@@ -132,11 +135,16 @@ class GravitationalLens:
 #   returns 1, 2, 3, or 4
     
     def number_of_images(self, sourceposition):
-        if nx.points_inside_poly(np.atleast_2d(sourceposition), self.radial_caustic())[0]:
-            if nx.points_inside_poly(np.atleast_2d(sourceposition), self.tangential_caustic())[0]:
+        rc=self.radial_caustic()
+        tc=self.tangential_caustic()
+        rc=Path(rc)
+        tc=Path(tc)
+
+        if rc.contains_points(np.atleast_2d(sourceposition))[0]:
+            if tc.contains_points(np.atleast_2d(sourceposition))[0]:
                 return 4
             return 2
-        if nx.points_inside_poly(np.atleast_2d(sourceposition), self.tangential_caustic())[0]:
+        if tc.contains_points(np.atleast_2d(sourceposition))[0]:
             return 3
         return 1
 
