@@ -25,7 +25,8 @@ if __name__ == '__main__':
     rc('text', usetex=True)
 
 import numpy as np
-import pylab as plt
+#import pylab as plt
+import matplotlib.pyplot as plt
 from matplotlib.path import Path
 
 # Global verbosity:
@@ -669,7 +670,7 @@ import time
 
 def speed_test():
     
-    nsample = 10000
+    nsample = 1000
     print "Solving",nsample,"lens systems..."
     
     lenspos = [0.0, 0.0]
