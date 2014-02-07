@@ -25,6 +25,21 @@ vb = False
 
 # ============================================================================
 
+def SDSSWCS(hdr):
+      '''
+      Return a WCS object initialised from a PS1 file header.
+      WARNING: PC matrix not being used, determinant may be wrong sign...
+      Need to check with literature image of H1413
+      '''
+      t = util.Tan()
+      t.set_crpix(hdr['CRPIX1'], hdr['CRPIX2'])
+      t.set_crval(hdr['CRVAL1'], hdr['CRVAL2'])
+      t.set_cd(hdr['CD1_2'], 0., 0., hdr['CD2_2'])
+      t.set_imagesize(hdr['NAXIS1'], hdr['NAXIS2'])
+      
+      return tractor.FitsWcs(t)
+
+
 def PS1WCS(hdr):
       '''
       Return a WCS object initialised from a PS1 file header.
@@ -87,6 +102,16 @@ class PS1MagsPhotoCal(tractor.BaseParams):
 # ============================================================================
 # Return a PS1MagsPhotoCal object given a FITS file header.
 
+def SDSS_photocal(hdr):
+
+   band = hdr['FILTER'][0]
+   zpt = hdr['NMGY']
+   zpt= 2.5*np.log10(zpt)
+   photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
+
+   return band,photocal
+
+
 def PS1_photocal(hdr):
 
    band = hdr['HIERARCH FPA.FILTER'][0]
@@ -97,6 +122,11 @@ def PS1_photocal(hdr):
 
 # ============================================================================
 # Return the MJD given a FITS file header.
+
+def SDSS_epoch(hdr):
+   # this is NOT the MJD, but it's just for lenstractor not to crash
+   return "%s" % hdr['DATE-OBS']
+
 
 def PS1_epoch(hdr):
 

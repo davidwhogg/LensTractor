@@ -97,7 +97,10 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       # then refine it:
 
       if SURVEY=='PS1':
-         FWHM = lenstractor.PS1_IQ(hdr)
+         try:
+             FWHM = lenstractor.PS1_IQ(hdr)
+         except:
+             FWHM = 1.4
       elif SURVEY=='KIDS':
          FWHM = lenstractor.KIDS_IQ(hdr)
       else:
@@ -112,15 +115,23 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       # Now get the photometric calibration from the image header.
 
       if SURVEY=='PS1':
-         band,photocal = lenstractor.PS1_photocal(hdr)
+         try:
+             band,photocal = lenstractor.PS1_photocal(hdr)
+         except:
+             band,photocal = lenstractor.SDSS_photocal(hdr)
       elif SURVEY=='KIDS':
          band,photocal = lenstractor.KIDS_photocal(hdr)
       else:
          Raise("Unrecognised survey %s" % SURVEY)
+         band,photocal = lenstractor.SDSS_photocal(hdr)
+
       if vb: print photocal
       bands.append(band)
       if SURVEY=='PS1':
-         epochs.append(lenstractor.PS1_epoch(hdr))
+         try:
+             epochs.append(lenstractor.PS1_epoch(hdr))
+         except:
+             epochs.append(lenstractor.SDSS_epoch(hdr))
       elif SURVEY=='KIDS':
          epochs.append(lenstractor.KIDS_epoch(hdr))
       # Use photocal to return a total magnitude:
@@ -138,7 +149,10 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
 
       # Get WCS from FITS header:
       if SURVEY=='PS1':
-         wcs = lenstractor.PS1WCS(hdr)
+         try:
+             wcs = lenstractor.PS1WCS(hdr)
+         except:
+             wcs = lenstractor.SDSSWCS(hdr)
       elif SURVEY=='KIDS':
          wcs = lenstractor.KIDSWCS(hdr)
       if vb: print wcs
