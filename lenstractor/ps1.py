@@ -21,7 +21,7 @@ from astrometry.util import util
 import tractor
 import lenstractor
 
-vb = True
+vb = False
 
 # ============================================================================
 
@@ -112,7 +112,7 @@ def PS1_IQ(hdr):
       FWHM = 1.0 # arcsec
       # Need it in pixels:
       FWHM = FWHM/(3600.0*hdr['CDELT1'])
-      print "PS1_IQ: WARNING: FWHM = NaN in header, setting to 1.0 arcsec =",FWHM,"pixels"
+      if vb: print "PS1_IQ: WARNING: FWHM = NaN in header, setting to 1.0 arcsec =",FWHM,"pixels"
    
    
    return FWHM
