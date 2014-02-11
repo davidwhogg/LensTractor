@@ -72,33 +72,28 @@ def main():
      parameters), so should win by Bayesian information criteria (we use BIC
      as a cheap proxy for evidence ratio).
      
-     The default workflow is as follows:
+     The workflow we probably want to aim for is as follows:
      
        * Fit PSF images with PSF models; fix PSFs
        
        * Try Nebula1
        
-       * Try Nebula2 
-           if Nebula1 beats Nebula2: 
-             Return NO
+       * Try Nebula4 
+           if Nebula1 beats Nebula4: 
+             return NO
            else:
-             Nebula = Nebula2
-       
-       * For K in 3,4:
-           Try NebulaK 
-             if NebulaK beats Nebula: 
-               Nebula = NebulaK
+             Classification = 'Nebula'
                       
-       * Try Lens (inititialsed with Nebula)
-           if Lens beats Nebula: 
+       * Try Lens (inititialsed with Nebula4 somehow)
+           if Lens beats Nebula4: 
+             Classification = 'Lens'
              Return YES
            else:
+             Classification = 'Nebula'
              Return NO
 
-      Initialisation of Lens via Nebula depends on the point source 
-      multiplicity of the final Nebula model: what we do with three point
-      image positions will be different from what we do with 4 point image
-      positions, particularly with regard to the deflector centroid. 
+      Initialisation of Lens via Nebula4 could be tricky - there is some 
+      parsing to be done, and decisions to be made...
       
       Open questions:
       
