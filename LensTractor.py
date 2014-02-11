@@ -42,9 +42,7 @@ import pyfits
 import time
 
 
-# from astrometry.util.file import *
 from astrometry.util import util
-# from astrometry.util.pyfits_utils import *
 
 import tractor
 import lenstractor
@@ -116,23 +114,24 @@ def main():
       have an estimated deflector position?
       
 
-   FLAGS
+   OPTIONS
      -h --help        Print this message
      -v --verbose     Verbose operation
      -s --sample      Sample the posterior PDF instead of optimizing
      -x --no-plots    Do not plot progress
      -l --lens        Only fit lens model, initialized from scratch
-     -n --nebula      Only fit nebula model, initialized from scratch
 
    INPUTS
      *.fits           Deck of postcard images
 
    OPTIONAL INPUTS
+     -n --nebula                  K    Only fit NebulaK model, initialized from scratch
      --optimization-rounds        Nr   Number of rounds of optimization [2]
      --optimization-steps-catalog Nc   Number of steps per round spent
                                         optimizing source catalog [10]
      --optimization-steps-psf     Np   Number of steps per round spent
                                         optimizing PSF catalog [2]
+     -o --output             outfile   Name of output catalog filename       
 
    OUTPUTS
      stdout                       Useful information
@@ -146,7 +145,9 @@ def main():
 
    EXAMPLES
 
-     python LensTractor.py -x ps1/examples/H1413+117_10x10arcsec_55*fits > examples/H1413+117_10x10arcsec_lenstractor.log
+     python LensTractor.py -x -o examples/ps1/H1413+117_10x10arcsec_Nebula1.cat \
+       examples/ps1/H1413+117_10x10arcsec_55*fits > \
+       examples/ps1/H1413+117_10x10arcsec_Nebula1.log
    
    DEPENDENCIES
      * The Tractor     astrometry.net/svn/trunk/projects/tractor
@@ -179,7 +180,9 @@ def main():
    parser.add_argument('-l', '--lens', dest='lens', action='store_true', default=False, help='Fit Lens model')
    # Nebula model only:
    parser.add_argument('-n', '--nebula', dest='K', type=int, default=1, help='Fit NebulaK model, provide K')
-   # optimization workflow:
+   # Output filename:
+   parser.add_argument('-o', '--output', dest='outfile', type=str, default='lenstractor.cat', help='Output catalog filename')
+   # Optimization workflow:
    parser.add_argument('--optimization-rounds', dest='Nr', type=int, default=3, help='No. of optimization rounds')
    parser.add_argument('--optimization-steps-catalog', dest='Nc', type=int, default=5, help='No. of optimization steps spent on source catalog')
    parser.add_argument('--optimization-steps-psf', dest='Np', type=int, default=0, help='No. of optimization steps spent on PSFs')
@@ -200,10 +203,11 @@ def main():
       models = ['Lens']
    elif args.K > 0:
       models = ['Nebula'+str(args.K)]
+      # NB. Global default is Nebula1!
    else:
       models = ['Nebula1','Nebula2','Nebula3','Nebula4','Lens']
-   # NB. default operation is to run through detection workflow.
-   
+      # NB. This option is not reachable!
+         
    BIC = dict(zip(models,np.zeros(len(models))))
 
    if vb: 
@@ -391,9 +395,11 @@ def main():
 
        if not args.MCMC:
        
-       # Pre-op! Cycle over N initialisations, trying 5 steps each. Then
-       # Optimize from the best of these.
+       # BUG: Need to do some pre-op work! 
+       # Cycle over N initialisations, trying 5 steps each? 
+       # Then optimize from the best of those?
        
+       # Anyway, for now:
        
        # Optimize the model parameters:
 
@@ -437,7 +443,8 @@ def main():
                 if vb: 
                     print "Progress: k,dlnp = ",k,dlnp
                     print ""
-                    print "Catalog:",chug.getParams()
+                    print "Catalog parameters:",chug.getParamNames()
+                    print "Catalog values:",chug.getParams()
                 if dlnp == 0: 
                     print "Converged? Exiting..."
                     # Although this only leaves *this* loop...
@@ -481,6 +488,7 @@ def main():
               chug,
               model+'_progress_optimizing_zcomplete',
               SURVEY=args.survey)
+
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        
@@ -588,12 +596,33 @@ def main():
        chug.thawParam('catalog')
        for image in chug.getImages():
          image.thawParams('sky', 'psf')
-         image.freezeParams('photocal', 'wcs')
-       K = len(chug.getParams())
+         if Nsteps_optimizing_PSFs > 0:
+             image.thawParams('photocal', 'wcs')
+         else:
+             image.freezeParams('photocal', 'wcs')
+       
+       # OK, now get parameters and count them:
+       parnames = chug.getParamNames()
+       values = np.array(np.outer(1,chug.getParams()))
+       K = len(values[0,:])
+       
+       # Pull out image names:
+       imgnames = []
+       for image in chug.getImages():
+           imgnames.append(image.name)
+       
+       # Compute BIC:
        N = chug.getNdata()
        BIC[model] = chisq + K*np.log(1.0*N)
        print model+" results: chisq, K, N, BIC =",chisq,K,N,BIC[model]
        
+       # Write out simple one-line parameter catalog:
+       lenstractor.write_catalog(args.outfile,model,parnames,imgnames,values)
+       print model+" parameter values written to: "+args.outfile
+
+       # NB. This line assumes we are optimizing! Fix this later if/when we
+       # switch to sampling...
+
    # -------------------------------------------------------------------------
    
    # Make some decision about the nature of this system.
