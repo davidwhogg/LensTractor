@@ -35,13 +35,13 @@ def Riffle(filenames,vb=False):
       flavors.append(string.split(pieces[-1],'.')[0])
 
    if len(set(flavors)) != 2:
-      raise "ERROR: expecting 2 flavors of datafile, got 0 or 1"
+       raise "ERROR: expecting 2 flavors of datafile, got 0 or 1"
 
    if 'sci' not in set(flavors):
-      raise "ERROR: expecting at least some files to be xxx_sci.fits"
+       raise "ERROR: expecting at least some files to be xxx_sci.fits"
 
    for x in (set(flavors) - set(['sci'])):
-      whttype = x
+       whttype = x
 
    number = len(set(fruits))
    scifiles = []

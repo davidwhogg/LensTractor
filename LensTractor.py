@@ -48,7 +48,7 @@ from astrometry.util import util
 
 import tractor
 import lenstractor
-import emcee
+# import emcee
 
 # ============================================================================
 
