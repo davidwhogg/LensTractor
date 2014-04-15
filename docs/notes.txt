@@ -360,12 +360,132 @@ mv $LENSTRACTOR_DIR/examples/*png $expt/
 
 grep BIC $logfile
 
-
-
-
-
-
 goto FINISH
 
 # ========================================================================================
+# 2014-02-28 (Friday) 19:11 PST
+
+# Investigating the SDSS empty image problem...
+# First did some reorganisation - sdss folder, renamed LensTractor.py scripts
+# to avoid confusion with one true LT script...
+
+# Ran the example:
+
+python LensTractor.py -x \
+       -o examples/sdss/0951+2635/0951+2635_Nebula1.cat \
+       examples/sdss/0951+2635/*fits > \
+       examples/sdss/0951+2635/0951+2635_Nebula1.log
+
+# Traceback (most recent call last):
+#   File "LensTractor.py", line 649, in <module>
+#     main()
+#   File "LensTractor.py", line 444, in main
+#     dlnp,X,a = chug.optimize(damp=3)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 1672, in optimize
+#     shared_params=shared_params)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 2266, in getUpdateDirection
+#     X = X[paramindexmap]
+# IndexError: index 12 is out of bounds for size 12
+
+# Hmm - what gives? PS1 example runs fine. Check log:
+
+more examples/sdss/0951+2635/0951+2635_Nebula1.log
+
+# ./usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/_methods.py:55: RuntimeWarning: Mean of empty slice.
+#   warnings.warn("Mean of empty slice.", RuntimeWarning)
+# /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/_methods.py:67: RuntimeWarning: invalid value encountered in true_divide
+#   ret = ret.dtype.type(ret / rcount)
+# /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/matplotlib/colors.py:533: RuntimeWarning: invalid value encountered in less
+#   cbook._putmask(xa, xa<0.0, -1)
+# Tractor: Finding derivs...
+# ..
+# Set Ncols= 12
+# shared_params: before, X len 12 with 2 non-zero entries
+# paramindexmap: len 19 range 0 18
+
+# As Adri says - empty images being read in? Check that dm.py is working, 
+# by running with -v (verbose) option...
+
+python LensTractor.py -x -v \
+       -o examples/sdss/0951+2635/0951+2635_Nebula1.cat \
+       examples/sdss/0951+2635/*fits > \
+       examples/sdss/0951+2635/0951+2635_Nebula1.log
+
+# OK - mags look odd, but images are being read in fine:
+
+# ...
+# Making Tractor image from examples/sdss/0951+2635/r_*.fits:
+# Read in sci image: (101, 101)
+# Total flux: 97.0235
+# Read in var image: (101, 101)
+# Useful variance range: 0.003685 0.120483
+# Useful image median level: 0.00337219
+# Useful image median pixel uncertainty: 0.136104
+#   PSF FWHM = 1.4 pixels
+# GaussianMixturePSF: amps=(1.0,), means=(0.0, 0.0), var=(0.22714350384789489, 0.0, 0.0, 0.22714350384789489)
+# PS1MagsPhotoCal: r band, zpt=[-5.7844352289010237]
+# Total brightness of image (mag): -10.7516273423
+# ConstantSky: 0.00337219
+# FitsWcs: x0,y0 0.000,0.000, WCS Tan: crpix (46.0, 396.0), crval (147.886, 26.5999), cd (0.000104058, 0, 0, 3.56637e-05), image 101 x 101
+#  
+# Read in 4 image datasets
+#   in 4 bands: ['g' 'i' 'r' 'z']
+#   at 4 epochs
+#  
+# Generic initial position  101 101 (pixels)
+# Generic initial SED  {'i': -10.555657486015932, 'r': -10.75162734230053, 'z': -9.6667740112751801, 'g': -10.675768966702206}
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Initializing model: Nebula1
+# ExpGalaxy at RaDecPos: RA, Dec = (147.88544, 26.58727) with Mags: g=-8.17577, i=-8.05566, r=-8.25163, z=-7.16677 and Galaxy Shape: re=0.50, ab=1.00, phi=0.0
+# PointSource at RaDecPos: RA, Dec = (147.88544, 26.58727) with Mags: g=-8.17577, i=-8.05566, r=-8.25163, z=-7.16677
+# Initialization complete.
+# Model = [ExpGalaxy(pos=RaDecPos[147.88543929624, 26.587269007113626], brightness=Mags[-8.175768966702206, -8.0556574860159316, -8.2516273423005302, -7.1667740112751801], re=0.5, ab=1.00, phi=0.0), PointSource(RaDecPos[147.88543726665017, 26.587274873129836], Mags[-8.175768966702206, -8.0556574860159316, -8.2516273423005302, -7.1667740112751801])]
+  
+#/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/_methods.py:55: RuntimeWarning: Mean of empty slice.
+
+
+# What photocal is being called here?
+
+# ============================================================================
+# 2014-04-14 (Monday) 16:58 PDT
+
+# At UCSB, with Adri. Track down SDSS issue. Compare PS1 example to SDSS one.
+# Probem with photocal?
+
+# Ran the example:
+
+python LensTractor.py -x -v \
+       -o examples/sdss/0951+2635/0951+2635_Nebula1.cat \
+          examples/sdss/0951+2635/*fits > \
+          examples/sdss/0951+2635/0951+2635_Nebula1.log
+
+python LensTractor.py -x -v \
+       -o examples/ps1/H1413+117_10x10arcsec_Nebula1.cat \
+          examples/ps1/H1413+117_10x10arcsec_*.fits  > \
+          examples/ps1/H1413+117_10x10arcsec_Nebula1.log
+
+# OK, setting zpt to 22.5 gives plausible mags, but problem remains in log
+# file:
+# 
+# mx == 0: 71 of 71 non-zero derivatives, 0 of 71 non-zero weights; 0 non-zero products
+# Set Ncols= 12
+# LSQR: 12 cols (2 unique), 1 elements
+#   0.0 seconds
+# shared_params: before, X len 12 with 2 non-zero entries
+# paramindexmap: len 19 range 0 18
+# Traceback (most recent call last):
+#   File "LensTractor.py", line 649, in <module>
+#     main()
+#   File "LensTractor.py", line 444, in main
+#     dlnp,X,a = chug.optimize(damp=3)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 1672, in optimize
+#     shared_params=shared_params)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 2266, in getUpdateDirection
+#     X = X[paramindexmap]
+# IndexError: index 12 is out of bounds for size 12
+
+# Check in anyway...
+
+
+#=============================================================================
 FINISH:

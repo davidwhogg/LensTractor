@@ -35,10 +35,10 @@ def Riffle(filenames,vb=False):
       flavors.append(string.split(pieces[-1],'.')[0])
 
    if len(set(flavors)) != 2:
-       raise "ERROR: expecting 2 flavors of datafile, got 0 or 1"
+       raise ValueError("ERROR: expecting 2 flavors of datafile, got 0 or 1")
 
    if 'sci' not in set(flavors):
-       raise "ERROR: expecting at least some files to be xxx_sci.fits"
+       raise ValueError("ERROR: expecting at least some files to be xxx_sci.fits")
 
    for x in (set(flavors) - set(['sci'])):
        whttype = x
@@ -103,8 +103,10 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
              FWHM = 1.4
       elif SURVEY=='KIDS':
          FWHM = lenstractor.KIDS_IQ(hdr)
+      elif SURVEY=='SDSS':
+         FWHM = lenstractor.SDSS_IQ(hdr)
       else:
-         Raise("Unrecognised survey %s" % SURVEY)
+         raise ValueError('Unrecognised survey name '+SURVEY)
       if vb: print "  PSF FWHM =",FWHM,"pixels"
 
       # MAGIC shrinkage factor:
@@ -121,8 +123,10 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
              band,photocal = lenstractor.SDSS_photocal(hdr)
       elif SURVEY=='KIDS':
          band,photocal = lenstractor.KIDS_photocal(hdr)
+      elif SURVEY=='SDSS':
+         band,photocal = lenstractor.SDSS_photocal(hdr)
       else:
-         Raise("Unrecognised survey %s" % SURVEY)
+         print "Unrecognised survey name "+SURVEY+", assuming SDSS"
          band,photocal = lenstractor.SDSS_photocal(hdr)
 
       if vb: print photocal
@@ -134,6 +138,9 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
              epochs.append(lenstractor.SDSS_epoch(hdr))
       elif SURVEY=='KIDS':
          epochs.append(lenstractor.KIDS_epoch(hdr))
+      elif SURVEY=='SDSS':
+         epochs.append(lenstractor.SDSS_epoch(hdr))
+      
       # Use photocal to return a total magnitude:
       total_mag = photocal.countsToMag(total_flux)
       if vb: print "Total brightness of image (mag):",total_mag
