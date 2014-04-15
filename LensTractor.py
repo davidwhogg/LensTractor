@@ -14,13 +14,13 @@ Example use
 
      python LensTractor.py -x \
        -o examples/ps1/H1413+117_10x10arcsec_Nebula1.cat \
-       examples/ps1/H1413+117_10x10arcsec_55*fits > \
-       examples/ps1/H1413+117_10x10arcsec_Nebula1.log
+          examples/ps1/H1413+117_10x10arcsec_55*fits > \
+          examples/ps1/H1413+117_10x10arcsec_Nebula1.log
 
      python LensTractor.py -x \
        -o examples/sdss/0951+2635/0951+2635_Nebula1.cat \
-       examples/sdss/0951+2635/*fits > \
-       examples/sdss/0951+2635/0951+2635_Nebula1.log
+          examples/sdss/0951+2635/*fits > \
+          examples/sdss/0951+2635/0951+2635_Nebula1.log
 
 Bugs
 ----

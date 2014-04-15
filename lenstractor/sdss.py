@@ -58,7 +58,8 @@ def SDSS_IQ(hdr):
 def SDSS_photocal(hdr):
    """
    Return a PS1MagsPhotoCal object given an SDSS FITS file header.
-   Ignore "NMGY" keyword, resulting mags seem to be sensible...
+   Ignore "NMGY" keyword, and copy code found in tractor/tractor/sdss.py 
+   class SdssNanomaggiesPhotoCal. Resulting mags seem to be sensible...
    """
 
    band = hdr['FILTER'][0]
