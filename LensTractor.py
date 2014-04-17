@@ -441,7 +441,7 @@ def main():
 
              # Optimize sources with initial PSF:
              for i in range(Nsteps_optimizing_catalog):
-                dlnp,X,a = chug.optimize(damp=3)
+                dlnp,X,a = chug.optimize(damp=3,shared_params=False)
                 # print "Fitting "+model+": at step",k,"parameter values are:",chug.getParams()
                 if vb: 
                     print "Progress: k,dlnp = ",k,dlnp
@@ -475,7 +475,7 @@ def main():
 
                  # Optimize everything that is not frozen:
                  for i in range(Nsteps_optimizing_PSFs):
-                    dlnp,X,a = chug.optimize()
+                    dlnp,X,a = chug.optimize(shared_params=False)
                     if vb: print "Fitting PSF: at step",k,"parameter values are:",chug.getParams()
                     k += 1
                  if vb: print "Fitting PSF: After optimizing, zeroth PSF = ",chug.getImage(0).psf
