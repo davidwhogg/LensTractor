@@ -72,7 +72,7 @@ def main():
      The idea is to identify good lens candidates by principled model 
      selection: two well-defined models competing against each other, given 
      multi-epoch imaging data. The Nebula model (1 extended source, plus
-     N=1,2,3 or 4 point sources, with sub-models denoted by "NebulaN") is very
+     N=2,3 or 4 point sources, with sub-models denoted by "NebulaN") is very
      flexible, so should be better at fitting the data in general than the
      Lens model (1 extended source, plus 1 background point source). However,
      when the Lens provides a good fit, it does so at lower cost (fewer
@@ -83,23 +83,23 @@ def main():
      
        * Fit PSF images with PSF models; fix PSFs
        
-       * Try Nebula1
+       * Try Nebula2
        
        * Try Nebula4 
-           if Nebula1 beats Nebula4: 
-             return NO
+           if Nebula2 beats Nebula4: 
+             Nebula = Nebula2
            else:
-             Classification = 'Nebula'
+             Nebula = Nebula4
                       
-       * Try Lens (inititialsed with Nebula4 somehow)
-           if Lens beats Nebula4: 
+       * Try Lens (inititialised with Nebula)
+           if Lens beats Nebula: 
              Classification = 'Lens'
              Return YES
            else:
              Classification = 'Nebula'
              Return NO
 
-      Initialisation of Lens via Nebula4 could be tricky - there is some 
+      Initialisation of Lens via Nebula could be tricky - there is some 
       parsing to be done, and decisions to be made...
       
       Open questions:

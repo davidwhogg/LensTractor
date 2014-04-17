@@ -34,14 +34,19 @@ def Riffle(filenames,vb=False):
       fruits.append(string.join(pieces[0:-1],'_'))
       flavors.append(string.split(pieces[-1],'.')[0])
 
-   if len(set(flavors)) != 2:
-       raise ValueError("ERROR: expecting 2 flavors of datafile, got 0 or 1")
+   if len(set(flavors)) > 2:
+       raise ValueError("ERROR: expecting 1 or 2 flavors of datafile, got more")
+   elif len(set(flavors)) == 0:
+       raise ValueError("ERROR: expecting 1 or 2 flavors of datafile, got none")
 
    if 'sci' not in set(flavors):
        raise ValueError("ERROR: expecting at least some files to be xxx_sci.fits")
 
-   for x in (set(flavors) - set(['sci'])):
-       whttype = x
+   if len(set(flavors)) == 1:
+       whttype = 'No-one_will_ever_choose_this_flavor'   
+   else:
+       for x in (set(flavors) - set(['sci'])):
+           whttype = x
 
    number = len(set(fruits))
    scifiles = []
@@ -60,7 +65,10 @@ def Riffle(filenames,vb=False):
 
    if vb:
       print "Riffled files into",number,"pair(s)"
-      print "2 flavors of file found: sci and",whttype
+      if len(set(flavors)) == 1:     
+          print "Only 1 flavor of file found, sci"
+      else:
+          print "2 flavors of file found: sci and",whttype
       for i in range(number):
          print "   ",i+1,"th pair:",[scifiles[i],whtfiles[i]]
 
@@ -190,9 +198,20 @@ def Read_in_data(scifile,varfile,vb=False):
    hdulist.close()
    NX,NY = sci.shape
 
-   hdulist = pyfits.open(varfile)
-   var = hdulist[0].data
-   hdulist.close()
+   if (varfile is not None): 
+       hdulist = pyfits.open(varfile)
+       var = hdulist[0].data
+       hdulist.close()
+   else:
+   # Make a var image from the sci image...
+       background = np.median(sci)
+       diffimage = sci - background
+       variance = np.median(diffimage*diffimage)
+       var = diffimage + variance
+       # Ensure positivity:
+       var[var <= 0] = variance 
+
+   # Check image sizes...
    assert sci.shape == var.shape
 
    # Convert var to wht, and find median uncertainty as well:
@@ -213,9 +232,9 @@ def Read_in_data(scifile,varfile,vb=False):
 
    # Report on progress so far:
    if vb:
-      print 'Read in sci image:', sci.shape #, sci
+      print 'Science image:', sci.shape #, sci
       print 'Total flux:', total_flux
-      print 'Read in var image:', var.shape #, var
+      print 'Variance image:', var.shape #, var
 
    if total_flux != 0.0:
       # Very rough estimates of background level and rms, never used:
