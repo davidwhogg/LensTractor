@@ -391,19 +391,7 @@ def main():
            model+'_progress_initial',
            SURVEY=args.survey)
 
-       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-       # if not args.MCMC:
-# 
-#          lenstractor.Explore(by='sampling')
-# 
-#       else:
-#
-#           lenstractor.Explore(by='sampling')
-
-       # 
-
-       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
        # Do the fit - either by maximizing the posterior PDF ("optimizing")
        # or by exploring the posterior PDF ("MCMC").
