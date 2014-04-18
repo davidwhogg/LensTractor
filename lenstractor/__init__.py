@@ -5,4 +5,6 @@ from sdss import *
 from lens import *
 from dm import *
 from plotting import *
+from driver import *
+from model import *
 # from nebula import *
