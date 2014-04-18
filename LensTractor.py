@@ -181,7 +181,7 @@ def main():
    # Lens model only:
    parser.add_argument('-l', '--lens', dest='lens', action='store_true', default=False, help='Fit Lens model')
    # Nebula model only:
-   parser.add_argument('-n', '--nebula', dest='K', type=int, default=1, help='Fit NebulaK model, provide K')
+   parser.add_argument('-n', '--nebula', dest='K', type=int, default=0, help='Fit NebulaK model, provide K')
    # Output filename:
    parser.add_argument('-o', '--output', dest='outfile', type=str, default='lenstractor.cat', help='Output catalog filename')
    # Optimization workflow:
@@ -208,8 +208,7 @@ def main():
       models = ['Nebula'+str(args.K)]
       # NB. Global default is Nebula1!
    else:
-      models = ['Nebula1','Nebula2','Nebula3','Nebula4','Lens']
-      # NB. This option is not reachable!
+      models = ['Nebula2','Nebula4','Lens']
          
    BIC = dict(zip(models,np.zeros(len(models))))
 
@@ -267,7 +266,9 @@ def main():
        
        # Figure out what type of model this is:
        modeltype =  thismodel[0:6]
-       
+              
+       model = lenstractor.Model(thismodel)
+
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
               
        if modeltype == 'Nebula':
@@ -296,7 +297,7 @@ def main():
            galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)       
            nebulousgalaxy = tractor.sdss_galaxy.ExpGalaxy(galpos,mags.copy(),galshape)
            if vb: print nebulousgalaxy
-           srcs = [nebulousgalaxy]
+           model.srcs.append(nebulousgalaxy)
 
            for i in range(K):
                # Add a point source with random position near nebula centre:
@@ -304,11 +305,8 @@ def main():
                dx,dy = e*np.random.randn(2)
                star = tractor.PointSource(wcs.pixelToPosition(x+dx,y+dy),mags.copy())
                if vb: print star
-               srcs.append(star)
+               model.srcs.append(star)
            
-           # Package up:
-           model = lenstractor.Model(thismodel,srcs)
-
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        
        # Original Nebula4 initialisation went as follows:
@@ -365,16 +363,14 @@ def main():
            lensgalaxy = lenstractor.LensGalaxy(lenspos,md,galshape,thetaE,xshear)
            if vb: print lensgalaxy
 
-           srcs = [lenstractor.PointSourceLens(lensgalaxy, pointsource)]
+           model.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
 
-           # Package up:
-           model = lenstractor.Model(thismodel,srcs)
 
        #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
        
        if vb: 
            print "Initialization complete."
-           print "Model =",LT.model
+           print "Model =",model
            print " "
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

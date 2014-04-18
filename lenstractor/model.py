@@ -41,10 +41,13 @@ class Model():
     '''
 # ----------------------------------------------------------------------------
     
-    def __init__(self,name,srcs):
+    def __init__(self,name,srcs=None):
     
         self.name = name
-        self.srcs = srcs
+        
+        if srcs == None:
+            self.srcs = []
+            self.initialize()
         
         return None
 # ----------------------------------------------------------------------------
@@ -54,8 +57,15 @@ class Model():
 
 # ----------------------------------------------------------------------------
     
-    def initialize(self):
-        pass
+    def initialize(self,template=None):
+                
+        if template == None:
+            pass
+            
+        else:
+            
+            pass
+        
         return None
             
 # ============================================================================
