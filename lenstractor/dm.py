@@ -273,48 +273,6 @@ def Initial_PSF(FWHM,double=False):
    return tractor.GaussianMixturePSF(w,mu,cov)
 
 # ============================================================================
-# Write out parameters as simple ascii catalog.
-
-def write_catalog(outfile,model,parnames,imgnames,values):
-
-    # Open up a new file, over-writing any old one:
-    try: os.remove(outfile)
-    except OSError: pass
-    output = open(outfile,'w')
-
-    # Write header:
-    hdr = []
-    hdr.append('# LensTractor output parameter catalog')
-    # hdr.append('# ')
-    # hdr.append('# Date: %s' % datestring)
-    hdr.append('# ')
-    hdr.append('# Model: %s' % model)
-    hdr.append('# Notes:')
-    hdr.append('# * First source is always the galaxy, point sources follow')
-    for ii,imgname in enumerate(imgnames):
-        hdr.append('# * images.image%d = %s' % (ii,imgname))
-    hdr.append('# ')
-    # Last line contains the parameter names:
-    nameline = "#  "
-    for name in parnames:
-        nameline += name+"  "
-    hdr.append(nameline)
-    # Write to file:
-    for line in hdr:
-        output.write("%s\n" % line)    
-    # Close file:
-    output.close()
-    
-    np.savetxt('junk', values)
-    cat = subprocess.call("cat junk >> " + outfile, shell=True)
-    rm = subprocess.call("rm junk", shell=True)
-    if cat != 0 or rm != 0:
-      print "Error: write subprocesses failed in some way :-/"
-      sys.exit()
-    
-    return
-
-# ============================================================================
 if __name__ == '__main__':
 
     if True:

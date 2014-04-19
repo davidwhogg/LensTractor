@@ -54,7 +54,6 @@ from astrometry.util import util
 
 import tractor
 import lenstractor
-# import emcee
 
 # ============================================================================
 
@@ -214,7 +213,8 @@ def main():
 
    # Package up settings:
    opt_settings = {'Nr':args.Nr, 'Nc':args.Nc, 'Np':args.Np}
-   mcmc_settings = {}
+   # Magic sampling numbers!
+   mcmc_settings = {'nwp':8, 'ns':5, 'nss':10}
 
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
@@ -415,49 +415,24 @@ def main():
            print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
        
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-       
-       # Collect statistics about this model's fit:
-       
-       chisq = -2.0*LT.chug.getLogLikelihood()
-       LT.chug.thawParam('catalog')
-       for image in LT.chug.getImages():
-         image.thawParams('sky', 'psf')
-         if args.Np > 0:
-             image.thawParams('photocal', 'wcs')
-         else:
-             image.freezeParams('photocal', 'wcs')
-       
-       # OK, now get parameters and count them:
-       parnames = LT.chug.getParamNames()
-       values = np.array(np.outer(1,LT.chug.getParams()))
-       K = len(values[0,:])
-       
-       # Pull out image names:
-       imgnames = []
-       for image in LT.chug.getImages():
-           imgnames.append(image.name)
-       
-       # Compute BIC:
-       N = LT.chug.getNdata()
-       BIC[thismodel] = chisq + K*np.log(1.0*N)
-       print thismodel+" results: chisq, K, N, BIC =",chisq,K,N,BIC[thismodel]
+              
+       # Compute BIC for this fit:
+       BIC[thismodel] = LT.getBIC()
+       print thismodel+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[thismodel]
        
        # Write out simple one-line parameter catalog:
-       lenstractor.write_catalog(args.outfile,thismodel,parnames,imgnames,values)
+       LT.write_catalog(args.outfile)
        print thismodel+" parameter values written to: "+args.outfile
-
-       # NB. This line assumes we are optimizing! Fix this later if/when we
-       # switch to sampling...
 
    # -------------------------------------------------------------------------
    
-   # Make some decision about the nature of this system.
-   
-   #    if len(models) > 1:
-   #    # Compare models and report:
-   #        print "BIC = ",BIC
-   #        print "Hypothesis test result: Bayes factor in favour of nebula is exp[",-0.5*(BIC['nebula'] - BIC['lens']),"]"
-   #        print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
+   # # Make some decision about the nature of this system.
+   # 
+   # if len(models) > 1:
+   # # Compare models and report:
+   #     print "BIC = ",BIC
+   #     print "Hypothesis test result: Bayes factor in favour of nebula is exp[",-0.5*(BIC['Nebula'] - BIC['Lens']),"]"
+   #     print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
 
    # -------------------------------------------------------------------------
    
