@@ -227,7 +227,9 @@ class LensTractor():
 
         if self.vb: print "Initial size (in each dimension) of sample ball = ",psteps
 
-        pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
+#        pp = emcee.EnsembleSampler.sample_ball(p0, psteps, nw)
+        pp = emcee.utils.sample_ball(p0, psteps, nw)
+
         rstate = None
         lnp = None
 
