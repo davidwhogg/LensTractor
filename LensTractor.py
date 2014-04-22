@@ -214,7 +214,7 @@ def main():
    # Package up settings:
    opt_settings = {'Nr':args.Nr, 'Nc':args.Nc, 'Np':args.Np}
    # Magic sampling numbers!
-   mcmc_settings = {'nwp':8, 'ns':100, 'nss':50}
+   mcmc_settings = {'nwp':8, 'ns':50, 'nss':200}
 
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"

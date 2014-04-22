@@ -210,7 +210,7 @@ class LensTractor():
 
         # Start the walkers off near the initialisation point - 
         # We need it to be ~1 pixel in position, and not too much
-        # flux restrction... 
+        # flux restriction... 
 
         if self.model.name=='Lens':
            # The following gets us 0.2" in dec:
@@ -227,7 +227,7 @@ class LensTractor():
 
         if self.vb: print "Initial size (in each dimension) of sample ball = ",psteps
 
-#        pp = emcee.EnsembleSampler.sample_ball(p0, psteps, nw)
+#        pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
         pp = emcee.utils.sample_ball(p0, psteps, nw)
 
         rstate = None

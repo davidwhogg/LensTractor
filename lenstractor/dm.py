@@ -170,7 +170,13 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
              wcs = lenstractor.SDSSWCS(hdr)
       elif SURVEY=='KIDS':
          wcs = lenstractor.KIDSWCS(hdr)
-      if vb: print wcs
+      else:
+         try:
+             wcs = lenstractor.SDSSWCS(hdr)
+         except:
+             wcs = lenstractor.SDSSWCS(hdr)
+      # if vb:
+      #    print wcs
 
       # Make a tractor Image object out of all this stuff, and add it to the array:
       images.append(tractor.Image(data=sci, invvar=invvar, name=name,
