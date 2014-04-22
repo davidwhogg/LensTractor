@@ -37,6 +37,22 @@ def SDSSWCS(hdr):
       
       return tractor.FitsWcs(t)
 
+# (Adri's version)
+# def SDSSWCS(hdr):
+#      '''
+#      Return a WCS object initialised from a PS1 file header.
+#      WARNING: PC matrix not being used, determinant may be wrong sign...
+#      Need to check with literature image of H1413
+#      '''
+#      t = util.Tan()
+#      t.set_crpix(hdr['CRPIX1'], hdr['CRPIX2'])
+#      t.set_crval(hdr['CRVAL1'], hdr['CRVAL2'])
+#      t.set_cd(hdr['CD1_2'], 0., 0., hdr['CD2_2'])
+#      t.set_imagesize(hdr['NAXIS1'], hdr['NAXIS2'])
+#      
+#      return tractor.FitsWcs(t)
+#
+
 # ============================================================================
 
 def SDSS_IQ(hdr):
@@ -53,6 +69,20 @@ def SDSS_IQ(hdr):
    
    return FWHM
 
+# (Adri's version)
+# def PS1_IQ(hdr):
+#
+#   FWHM = hdr['HIERARCH CHIP.SEEING']
+#   if FWHM == 'NaN': 
+#      FWHM = 1.0 # arcsec
+#      # Need it in pixels:
+#      FWHM = FWHM/(3600.0*hdr['CDELT1'])
+#      if vb: print "PS1_IQ: WARNING: FWHM = NaN in header, setting to 1.0 arcsec =",FWHM,"pixels"
+#   
+#   
+#   return FWHM
+
+
 # ============================================================================
 
 def SDSS_photocal(hdr):
@@ -68,6 +98,16 @@ def SDSS_photocal(hdr):
    photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
 
    return band,photocal
+
+# (Adri's version)
+# def SDSS_photocal(hdr):
+#
+#   band = hdr['FILTER'][0]
+#   zpt = hdr['NMGY']
+#   zpt= 2.5*np.log10(zpt)
+#   photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
+#
+#   return band,photocal
 
 # ============================================================================
 # 
