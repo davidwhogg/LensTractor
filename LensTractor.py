@@ -1,40 +1,8 @@
 '''
 This file is part of the lenstractor project.
 Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
-
-Description
------------
-
-Run the Tractor on a deck of single object cutout images.
-Read in an image and its weight map, guess the PSF, put an object at the
-centre image of the field and then optimize the catalog and PSF.
-
-Example use
------------
-
-     python LensTractor.py -x \
-       -o examples/ps1/H1413+117_10x10arcsec_Nebula1.cat \
-          examples/ps1/H1413+117_10x10arcsec_55*fits > \
-          examples/ps1/H1413+117_10x10arcsec_Nebula1.log
-
-     python LensTractor.py -x \
-       -o examples/sdss/0951+2635/0951+2635_Nebula1.cat \
-          examples/sdss/0951+2635/*fits > \
-          examples/sdss/0951+2635/0951+2635_Nebula1.log
-
-Bugs
-----
- - Lens initialisation, esp source positions, needs careful attention
-
- - StepSizes need optimizing for lens model, esp source position
-     
- - Point source mags are not variable
- 
- - PSF not being optimized correctly - missing derivatives?
- - Header PSF FWHM sometimes NaN, no recovery from this yet
- - Memory leak: restrict no. of sampling iterations :-(
- - PhotoCal may need optimizing if zpts are untrustworthy!
 '''
+# ============================================================================
 
 if __name__ == '__main__':
    import matplotlib
@@ -156,10 +124,18 @@ def main():
      * astrometry.net  astrometry.net/svn/trunk/util
 
    BUGS
+     - Lens initialisation, esp source positions, needs careful attention
+     - StepSizes need optimizing for lens model, esp source position 
+     - Point source mags are not variable
+     - PSF not being optimized correctly - missing derivatives?
+     - Header PSF FWHM sometimes NaN, no recovery from this yet
+     - Memory leak: restrict no. of sampling iterations :-(
+     - PhotoCal may need optimizing if zpts are untrustworthy!
 
    HISTORY
      2012-07-06       First predicted Lens images Marshall/Hogg (Oxford/NYU)
      2013-08-         Adapted for KIDS Buddelmeier (Kapteyn)
+     2014-04-         Refactoring for easier experimentation Marshall/Agnello (KIPAC/UCSB)
    """
 
    # --------------------------------------------------------------------
