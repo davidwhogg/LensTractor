@@ -116,6 +116,7 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
             FWHM = lenstractor.SDSS_IQ(hdr)
          except:
             FWHM = 'NaN'
+
          if FWHM == 'NaN':
             print "Problem with initialising PSF for SDSS, using (1.4,0.4) default"
             FWHM = 1.4/0.4

@@ -64,10 +64,10 @@ def SDSS_IQ(hdr):
    FWHM = 1.4 # arcsec
    # Need it in pixels:
    determinant = hdr['CD1_1']*hdr['CD2_2'] - hdr['CD1_2']*hdr['CD2_1']
-   print determinant
    pixscale = np.sqrt(np.abs(determinant))
+   print pixscale
    pixscale *= 3600.0
-   print "pixel-scale = "+pixscale
+   print "pixel-scale = ",pixscale
    FWHM /= pixscale
     
    return FWHM
