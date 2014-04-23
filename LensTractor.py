@@ -214,7 +214,7 @@ def main():
    # Package up settings:
    opt_settings = {'Nr':args.Nr, 'Nc':args.Nc, 'Np':args.Np}
    # Magic sampling numbers!
-   mcmc_settings = {'nwp':8, 'ns':1, 'nss':100}
+   mcmc_settings = {'nwp':8, 'ns':10, 'nss':10}
 
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
@@ -327,7 +327,7 @@ def main():
            # Source to be lensed:
            xs,ys = 0.5*NX, 0.5*NY
            # Tiny random offset (pixels):
-           e = 0.5
+           e = 0.1
            dx,dy = e*np.random.randn(2)
            xs,ys = xs+dx,ys+dy
            unlensedmagnitudes = magnitudes + 2.5*np.log10(40.0)
@@ -340,7 +340,9 @@ def main():
            if vb: print pointsource
 
            # Lens mass:
-           thetaE = lenstractor.EinsteinRadius(0.75) # arcsec
+#           thetaE = lenstractor.EinsteinRadius(0.75) # arcsec
+           thetaE = lenstractor.EinsteinRadius(0.2) # arcsec
+
            if vb: print thetaE
            gamma = 0.2 # to make quad
            phi   = 0.0 # deg

@@ -220,7 +220,7 @@ class LensTractor():
         else:
            # Good first guess should be some fraction of the optimization step sizes:
 #           psteps = 0.2*np.array(self.chug.getStepSizes())
-           psteps = 10.5*np.array(self.chug.getStepSizes())
+           psteps = 0.05*np.array(self.chug.getStepSizes())
 
         # BUG - nebula+lens workflow not yet enabled!
         # psteps should really be a property of the model...
