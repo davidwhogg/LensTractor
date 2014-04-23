@@ -65,25 +65,73 @@ def SDSS_IQ(hdr):
    # Need it in pixels:
    pixscale = np.sqrt(hdr['CD1_1']*hdr['CD2_2'] - hdr['CD1_2']*hdr['CD2_1'])
    pixscale *= 3600.0
+   print "pixel-scale = "+pixscale
    FWHM /= pixscale
    
-   return FWHM
+#   return FWHM
 
 # (Adri's version)
 # def PS1_IQ(hdr):
 #
-#   FWHM = hdr['HIERARCH CHIP.SEEING']
+#   try:
+#      FWHM = hdr['HIERARCH CHIP.SEEING']
+#   except:
+#      FWHM = 'NaN'
 #   if FWHM == 'NaN': 
 #      FWHM = 1.0 # arcsec
 #      # Need it in pixels:
 #      FWHM = FWHM/(3600.0*hdr['CDELT1'])
 #      if vb: print "PS1_IQ: WARNING: FWHM = NaN in header, setting to 1.0 arcsec =",FWHM,"pixels"
-#   
-#   
-#   return FWHM
+   
+   
+   return FWHM
 
 
 # ============================================================================
+
+class SDSSMagsPhotoCal(tractor.BaseParams):
+      '''
+      A photocal for a Mags brightness object.
+      '''
+      def __init__(self, zpt, bandname):
+            self.bandname = bandname
+            self.zpt = zpt
+
+      def __str__(self):
+            return (self.getName()+': '+self.bandname+' band, zpt='+str(self.getParams()))
+      
+      @staticmethod
+      def getName():
+            return 'SDSSMagsPhotoCal'
+      def getParams(self):
+            return [self.zpt]
+      def getStepSizes(self):
+            return [0.01]
+      def setParam(self, i, p):
+            assert(i == 0)
+            self.zpt = p
+      def getParamNames(self):
+            return ['zpt']
+      def hashkey(self):
+            return (self.getName(), self.bandname, self.zpt)
+
+      def brightnessToCounts(self, brightness):
+            mag = brightness.getMag(self.bandname)
+            if not np.isfinite(mag):
+                  return 0.
+            # MAGIC
+            if mag > 50.:
+                  return 0.
+            # Assume zeropoint is the whole story:
+            return 10.**(0.4 * (self.zpt - mag))
+
+      def countsToMag(self, counts):
+            # Returns cheap scalar magnitude
+            if counts <= 0.0:
+                  return 99.0
+            # Assume zeropoint is the whole story:
+            return self.zpt - 2.5*np.log10(counts)
+
 
 def SDSS_photocal(hdr):
    """
@@ -104,10 +152,10 @@ def SDSS_photocal(hdr):
 #
 #   band = hdr['FILTER'][0]
 #   zpt = hdr['NMGY']
-#   zpt= 2.5*np.log10(zpt)
+#   zpt= -2.5*np.log10(zpt*3.631*10**(-6))
 #   photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
-#
-#   return band,photocal
+#   photocal = lenstractor.SDSSMagsPhotoCal(zpt,band)
+   return band,photocal
 
 # ============================================================================
 # 

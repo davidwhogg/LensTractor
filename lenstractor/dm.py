@@ -112,7 +112,13 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       elif SURVEY=='KIDS':
          FWHM = lenstractor.KIDS_IQ(hdr)
       elif SURVEY=='SDSS':
-         FWHM = lenstractor.SDSS_IQ(hdr)
+         try:
+            FWHM = lenstractor.SDSS_IQ(hdr)
+         except:
+            FWHM = 'NaN'
+         if FWHM == 'NaN':
+            print "Problem with initialising PSF for SDSS, using (1.4,0.4) default"
+            FWHM = 1.4/0.4
       else:
          raise ValueError('Unrecognised survey name '+SURVEY)
       if vb: print "  PSF FWHM =",FWHM,"pixels"
