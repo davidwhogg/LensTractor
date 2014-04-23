@@ -177,7 +177,7 @@ def main():
    parser.add_argument('--optimization-rounds', dest='Nr', type=int, default=3, help='No. of optimization rounds')
    parser.add_argument('--optimization-steps-catalog', dest='Nc', type=int, default=5, help='No. of optimization steps spent on source catalog')
    parser.add_argument('--optimization-steps-psf', dest='Np', type=int, default=0, help='No. of optimization steps spent on PSFs')
-   parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey, either PS1 or KIDS")
+   parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey (SDSS, PS1 or KIDS)")
 
    # Read in options and arguments - note only sci and wht images are supplied:
    args = parser.parse_args()
@@ -204,7 +204,7 @@ def main():
    # Package up settings:
    opt_settings = {'Nr':args.Nr, 'Nc':args.Nc, 'Np':args.Np}
    # Magic sampling numbers!
-   mcmc_settings = {'nwp':8, 'ns':5, 'nss':10}
+   mcmc_settings = {'nwp':8, 'ns':10, 'nss':10}
 
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
@@ -321,7 +321,7 @@ def main():
            # Source to be lensed:
            xs,ys = 0.5*NX, 0.5*NY
            # Tiny random offset (pixels):
-           e = 0.5
+           e = 0.1
            dx,dy = e*np.random.randn(2)
            xs,ys = xs+dx,ys+dy
            unlensedmagnitudes = magnitudes + 2.5*np.log10(40.0)
@@ -334,7 +334,9 @@ def main():
            if vb: print pointsource
 
            # Lens mass:
-           thetaE = lenstractor.EinsteinRadius(0.75) # arcsec
+#           thetaE = lenstractor.EinsteinRadius(0.75) # arcsec
+           thetaE = lenstractor.EinsteinRadius(0.2) # arcsec
+
            if vb: print thetaE
            gamma = 0.2 # to make quad
            phi   = 0.0 # deg

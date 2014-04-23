@@ -37,6 +37,22 @@ def SDSSWCS(hdr):
       
       return tractor.FitsWcs(t)
 
+# (Adri's version)
+# def SDSSWCS(hdr):
+#      '''
+#      Return a WCS object initialised from a PS1 file header.
+#      WARNING: PC matrix not being used, determinant may be wrong sign...
+#      Need to check with literature image of H1413
+#      '''
+#      t = util.Tan()
+#      t.set_crpix(hdr['CRPIX1'], hdr['CRPIX2'])
+#      t.set_crval(hdr['CRVAL1'], hdr['CRVAL2'])
+#      t.set_cd(hdr['CD1_2'], 0., 0., hdr['CD2_2'])
+#      t.set_imagesize(hdr['NAXIS1'], hdr['NAXIS2'])
+#      
+#      return tractor.FitsWcs(t)
+#
+
 # ============================================================================
 
 def SDSS_IQ(hdr):
@@ -49,11 +65,73 @@ def SDSS_IQ(hdr):
    # Need it in pixels:
    pixscale = np.sqrt(hdr['CD1_1']*hdr['CD2_2'] - hdr['CD1_2']*hdr['CD2_1'])
    pixscale *= 3600.0
+   print "pixel-scale = "+pixscale
    FWHM /= pixscale
+   
+#   return FWHM
+
+# (Adri's version)
+# def PS1_IQ(hdr):
+#
+#   try:
+#      FWHM = hdr['HIERARCH CHIP.SEEING']
+#   except:
+#      FWHM = 'NaN'
+#   if FWHM == 'NaN': 
+#      FWHM = 1.0 # arcsec
+#      # Need it in pixels:
+#      FWHM = FWHM/(3600.0*hdr['CDELT1'])
+#      if vb: print "PS1_IQ: WARNING: FWHM = NaN in header, setting to 1.0 arcsec =",FWHM,"pixels"
+   
    
    return FWHM
 
+
 # ============================================================================
+
+class SDSSMagsPhotoCal(tractor.BaseParams):
+      '''
+      A photocal for a Mags brightness object.
+      '''
+      def __init__(self, zpt, bandname):
+            self.bandname = bandname
+            self.zpt = zpt
+
+      def __str__(self):
+            return (self.getName()+': '+self.bandname+' band, zpt='+str(self.getParams()))
+      
+      @staticmethod
+      def getName():
+            return 'SDSSMagsPhotoCal'
+      def getParams(self):
+            return [self.zpt]
+      def getStepSizes(self):
+            return [0.01]
+      def setParam(self, i, p):
+            assert(i == 0)
+            self.zpt = p
+      def getParamNames(self):
+            return ['zpt']
+      def hashkey(self):
+            return (self.getName(), self.bandname, self.zpt)
+
+      def brightnessToCounts(self, brightness):
+            mag = brightness.getMag(self.bandname)
+            if not np.isfinite(mag):
+                  return 0.
+            # MAGIC
+            if mag > 50.:
+                  return 0.
+            # Assume zeropoint is the whole story:
+            return 10.**(0.4 * (self.zpt - mag))
+
+      def countsToMag(self, counts):
+            # Returns cheap scalar magnitude
+            if counts <= 0.0:
+                  return 99.0
+            # Assume zeropoint is the whole story:
+            return self.zpt - 2.5*np.log10(counts)
+
 
 def SDSS_photocal(hdr):
    """
@@ -67,6 +145,16 @@ def SDSS_photocal(hdr):
    
    photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
 
+   return band,photocal
+
+# (Adri's version)
+# def SDSS_photocal(hdr):
+#
+#   band = hdr['FILTER'][0]
+#   zpt = hdr['NMGY']
+#   zpt= -2.5*np.log10(zpt*3.631*10**(-6))
+#   photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
+#   photocal = lenstractor.SDSSMagsPhotoCal(zpt,band)
    return band,photocal
 
 # ============================================================================

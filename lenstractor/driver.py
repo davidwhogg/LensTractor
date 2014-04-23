@@ -210,7 +210,7 @@ class LensTractor():
 
         # Start the walkers off near the initialisation point - 
         # We need it to be ~1 pixel in position, and not too much
-        # flux restrction... 
+        # flux restriction... 
 
         if self.model.name=='Lens':
            # The following gets us 0.2" in dec:
@@ -219,7 +219,8 @@ class LensTractor():
 
         else:
            # Good first guess should be some fraction of the optimization step sizes:
-           psteps = 0.2*np.array(self.chug.getStepSizes())
+#           psteps = 0.2*np.array(self.chug.getStepSizes())
+           psteps = 0.05*np.array(self.chug.getStepSizes())
 
         # BUG - nebula+lens workflow not yet enabled!
         # psteps should really be a property of the model...
@@ -227,7 +228,9 @@ class LensTractor():
 
         if self.vb: print "Initial size (in each dimension) of sample ball = ",psteps
 
-        pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
+#        pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
+        pp = emcee.utils.sample_ball(p0, psteps, nw)
+
         rstate = None
         lnp = None
 
