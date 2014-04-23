@@ -240,7 +240,11 @@ def Read_in_data(scifile,varfile,vb=False):
    assert(all(np.isfinite(invvar.ravel())))
 
    # Measure total flux in sci image:
-   total_flux = np.sum(sci)
+#   total_flux = np.sum(sci)
+#   background-subtracted
+   background = np.median(sci)
+   diffimage = sci - background
+   total_flux = np.sum(diffimage)
 
    # Report on progress so far:
    if vb:

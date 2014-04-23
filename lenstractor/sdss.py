@@ -63,27 +63,13 @@ def SDSS_IQ(hdr):
    
    FWHM = 1.4 # arcsec
    # Need it in pixels:
-   pixscale = np.sqrt(hdr['CD1_1']*hdr['CD2_2'] - hdr['CD1_2']*hdr['CD2_1'])
+   determinant = hdr['CD1_1']*hdr['CD2_2'] - hdr['CD1_2']*hdr['CD2_1']
+   print determinant
+   pixscale = np.sqrt(np.abs(determinant))
    pixscale *= 3600.0
    print "pixel-scale = "+pixscale
    FWHM /= pixscale
-   
-#   return FWHM
-
-# (Adri's version)
-# def PS1_IQ(hdr):
-#
-#   try:
-#      FWHM = hdr['HIERARCH CHIP.SEEING']
-#   except:
-#      FWHM = 'NaN'
-#   if FWHM == 'NaN': 
-#      FWHM = 1.0 # arcsec
-#      # Need it in pixels:
-#      FWHM = FWHM/(3600.0*hdr['CDELT1'])
-#      if vb: print "PS1_IQ: WARNING: FWHM = NaN in header, setting to 1.0 arcsec =",FWHM,"pixels"
-   
-   
+    
    return FWHM
 
 
@@ -143,7 +129,7 @@ def SDSS_photocal(hdr):
    band = hdr['FILTER'][0]
    zpt= 22.5
    
-   photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
+   photocal = lenstractor.SDSSMagsPhotoCal(zpt,band)
 
    return band,photocal
 
@@ -153,9 +139,8 @@ def SDSS_photocal(hdr):
 #   band = hdr['FILTER'][0]
 #   zpt = hdr['NMGY']
 #   zpt= -2.5*np.log10(zpt*3.631*10**(-6))
-#   photocal = lenstractor.PS1MagsPhotoCal(zpt,band)
 #   photocal = lenstractor.SDSSMagsPhotoCal(zpt,band)
-   return band,photocal
+#   return band,photocal
 
 # ============================================================================
 # 

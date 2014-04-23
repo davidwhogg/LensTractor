@@ -214,7 +214,7 @@ def main():
    # Package up settings:
    opt_settings = {'Nr':args.Nr, 'Nc':args.Nc, 'Np':args.Np}
    # Magic sampling numbers!
-   mcmc_settings = {'nwp':8, 'ns':10, 'nss':10}
+   mcmc_settings = {'nwp':20, 'ns':20, 'nss':100}
 
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
@@ -301,7 +301,8 @@ def main():
 
            for i in range(K):
                # Add a point source with random position near nebula centre:
-               e = 2.0 # pixels
+#               e = 2.0 # pixels
+               e = 1.0 # pixels
                dx,dy = e*np.random.randn(2)
                star = tractor.PointSource(wcs.pixelToPosition(x+dx,y+dy),mags.copy())
                if vb: print star
@@ -327,7 +328,7 @@ def main():
            # Source to be lensed:
            xs,ys = 0.5*NX, 0.5*NY
            # Tiny random offset (pixels):
-           e = 0.1
+           e = 0.0
            dx,dy = e*np.random.randn(2)
            xs,ys = xs+dx,ys+dy
            unlensedmagnitudes = magnitudes + 2.5*np.log10(40.0)
