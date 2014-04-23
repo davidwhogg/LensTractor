@@ -1,40 +1,8 @@
 '''
 This file is part of the lenstractor project.
 Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
-
-Description
------------
-
-Run the Tractor on a deck of single object cutout images.
-Read in an image and its weight map, guess the PSF, put an object at the
-centre image of the field and then optimize the catalog and PSF.
-
-Example use
------------
-
-     python LensTractor.py -x \
-       -o examples/ps1/H1413+117_10x10arcsec_Nebula1.cat \
-          examples/ps1/H1413+117_10x10arcsec_55*fits > \
-          examples/ps1/H1413+117_10x10arcsec_Nebula1.log
-
-     python LensTractor.py -x \
-       -o examples/sdss/0951+2635/0951+2635_Nebula1.cat \
-          examples/sdss/0951+2635/*fits > \
-          examples/sdss/0951+2635/0951+2635_Nebula1.log
-
-Bugs
-----
- - Lens initialisation, esp source positions, needs careful attention
-
- - StepSizes need optimizing for lens model, esp source position
-     
- - Point source mags are not variable
- 
- - PSF not being optimized correctly - missing derivatives?
- - Header PSF FWHM sometimes NaN, no recovery from this yet
- - Memory leak: restrict no. of sampling iterations :-(
- - PhotoCal may need optimizing if zpts are untrustworthy!
 '''
+# ============================================================================
 
 if __name__ == '__main__':
    import matplotlib
@@ -71,14 +39,14 @@ def main():
      The idea is to identify good lens candidates by principled model 
      selection: two well-defined models competing against each other, given 
      multi-epoch imaging data. The Nebula model (1 extended source, plus
-     N=2,3 or 4 point sources, with sub-models denoted by "NebulaN") is very
+     N=2, 3 or 4 point sources, with sub-models denoted by "NebulaN") is very
      flexible, so should be better at fitting the data in general than the
      Lens model (1 extended source, plus 1 background point source). However,
      when the Lens provides a good fit, it does so at lower cost (fewer
      parameters), so should win by Bayesian information criteria (we use BIC
      as a cheap proxy for evidence ratio).
      
-     The workflow we probably want to aim for is as follows:
+     The workflow we probably want to aim for is something like the following:
      
        * Fit PSF images with PSF models; fix PSFs
        
@@ -90,7 +58,7 @@ def main():
            else:
              Nebula = Nebula4
                       
-       * Try Lens (inititialised with Nebula)
+       * Try Lens (initialised with Nebula)
            if Lens beats Nebula: 
              Classification = 'Lens'
              Return YES
@@ -99,7 +67,9 @@ def main():
              Return NO
 
       Initialisation of Lens via Nebula could be tricky - there is some 
-      parsing to be done, and decisions to be made...
+      parsing to be done, and decisions to be made... In practice we may end
+      up working just with the Nebula output, which should be at least 
+      easier to interpret than a SExtractor catalog, for example.
       
       Open questions:
       
@@ -146,9 +116,17 @@ def main():
 
    EXAMPLES
 
-     python LensTractor.py -x -o examples/ps1/H1413+117_10x10arcsec_Nebula1.cat \
-       examples/ps1/H1413+117_10x10arcsec_55*fits > \
-       examples/ps1/H1413+117_10x10arcsec_Nebula1.log
+     python LensTractor.py -n 4 \
+       -o examples/ps1/H1413+117_10x10arcsec_Nebula4.cat \
+          examples/ps1/H1413+117_10x10arcsec_55*fits > \
+          examples/ps1/H1413+117_10x10arcsec_Nebula4.log
+       
+     python LensTractor.py -n 2 \
+       -o examples/sdss/0951+2635/0951+2635_Nebula2.cat \
+          examples/sdss/0951+2635/*sci.fits > \
+          examples/sdss/0951+2635/0951+2635_Nebula2.log
+
+       
    
    DEPENDENCIES
      * The Tractor     astrometry.net/svn/trunk/projects/tractor
@@ -156,10 +134,22 @@ def main():
      * astrometry.net  astrometry.net/svn/trunk/util
 
    BUGS
+     - SDSS examples show bad WCS treatment...
+     - Possible problems with image alignment
+     - Memory leak: restrict no. of sampling iterations :-(
+     - Header PSF FWHM sometimes NaN, no recovery from this yet
+     
+   FEATURE REQUESTS  
+     - Lens initialisation, esp source positions, needs careful attention
+     - StepSizes need optimizing for lens model, esp source position 
+     - Point source mags are not variable
+     - PSF not being optimized correctly - missing derivatives?
+     - PhotoCal may need optimizing if zpts are untrustworthy!
 
    HISTORY
      2012-07-06       First predicted Lens images Marshall/Hogg (Oxford/NYU)
      2013-08-         Adapted for KIDS Buddelmeier (Kapteyn)
+     2014-04-         Refactoring for easier experimentation Marshall/Agnello (KIPAC/UCSB)
    """
 
    # --------------------------------------------------------------------
@@ -238,7 +228,7 @@ def main():
    
    # Get rough idea of object position from wcs of first image- works
    # well if all images are the same size and well registered!
-   wcs = images[0].wcs
+   wcs = images[0].wcs # HACK! Need to consider different WCS in different images...
    NX,NY = np.shape(images[0].data)
    if vb: print "Generic initial position ",NX,NY,"(pixels)"
    
@@ -304,6 +294,12 @@ def main():
 #               e = 2.0 # pixels
                e = 1.0 # pixels
                dx,dy = e*np.random.randn(2)
+               # dx,dy = 2.0*np.random.randn(2)
+               # Start in cross formation (for testing):
+               if i == 0: dx,dy = -3,0
+               if i == 1: dx,dy =  0,3
+               if i == 2: dx,dy =  3,0
+               if i == 3: dx,dy =  0,-3
                star = tractor.PointSource(wcs.pixelToPosition(x+dx,y+dy),mags.copy())
                if vb: print star
                model.srcs.append(star)
