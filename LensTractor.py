@@ -271,15 +271,26 @@ def main():
            # The first Nebula model we run has 1 point source and one 
            # galaxy, initialised sensibly but randomly. 
            # All subsequent models just have extra random point sources.
+#           Central pixel coordinates, the galaxy and point sources
+#           will be distributed around there:
+           x,y = 0.5*NX,0.5*NY
 
            # Start both sources off with equal magnitudes:
-           x,y = 0.5*NX,0.5*NY
-           fudge = 2
+           fudge = 0.4
            equalmagnitudes = magnitudes + 2.5*np.log10(5*fudge)
            mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,equalmagnitudes)))
 
            # Add an exponential galaxy:
-           galpos = wcs.pixelToPosition(x,y)
+#           Shake its center a little bit
+           e = 2.0 # pixels
+           dx,dy = e*np.random.randn(2)
+#           xg,yg = x+dx, y+dy
+           xg,yg = x,y
+
+           galpos = wcs.pixelToPosition(xg,yg)
+
+           fudge = 2
+           equalmagnitudes = magnitudes + 2.5*np.log10(5*fudge)
            mg = tractor.Mags(order=bandnames, **dict(zip(bandnames,equalmagnitudes)))
            re = 0.5    # arcsec
            q = 1.0     # axis ratio
@@ -296,10 +307,10 @@ def main():
                dx,dy = e*np.random.randn(2)
                # dx,dy = 2.0*np.random.randn(2)
                # Start in cross formation (for testing):
-               if i == 0: dx,dy = -3,0
-               if i == 1: dx,dy =  0,3
-               if i == 2: dx,dy =  3,0
-               if i == 3: dx,dy =  0,-3
+#               if i == 0: dx,dy = -3,0
+#               if i == 1: dx,dy =  0,3
+#               if i == 2: dx,dy =  3,0
+#               if i == 3: dx,dy =  0,-3
                star = tractor.PointSource(wcs.pixelToPosition(x+dx,y+dy),mags.copy())
                if vb: print star
                model.srcs.append(star)
@@ -342,7 +353,8 @@ def main():
 
            if vb: print thetaE
            gamma = 0.2 # to make quad
-           phi   = 0.0 # deg
+#           phi   = 0.0 # deg
+           phi   = 45.0 # deg
            xshear = lenstractor.ExternalShear(gamma,phi)
            if vb: print xshear
 
@@ -355,7 +367,8 @@ def main():
            if vb: print md
            re = 0.5  # arcsec
            q = 0.8   # axis ratio
-           theta = 90.0 # degrees
+#           theta = 90.0 # degrees
+           theta = -45.0 # degrees
            galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
            if vb: print galshape
 

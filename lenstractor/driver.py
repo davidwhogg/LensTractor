@@ -68,7 +68,7 @@ class LensTractor():
         for image in self.chug.getImages():
            image.thawParams('sky')
            image.freezeParams('photocal')
-           image.freezeParams('wcs')
+#           image.freezeParams('wcs')
            image.freezeParams('psf')
            
         return None
