@@ -204,7 +204,7 @@ def main():
    # Package up settings:
    opt_settings = {'Nr':args.Nr, 'Nc':args.Nc, 'Np':args.Np}
    # Magic sampling numbers!
-   mcmc_settings = {'nwp':20, 'ns':20, 'nss':100}
+   mcmc_settings = {'nwp':20, 'ns':5, 'nss':1000}
 
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
@@ -283,7 +283,7 @@ def main():
            # Add an exponential galaxy:
 #           Shake its center a little bit
            e = 2.0 # pixels
-           dx,dy = e*np.random.randn(2)
+#           dx,dy = e*np.random.randn(2)
 #           xg,yg = x+dx, y+dy
            xg,yg = x,y
 
@@ -335,7 +335,7 @@ def main():
            # Source to be lensed:
            xs,ys = 0.5*NX, 0.5*NY
            # Tiny random offset (pixels):
-           e = 0.0
+           e = 0.02
            dx,dy = e*np.random.randn(2)
            xs,ys = xs+dx,ys+dy
            unlensedmagnitudes = magnitudes + 2.5*np.log10(40.0)
@@ -352,9 +352,10 @@ def main():
            thetaE = lenstractor.EinsteinRadius(0.2) # arcsec
 
            if vb: print thetaE
-           gamma = 0.2 # to make quad
+#           gamma = 0.2 # to make quad
+           gamma = 0.1 
 #           phi   = 0.0 # deg
-           phi   = 45.0 # deg
+           phi   = -45.0 # deg
            xshear = lenstractor.ExternalShear(gamma,phi)
            if vb: print xshear
 
@@ -365,10 +366,10 @@ def main():
            lensmagnitudes = magnitudes + 2.5*np.log10(10.0)
            md = tractor.Mags(order=bandnames, **dict(zip(bandnames,lensmagnitudes)))
            if vb: print md
-           re = 0.5  # arcsec
+           re = 0.1  # arcsec
            q = 0.8   # axis ratio
 #           theta = 90.0 # degrees
-           theta = -45.0 # degrees
+           theta = -45 # degrees
            galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
            if vb: print galshape
 

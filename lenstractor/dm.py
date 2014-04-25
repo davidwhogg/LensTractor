@@ -219,15 +219,30 @@ def Read_in_data(scifile,varfile,vb=False):
    # Make a var image from the sci image...
        background = np.median(sci)
        diffimage = sci - background
-       variance = np.median(diffimage*diffimage)
-       var = diffimage + variance
+   # Get the flux-to-count conversion factor from header, at least in SDSS:
+       try:
+          tmpsurvey = hdr['ORIGIN']
+          if (tmpsurvey == 'SDSS'):
+             tempmtoc = hdr['NMGY']
+          else:
+             tempmtoc = 1.
+       except:
+          tempmtoc = 1.
+          
+       background, diffimage = background/tempmtoc, diffimage/tempmtoc # units: counts
+       variance = np.median(diffimage*diffimage) # sky count variance
+       var = diffimage + variance # variance in the whole image number-counts
+       # Go again in fluxes
+       var = (tempmtoc**2)*var
+
        # Ensure positivity:
-       var[var <= 0] = variance 
+       var[var <= 0] = variance*(tempmtoc**2)
 
    # Check image sizes...
    assert sci.shape == var.shape
 
-   # Convert var to wht, and find median uncertainty as well:
+# Convert var to wht, and find median uncertainty as well:
+# Regardless of maggy-count conversion, start again here:
    invvar = 1.0/var
    # Assign zero weight to var=nan, var<=0:
    invvar[var != var] = 0.0
