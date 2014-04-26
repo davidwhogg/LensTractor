@@ -22,6 +22,19 @@ import lenstractor
 import emcee
 emcee_defaults = {}
 
+import pylab as plt
+
+# Global variables:
+px,py = 2,2
+figprops = dict(figsize=(5*px,5*py), dpi=128)
+adjustprops = dict(\
+   left=0.05,\
+   bottom=0.05,\
+   right=0.95,\
+   top=0.95,\
+   wspace=0.1,\
+   hspace=0.1)
+
 # ============================================================================
 
 class LensTractor():
@@ -131,10 +144,8 @@ class LensTractor():
                    # Although this only leaves *this* loop...
                    break
                k += 1
-            if not self.noplots: lenstractor.Plot_state(
-                self.chug,
-                self.model.name+'_progress_optimizing_step-%02d_catalog'%k,
-                SURVEY=self.survey)
+            if not self.noplots: 
+                self.plot_state(self.model.name+'_progress_optimizing_step-%02d_catalog'%k)
 
 #             if Nsteps_optimizing_PSFs > 0:
 #                 # Freeze the sources and sky and thaw the psfs:
@@ -157,10 +168,8 @@ class LensTractor():
 #                    if self.vb: print "Fitting PSF: at step",k,"parameter values are:",self.chug.getParams()
 #                    k += 1
 #                 if self.vb: print "Fitting PSF: After optimizing, zeroth PSF = ",self.chug.getImage(0).psf
-#                 if not self.noplots: lenstractor.Plot_state(
-#                     self.chug,
-#                     self.model.name+'_progress_optimizing_step-%02d_catalog'%k,
-#                     SURVEY=self.survey)
+#                 if not self.noplots: self.plot_state(
+#                     self.model.name+'_progress_optimizing_step-%02d_catalog'%k)
 # 
 #                 # BUG: PSF not being optimized correctly - missing derivatives?
 
@@ -174,10 +183,7 @@ class LensTractor():
         if self.vb: print "Optimizer: chisq at highest lnprob point: ",self.minchisq
 
         # All rounds done! Plot state:
-        lenstractor.Plot_state(
-            self.chug,
-            self.model.name+'_progress_optimizing_zcomplete',
-            SURVEY=self.survey)
+        self.plot_state(self.model.name+'_progress_optimizing_zcomplete')
 
 
         return None
@@ -261,19 +267,13 @@ class LensTractor():
               if self.vb: print "Emcee: chisq at highest lnprob point: ",self.minchisq
               if not self.noplots: 
                  self.chug.setParams(self.bestpars)
-                 lenstractor.Plot_state(
-                     self.chug,
-                     self.model.name+'_progress_sampling_snapshot-%02d'%snapshot,
-                     SURVEY=self.survey)
+                 self.plot_state(self.model.name+'_progress_sampling_snapshot-%02d'%snapshot)
 
 
         if self.vb: print 'Emcee: total run time', t_mcmc, 'sec'
 
         # Make the final plot:
-        lenstractor.Plot_state(
-            self.chug,
-            self.model.name+'_progress_sampling_zcomplete',
-            SURVEY=self.survey)
+        self.plot_state(self.model.name+'_progress_sampling_zcomplete')
 
         return None
 # ----------------------------------------------------------------------------
@@ -338,6 +338,90 @@ class LensTractor():
         return
 
            
+# ============================================================================
+# All progress plots.
+
+    def plot_state(self,suffix):
+       '''
+       Make all the plots we need to assess the state of the LensTractor. 
+       Mainly, a multi-panel figure of image, synthetic image and chi, for 
+       each image being modelled.
+
+       self.chug is a Tractor object, containing a list of images.
+       '''
+
+       for i,image in enumerate(self.chug.images):
+
+          if image.name is None:
+             imname = suffix+str(i)
+          else:
+             imname = image.name
+
+          chi = self.chug.getChiImage(i)
+
+          if self.survey == 'PS1':
+              ima, chia, psfa = lenstractor.PS1_imshow_settings(image,chi)
+          elif self.survey == 'KIDS':
+              ima, chia, psfa = lenstractor.KIDS_imshow_settings(image,chi)
+          else:
+              # Do the same as for PS1
+              scale = np.sqrt(np.median(1.0/image.invvar[image.invvar > 0.0]))
+              ima = dict(interpolation='nearest', origin='lower',
+                         vmin=-100.*scale, vmax=3.*scale)
+
+              chia = dict(interpolation='nearest', origin='lower',
+                          vmin=-5., vmax=5.)
+
+              psfa = dict(interpolation='nearest', origin='lower')
+
+          fig = plt.figure(**figprops)
+          fig.subplots_adjust(**adjustprops)
+          plt.clf()
+          plt.gray()
+
+          plt.subplot(py,px,1)
+          plt.imshow(-image.data, **ima)
+          self.tidyup_plot()
+          plt.title('Observed image')
+
+          model = self.chug.getModelImages()[i]
+          # print "LensTractor.plot_state: minmax of model = ",np.min(model),np.max(model)
+          plt.subplot(py,px,2)
+          plt.imshow(-model, **ima)
+          self.tidyup_plot()
+          plt.title('Predicted image')
+
+          plt.subplot(py,px,3)
+          plt.imshow(-chi, **chia)
+          self.tidyup_plot()
+          if self.survey == 'KIDS':
+              # It is not clear why the residual image is not in units of
+              # sigma. Perhaps this causes problems in the modelling.
+              # This code is not refactored into kids.py since it should
+              # not be necessary in the first place.
+              plt.title('Residuals (flexible scale)')
+          else:
+              plt.title('Residuals ($\pm 5\sigma$)')
+
+          psfimage = image.psf.getPointSourcePatch(*model.shape).patch
+          plt.subplot(py,px,4)
+          plt.imshow(-psfimage, **psfa)
+          self.tidyup_plot()
+          plt.title('PSF')
+
+          plt.savefig(imname+'_'+suffix+'.png')   
+
+       return
+
+    # ----------------------------------------------------------------------------
+    # Turn off the axis ticks and labels:
+
+    def tidyup_plot(self):
+       ax = plt.gca()
+       ax.xaxis.set_ticks([])
+       ax.yaxis.set_ticks([])
+       return
+
 # ============================================================================
 
 if __name__ == '__main__':

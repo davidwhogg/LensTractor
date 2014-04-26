@@ -405,10 +405,7 @@ def main():
        LT = lenstractor.LensTractor(dataset,model,args.survey,vb=vb,noplots=args.noplots)
 
        # Plot initial state:
-       lenstractor.Plot_state(
-           LT.chug,
-           LT.model.name+'_progress_initial',
-           SURVEY=args.survey)
+       LT.plot_state(LT.model.name+'_progress_initial')
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
