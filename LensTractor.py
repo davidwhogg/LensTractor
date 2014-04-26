@@ -252,7 +252,7 @@ def main():
       
    # -------------------------------------------------------------------------
    
-   # Loop over models, initialising and fitting:
+   # Step through all the models in the workflow, initialising and fitting:
       
    for modelname in modelnames: 
       

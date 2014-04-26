@@ -66,11 +66,11 @@ class Model():
                 
         if template == 'from_scratch':
                         
+            print "Initializing",self.name,"model from scratch..."
+           
             assert position is not None
             assert SED is not None
             
-            print "Initializing",self.name,"model from scratch..."
-           
             if self.flavor == 'Nebula':
                 self.create_Nebula(position,SED)
             else:
@@ -78,11 +78,15 @@ class Model():
 
         else:
             
-            # Initialization from template:
-
             print "Initializing",self.name,"model from",template.name," template..."
-            pass
-        
+            
+            if self.flavor == 'Nebula' and template.flavor == 'Nebula':
+                assert self.K > template.K
+                # self.spawn_Nebula(template) # TO BE WRITTEN
+            
+            elif self.flavor == 'Lens' and template.flavor == 'Nebula':
+                # self.spawn_Lens(template) # TO BE WRITTEN
+
         return None
             
 # ----------------------------------------------------------------------------
