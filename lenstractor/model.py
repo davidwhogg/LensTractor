@@ -83,9 +83,11 @@ class Model():
             if self.flavor == 'Nebula' and template.flavor == 'Nebula':
                 assert self.K > template.K
                 # self.spawn_Nebula(template) # TO BE WRITTEN
+                pass
             
             elif self.flavor == 'Lens' and template.flavor == 'Nebula':
                 # self.spawn_Lens(template) # TO BE WRITTEN
+                pass
 
         return None
             
