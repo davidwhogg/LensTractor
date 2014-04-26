@@ -192,14 +192,14 @@ def main():
    
    # Workflow:
    if args.lens:
-      models = ['Lens']
+      modelnames = ['Lens']
    elif args.K > 0:
-      models = ['Nebula'+str(args.K)]
+      modelnames = ['Nebula'+str(args.K)]
       # NB. Global default is Nebula1!
    else:
-      models = ['Nebula2','Nebula4','Lens']
+      modelnames = ['Nebula2','Nebula4','Lens']
          
-   BIC = dict(zip(models,np.zeros(len(models))))
+   BIC = dict(zip(modelnames,np.zeros(len(modelnames))))
 
    # Package up settings:
    opt_settings = {'Nr':args.Nr, 'Nc':args.Nc, 'Np':args.Np}
@@ -209,10 +209,12 @@ def main():
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
       print "                               LensTractor "
-      print "    Fitting",models," models to a deck of FITS postcards"
+      print "    Fitting",modelnames," models to a deck of FITS postcards"
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
  
    # -------------------------------------------------------------------------
+   
+   # Read in images:
    
    # Organise the deck of inputfiles into scifiles and varfiles:
    scifiles,varfiles = lenstractor.Riffle(args.inputfiles,vb=vb)
@@ -220,169 +222,50 @@ def main():
    # Read into Tractor Image objects, and see what filters we have:   
    images,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
    
-   # Package up:
-   dataset = list(images)
-   
-   # -------------------------------------------------------------------------
-   # Generic items needed to initialize the Tractor's catalog.
-   
-   # Get rough idea of object position from wcs of first image- works
-   # well if all images are the same size and well registered!
-   wcs = images[0].wcs # HACK! Need to consider different WCS in different images...
+   # Models need good initial fluxes to avoid wasting time getting these 
+   # right. Take a quick look at the data to do this:
+      
+   # 1) Get rough idea of object position from wcs of first image - works
+   #    OK if all images are the same size and well registered, and the
+   #    target is in the center of the field...
+   wcs = images[0].wcs
    NX,NY = np.shape(images[0].data)
-   if vb: print "Generic initial position ",NX,NY,"(pixels)"
-   
-   # m0 = 15.0
-   # magnitudes = m0*np.ones(len(bandnames))
-   # MAGIC initial magnitude. This should be estimated from
-   # the total flux in each (background-subtracted) image...
-   
+   radec = wcs.pixelToPosition(0.5*NX,0.5*NY) # HACK! First image may be mis-centered..
+   if vb: 
+       print "Generic initial position = ",0.5*NX,0.5*NY,"(pixels)"
+       print "         position object = ",radec
+
+   # 2) Get rough idea of total object magnitudes from median of images 
+   #    in each filter. (Models have non-variable flux, by assumption!)
    bandnames = np.unique(bands)
    magnitudes = np.zeros(len(bandnames))
    for i,bandname in enumerate(bandnames):
        index = np.where(bands == bandname)
        magnitudes[i] = np.median(total_mags[index])
-   if vb: print "Generic initial SED ",dict(zip(bandnames,magnitudes))
+   fudge = 0.4
+   magnitudes = magnitudes + 2.5*np.log10(5*fudge)
+   SED = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
+   if vb: print "Generic initial SED: ",SED
    
+   # Package up:
+   dataset = list(images)
+      
    # -------------------------------------------------------------------------
    
-   # Loop over models, initialising and fitting.
+   # Loop over models, initialising and fitting:
       
-   for thismodel in models: 
+   for modelname in modelnames: 
       
        if vb: 
            print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
-           print "Initializing model: "+thismodel       
+           print "Initializing model: "+modelname       
+                     
+       model = lenstractor.Model(modelname,vb=vb)
        
-       # Figure out what type of model this is:
-       modeltype =  thismodel[0:6]
-              
-       model = lenstractor.Model(thismodel)
-
-       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
-              
-       if modeltype == 'Nebula':
-
-           # Nebula - a flexible galaxy plus K point sources. 
-
-           # How many point sources?
-           K = int(thismodel[6:7])
-           
-           # The first Nebula model we run has 1 point source and one 
-           # galaxy, initialised sensibly but randomly. 
-           # All subsequent models just have extra random point sources.
-#           Central pixel coordinates, the galaxy and point sources
-#           will be distributed around there:
-           x,y = 0.5*NX,0.5*NY
-
-           # Start both sources off with equal magnitudes:
-           fudge = 0.4
-           equalmagnitudes = magnitudes + 2.5*np.log10(5*fudge)
-           mags = tractor.Mags(order=bandnames, **dict(zip(bandnames,equalmagnitudes)))
-
-           # Add an exponential galaxy:
-#           Shake its center a little bit
-           e = 2.0 # pixels
-           dx,dy = e*np.random.randn(2)
-#           xg,yg = x+dx, y+dy
-           xg,yg = x,y
-
-           galpos = wcs.pixelToPosition(xg,yg)
-
-           fudge = 2
-           equalmagnitudes = magnitudes + 2.5*np.log10(5*fudge)
-           mg = tractor.Mags(order=bandnames, **dict(zip(bandnames,equalmagnitudes)))
-           re = 0.5    # arcsec
-           q = 1.0     # axis ratio
-           theta = 0.0 # degrees
-           galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)       
-           nebulousgalaxy = tractor.sdss_galaxy.ExpGalaxy(galpos,mags.copy(),galshape)
-           if vb: print nebulousgalaxy
-           model.srcs.append(nebulousgalaxy)
-
-           for i in range(K):
-               # Add a point source with random position near nebula centre:
-#               e = 2.0 # pixels
-               e = 1.0 # pixels
-               dx,dy = e*np.random.randn(2)
-               # dx,dy = 2.0*np.random.randn(2)
-               # Start in cross formation (for testing):
-#               if i == 0: dx,dy = -3,0
-#               if i == 1: dx,dy =  0,3
-#               if i == 2: dx,dy =  3,0
-#               if i == 3: dx,dy =  0,-3
-               star = tractor.PointSource(wcs.pixelToPosition(x+dx,y+dy),mags.copy())
-               if vb: print star
-               model.srcs.append(star)
-           
-       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
-       
-       # Original Nebula4 initialisation went as follows:
-       #   tractor.PointSource(wcs.pixelToPosition(x+e,y),mags.copy()),
-       #   tractor.PointSource(wcs.pixelToPosition(x-e,y),mags.copy()),
-       #   tractor.PointSource(wcs.pixelToPosition(x,y+e),mags.copy()),
-       #   tractor.PointSource(wcs.pixelToPosition(x,y-e),mags.copy())]
-
-       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
-              
-       elif modeltype == 'Lens':
-
-           # If nebula has been run, use the best nebula model (by BIC)
-           # to initialise the lens model. If it hasn't, do something
-           # sensible.
-           
-           
-           # Source to be lensed:
-           xs,ys = 0.5*NX, 0.5*NY
-           # Tiny random offset (pixels):
-           e = 0.0
-           dx,dy = e*np.random.randn(2)
-           xs,ys = xs+dx,ys+dy
-           unlensedmagnitudes = magnitudes + 2.5*np.log10(40.0)
-           ms = tractor.Mags(order=bandnames, **dict(zip(bandnames,unlensedmagnitudes)))
-           if vb: print ms
-           sourcepos = wcs.pixelToPosition(xs,ys)
-           if vb: print sourcepos
-
-           pointsource = tractor.PointSource(sourcepos,ms)
-           if vb: print pointsource
-
-           # Lens mass:
-#           thetaE = lenstractor.EinsteinRadius(0.75) # arcsec
-           thetaE = lenstractor.EinsteinRadius(0.2) # arcsec
-
-           if vb: print thetaE
-           gamma = 0.2 # to make quad
-#           phi   = 0.0 # deg
-           phi   = 45.0 # deg
-           xshear = lenstractor.ExternalShear(gamma,phi)
-           if vb: print xshear
-
-           # Lens light:
-           x,y = 0.5*NX,0.5*NY
-           lenspos = wcs.pixelToPosition(x,y)
-           if vb: print lenspos
-           lensmagnitudes = magnitudes + 2.5*np.log10(10.0)
-           md = tractor.Mags(order=bandnames, **dict(zip(bandnames,lensmagnitudes)))
-           if vb: print md
-           re = 0.5  # arcsec
-           q = 0.8   # axis ratio
-#           theta = 90.0 # degrees
-           theta = -45.0 # degrees
-           galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
-           if vb: print galshape
-
-           lensgalaxy = lenstractor.LensGalaxy(lenspos,md,galshape,thetaE,xshear)
-           if vb: print lensgalaxy
-
-           model.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
-
-
-       #   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   - -
+       model.initialize('from_scratch', position=radec, SED=SED)
        
        if vb: 
            print "Initialization complete."
-           print "Model =",model
            print " "
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -426,18 +309,18 @@ def main():
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
               
        # Compute BIC for this fit:
-       BIC[thismodel] = LT.getBIC()
-       print thismodel+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[thismodel]
+       BIC[modelname] = LT.getBIC()
+       print modelname+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[modelname]
        
        # Write out simple one-line parameter catalog:
        LT.write_catalog(args.outfile)
-       print thismodel+" parameter values written to: "+args.outfile
+       print modelname+" parameter values written to: "+args.outfile
 
    # -------------------------------------------------------------------------
    
    # # Make some decision about the nature of this system.
    # 
-   # if len(models) > 1:
+   # if len(modelnames) > 1:
    # # Compare models and report:
    #     print "BIC = ",BIC
    #     print "Hypothesis test result: Bayes factor in favour of nebula is exp[",-0.5*(BIC['Nebula'] - BIC['Lens']),"]"
