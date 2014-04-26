@@ -112,7 +112,14 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       elif SURVEY=='KIDS':
          FWHM = lenstractor.KIDS_IQ(hdr)
       elif SURVEY=='SDSS':
-         FWHM = lenstractor.SDSS_IQ(hdr)
+         try:
+            FWHM = lenstractor.SDSS_IQ(hdr)
+         except:
+            FWHM = 'NaN'
+
+         if FWHM == 'NaN':
+            print "Problem with initialising PSF for SDSS, using (1.4,0.4) default"
+            FWHM = 1.4/0.4
       else:
          raise ValueError('Unrecognised survey name '+SURVEY)
       if vb: print "  PSF FWHM =",FWHM,"pixels"
@@ -170,7 +177,13 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
              wcs = lenstractor.SDSSWCS(hdr)
       elif SURVEY=='KIDS':
          wcs = lenstractor.KIDSWCS(hdr)
-      if vb: print wcs
+      else:
+         try:
+             wcs = lenstractor.SDSSWCS(hdr)
+         except:
+             wcs = lenstractor.SDSSWCS(hdr)
+      # if vb:
+      #    print wcs
 
       # Make a tractor Image object out of all this stuff, and add it to the array:
       images.append(tractor.Image(data=sci, invvar=invvar, name=name,
@@ -206,15 +219,30 @@ def Read_in_data(scifile,varfile,vb=False):
    # Make a var image from the sci image...
        background = np.median(sci)
        diffimage = sci - background
-       variance = np.median(diffimage*diffimage)
-       var = diffimage + variance
+   # Get the flux-to-count conversion factor from header, at least in SDSS:
+       try:
+          tmpsurvey = hdr['ORIGIN']
+          if (tmpsurvey == 'SDSS'):
+             tempmtoc = hdr['NMGY']
+          else:
+             tempmtoc = 1.
+       except:
+          tempmtoc = 1.
+          
+       background, diffimage = background/tempmtoc, diffimage/tempmtoc # units: counts
+       variance = np.median(diffimage*diffimage) # sky count variance
+       var = diffimage + variance # variance in the whole image number-counts
+       # Go again in fluxes
+       var = (tempmtoc**2)*var
+
        # Ensure positivity:
-       var[var <= 0] = variance 
+       var[var <= 0] = variance*(tempmtoc**2)
 
    # Check image sizes...
    assert sci.shape == var.shape
 
-   # Convert var to wht, and find median uncertainty as well:
+# Convert var to wht, and find median uncertainty as well:
+# Regardless of maggy-count conversion, start again here:
    invvar = 1.0/var
    # Assign zero weight to var=nan, var<=0:
    invvar[var != var] = 0.0
@@ -228,7 +256,11 @@ def Read_in_data(scifile,varfile,vb=False):
    assert(all(np.isfinite(invvar.ravel())))
 
    # Measure total flux in sci image:
-   total_flux = np.sum(sci)
+#   total_flux = np.sum(sci)
+#   background-subtracted
+   background = np.median(sci)
+   diffimage = sci - background
+   total_flux = np.sum(diffimage)
 
    # Report on progress so far:
    if vb:
@@ -271,48 +303,6 @@ def Initial_PSF(FWHM,double=False):
       cov = np.array([[[1.0,0.0],[0.0,1.0]],[[var,0.0],[0.0,var]]])  
    
    return tractor.GaussianMixturePSF(w,mu,cov)
-
-# ============================================================================
-# Write out parameters as simple ascii catalog.
-
-def write_catalog(outfile,model,parnames,imgnames,values):
-
-    # Open up a new file, over-writing any old one:
-    try: os.remove(outfile)
-    except OSError: pass
-    output = open(outfile,'w')
-
-    # Write header:
-    hdr = []
-    hdr.append('# LensTractor output parameter catalog')
-    # hdr.append('# ')
-    # hdr.append('# Date: %s' % datestring)
-    hdr.append('# ')
-    hdr.append('# Model: %s' % model)
-    hdr.append('# Notes:')
-    hdr.append('# * First source is always the galaxy, point sources follow')
-    for ii,imgname in enumerate(imgnames):
-        hdr.append('# * images.image%d = %s' % (ii,imgname))
-    hdr.append('# ')
-    # Last line contains the parameter names:
-    nameline = "#  "
-    for name in parnames:
-        nameline += name+"  "
-    hdr.append(nameline)
-    # Write to file:
-    for line in hdr:
-        output.write("%s\n" % line)    
-    # Close file:
-    output.close()
-    
-    np.savetxt('junk', values)
-    cat = subprocess.call("cat junk >> " + outfile, shell=True)
-    rm = subprocess.call("rm junk", shell=True)
-    if cat != 0 or rm != 0:
-      print "Error: write subprocesses failed in some way :-/"
-      sys.exit()
-    
-    return
 
 # ============================================================================
 if __name__ == '__main__':

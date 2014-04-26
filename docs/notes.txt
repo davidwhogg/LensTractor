@@ -484,8 +484,45 @@ python LensTractor.py -x -v \
 #     X = X[paramindexmap]
 # IndexError: index 12 is out of bounds for size 12
 
-# Check in anyway...
+# Fixed by Dustin's suggestion:
+# 
+#       self.chug.optimize(damp=3,shared_params=False)
+# 
+#=============================================================================
+# 2014-04-23 (Wednesday) 10:59 PDT
 
+# Visited UCSB, worked with Agnello on refactoring to make experiments easier.
+# LensTractor as an object, that can initialize and drive itself... 
+
+# Driving implemented: optimization and sampling.
+
+# Intialization not yet started.
+
+# Standard tests, to get roughly working fit. Include plots.
+
+\rm -f examples/sdss/0951+2635/*.cat \
+       examples/sdss/0951+2635/*.log \
+       examples/sdss/0951+2635/*.png
+python LensTractor.py -n 2 \
+       -o examples/sdss/0951+2635/0951+2635_Nebula2.cat \
+          examples/sdss/0951+2635/*sci.fits > \
+          examples/sdss/0951+2635/0951+2635_Nebula2.log
+
+# SDSS example fails:
+# - WCS treatment not right (models don't line up?)
+# - photocal treatment not right? Based on Agnello's reports...
+# - PSF looks much too small
+
+\rm -f examples/ps1/H1413+117*.cat \
+       examples/ps1/H1413+117*.log \
+       examples/ps1/H1413+117*.png
+python LensTractor.py -n 4 \
+       -o examples/ps1/H1413+117_10x10arcsec_Nebula4.cat \
+          examples/ps1/H1413+117_10x10arcsec_*.fits  > \
+          examples/ps1/H1413+117_10x10arcsec_Nebula4.log
+
+# Refactoring of initialiszation complete. Merged back into master branch.
+# Next: init Nebula4 from Nebula2, and Lens form NebulaK.
 
 #=============================================================================
 FINISH:
