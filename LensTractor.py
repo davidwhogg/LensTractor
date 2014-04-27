@@ -229,7 +229,8 @@ def main():
       
    # -------------------------------------------------------------------------
    # Step through all the models in the workflow, initialising and fitting:
-      
+   
+   previous = None
    for modelname in modelnames: 
       
        if vb: 
@@ -238,7 +239,10 @@ def main():
                      
        model = lenstractor.Model(modelname,vb=vb)
        
-       model.initialize('from_scratch', position=position, SED=SED)
+       if previous is None:
+           model.initialize('from_scratch', position=position, SED=SED)
+       else:
+           model.initialize(previous)
        
        if vb: 
            print "Initialization complete."
@@ -291,6 +295,8 @@ def main():
        # Write out simple one-line parameter catalog:
        LT.write_catalog(args.outfile)
        print modelname+" parameter values written to: "+args.outfile
+
+       previous = model.copy()
 
    # -------------------------------------------------------------------------
    

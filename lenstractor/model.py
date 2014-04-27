@@ -60,6 +60,12 @@ class Model():
     def __str__(self):
         return '%s' % (self.name)
 
+    def copy(self):
+        copy = lenstractor.Model(self.name,vb=self.vb)
+        for src in self.srcs:
+            copy.srcs.append(src.copy())
+        return copy
+
 # ----------------------------------------------------------------------------
     
     def initialize(self,template,position=None,SED=None):
@@ -78,16 +84,15 @@ class Model():
 
         else:
             
-            print "Initializing",self.name,"model from",template.name," template..."
+            print "Initializing",self.name,"model from",template.name,"template..."
             
             if self.flavor == 'Nebula' and template.flavor == 'Nebula':
                 assert self.K > template.K
-                # self.spawn_Nebula(template) # TO BE WRITTEN
-                pass
+                self.spawn_Nebula(template)
             
             elif self.flavor == 'Lens' and template.flavor == 'Nebula':
                 # self.spawn_Lens(template) # TO BE WRITTEN
-                pass
+                assert False
 
         return None
             
@@ -97,8 +102,9 @@ class Model():
                 
         # Start with an exponential galaxy at the object centroid:
         galpos = position
-        # Give it its fair share of the flux:
-        galSED = SED.copy() + 2.5*np.log10(self.K+1)
+        # Give it its fair share of the flux, and start faint:
+        fudge = 0.2 # MAGIC
+        galSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
         # Some standard shape and size parameters:
         re = 0.5    # arcsec
         q = 0.8     # axis ratio
@@ -112,15 +118,51 @@ class Model():
         # Now add the point sources, with flux divided equally:
         for i in range(self.K):
             # Small random offsets from nebula centre:
-            e = 0.2 # arcsec
+            e = 0.2 # arcsec, MAGIC
             dx,dy = e*np.random.randn(2)/3600.0
             starpos = position.copy() + tractor.RaDecPos(dx,dy)
-            starSED = SED.copy() + 2.5*np.log10(self.K+1)
+            starSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
             # Package up:
             star = tractor.PointSource(starpos,starSED)
             if self.vb: print star
             self.srcs.append(star)
             
+        return
+
+# ----------------------------------------------------------------------------
+    
+    def spawn_Nebula(self,parent):
+        
+        self.srcs = []
+        
+        # Inherit the exponential galaxy from the parent:
+        nebulousgalaxy = parent.srcs[0]
+        if self.vb: print nebulousgalaxy
+        self.srcs.append(nebulousgalaxy)
+
+        # Now inherit the point sources, and make more based on them, by
+        # splitting the parent stars in 2 and separating them by a small 
+        # amount. Binary fission!
+        parentstars = parent.srcs[1:]
+        stars = []
+        k = 0
+        while len(stars) < self.K:
+            star1 = parentstars[k]
+            star1.setBrightness(star1.getBrightness() + 2.5*np.log10(2.0))
+            stars.append(star1)
+            if self.vb: print "Point source",star1
+            k += 1
+            if len(stars) < self.K:
+                star2 = star1.copy()
+                e = 0.1 # arcsec, MAGIC
+                dx,dy = e*np.random.randn(2)/3600.0
+                star2.setPosition(star2.getPosition() + tractor.RaDecPos(dx,dy))
+                stars.append(star2)
+                if self.vb: print "Point source",star2
+        for star in stars:
+            self.srcs.append(star)
+        assert len(self.srcs) == (self.K + 1)
+
         return
 
 # ----------------------------------------------------------------------------
