@@ -83,6 +83,7 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
    images = []
    bands = []
    epochs = []
+   centroids = []
    total_mags = []
    
    for scifile,varfile in zip(scifiles,varfiles):
@@ -185,6 +186,16 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       # if vb:
       #    print wcs
 
+      # Compute flux-weighted centroid, in world coordinates:
+      NX,NY = sci.shape
+      x = np.outer(np.ones(NX),np.linspace(0,NY-1,NY))
+      y = np.outer(np.linspace(0,NX-1,NX),np.ones(NY))
+      x0 = np.sum(sci*x)/np.sum(x)
+      y0 = np.sum(sci*y)/np.sum(y)
+      radec = wcs.pixelToPosition(x0,y0)
+      centroids.append(radec)
+      print "Flux centroid: ",radec
+
       # Make a tractor Image object out of all this stuff, and add it to the array:
       images.append(tractor.Image(data=sci, invvar=invvar, name=name,
 				    psf=psf, wcs=wcs, sky=sky, photocal=photocal))
@@ -198,7 +209,7 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       print "  at",len(epochs),"epochs"
       print " "
 
-   return images,np.array(total_mags),np.array(bands)
+   return images,centroids,np.array(total_mags),np.array(bands)
       
 # ============================================================================
 # Read in sci and wht images. Note assumptions about file format:
@@ -303,6 +314,37 @@ def Initial_PSF(FWHM,double=False):
       cov = np.array([[[1.0,0.0],[0.0,1.0]],[[var,0.0],[0.0,var]]])  
    
    return tractor.GaussianMixturePSF(w,mu,cov)
+
+# ============================================================================
+# Compute suitable mean centroid and magnitudes in each band:
+
+def Turnover(allbands,allmagnitudes,allcentroids,vb=False):
+
+    # Models need good initial fluxes to avoid wasting time getting these 
+    # right. Take a quick look at the data to do this:
+
+    # 1) Get rough idea of object position from wcs of first image - works
+    #    OK if all images are the same size and well registered, and the
+    #    target is in the center of the field...
+    ra, dec = 0.0, 0.0
+    for radec in allcentroids: 
+        ra += radec.ra
+        dec += radec.dec
+    ra, dec = ra/len(allcentroids), dec/len(allcentroids)
+    centroid = tractor.RaDecPos(ra,dec)
+    print "Mean flux-weighted centroid: ",centroid
+
+    # 2) Get rough idea of total object magnitudes from median of images 
+    #    in each filter. (Models have non-variable flux, by assumption!)
+    bandnames = np.unique(allbands)
+    magnitudes = np.zeros(len(bandnames))
+    for i,bandname in enumerate(bandnames):
+        index = np.where(allbands == bandname)
+        magnitudes[i] = np.median(allmagnitudes[index])
+    SED = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
+    if vb: print "Mean SED: ",SED
+
+    return centroid,SED
 
 # ============================================================================
 if __name__ == '__main__':

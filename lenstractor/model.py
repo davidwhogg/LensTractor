@@ -97,9 +97,8 @@ class Model():
                 
         # Start with an exponential galaxy at the object centroid:
         galpos = position
-        # Make it fainter than the point sources, by a couple of magnitudes
-        fudge = 2
-        galSED = SED.copy() + 2.5*np.log10(5*fudge)
+        # Give it its fair share of the flux:
+        galSED = SED.copy() + 2.5*np.log10(self.K+1)
         # Some standard shape and size parameters:
         re = 0.5    # arcsec
         q = 0.8     # axis ratio
@@ -110,14 +109,15 @@ class Model():
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
-        # Now add the point sources:
+        # Now add the point sources, with flux divided equally:
         for i in range(self.K):
             # Small random offsets from nebula centre:
             e = 0.2 # arcsec
             dx,dy = e*np.random.randn(2)/3600.0
             starpos = position.copy() + tractor.RaDecPos(dx,dy)
+            starSED = SED.copy() + 2.5*np.log10(self.K+1)
             # Package up:
-            star = tractor.PointSource(starpos,SED.copy())
+            star = tractor.PointSource(starpos,starSED)
             if self.vb: print star
             self.srcs.append(star)
             

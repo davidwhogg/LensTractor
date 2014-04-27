@@ -213,45 +213,21 @@ def main():
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
  
    # -------------------------------------------------------------------------
-   
-   # Read in images:
+   # Read in images (using IO functions in dm.py)
    
    # Organise the deck of inputfiles into scifiles and varfiles:
    scifiles,varfiles = lenstractor.Riffle(args.inputfiles,vb=vb)
    
    # Read into Tractor Image objects, and see what filters we have:   
-   images,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
+   images,centroids,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
    
-   # Models need good initial fluxes to avoid wasting time getting these 
-   # right. Take a quick look at the data to do this:
-      
-   # 1) Get rough idea of object position from wcs of first image - works
-   #    OK if all images are the same size and well registered, and the
-   #    target is in the center of the field...
-   wcs = images[0].wcs
-   NX,NY = np.shape(images[0].data)
-   radec = wcs.pixelToPosition(0.5*NX,0.5*NY) # HACK! First image may be mis-centered..
-   if vb: 
-       print "Generic initial position = ",0.5*NX,0.5*NY,"(pixels)"
-       print "         position object = ",radec
-
-   # 2) Get rough idea of total object magnitudes from median of images 
-   #    in each filter. (Models have non-variable flux, by assumption!)
-   bandnames = np.unique(bands)
-   magnitudes = np.zeros(len(bandnames))
-   for i,bandname in enumerate(bandnames):
-       index = np.where(bands == bandname)
-       magnitudes[i] = np.median(total_mags[index])
-   fudge = 0.4
-   magnitudes = magnitudes + 2.5*np.log10(5*fudge)
-   SED = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
-   if vb: print "Generic initial SED: ",SED
+   # Estimate object centroid and SED:
+   position,SED = lenstractor.Turnover(bands,total_mags,centroids,vb=vb)
    
    # Package up:
    dataset = list(images)
       
    # -------------------------------------------------------------------------
-   
    # Step through all the models in the workflow, initialising and fitting:
       
    for modelname in modelnames: 
@@ -262,7 +238,7 @@ def main():
                      
        model = lenstractor.Model(modelname,vb=vb)
        
-       model.initialize('from_scratch', position=radec, SED=SED)
+       model.initialize('from_scratch', position=position, SED=SED)
        
        if vb: 
            print "Initialization complete."
