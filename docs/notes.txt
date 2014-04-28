@@ -529,7 +529,8 @@ python LensTractor.py -n 4 \
 
 # On train from Santa Barbara. Implemented spawn Nebula method, and also 
 # experimented with default method of driving LensTractor
-# ("cunning_and_guile"). Seems promising - am getting good results on this test:
+# ("cunning_and_guile"). Seems promising - am getting good results on this
+# simple Nebula4 test:
 
 time python LensTractor.py -v -n 4 
   -o examples/ps1/H1413+117_10x10arcsec_Nebula4.cat
@@ -541,6 +542,21 @@ time python LensTractor.py -v -n 4
 # Here's the clean up:
 
 \rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log
+
+# Here's the default run: N2->N4->Lens:
+
+time python LensTractor.py -v 
+  -o examples/ps1/H1413+117_10x10arcsec
+     examples/ps1/H1413+117_10x10arcsec_*.fits >
+     examples/ps1/H1413+117_10x10arcsec.log 
+     
+# Note the improved output catalog and png file names.
+# Code fails at Lens initialization, by design. Next job is to init the Lens.
+
+# One thing to note: currently, spawning Nebula4 from Nebula2 does not work
+# very well, I don't know why. Maybe the fluxes of the new point sources are
+# too large? A flux ratio of 0.2 works a little better - room for 
+# improvement still.
 
 #=============================================================================
 FINISH:

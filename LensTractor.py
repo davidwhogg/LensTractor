@@ -102,7 +102,7 @@ def main():
                                         optimizing source catalog [10]
      --optimization-steps-psf     Np   Number of steps per round spent
                                         optimizing PSF catalog [2]
-     -o --output             outfile   Name of output catalog filename       
+     -o --output             outstem   Stem of output catalog filename       
 
    OUTPUTS
      stdout                       Useful information
@@ -117,12 +117,12 @@ def main():
    EXAMPLES
 
      python LensTractor.py -n 4 \
-       -o examples/ps1/H1413+117_10x10arcsec_Nebula4.cat \
+       -o examples/ps1/H1413+117_10x10arcsec \
           examples/ps1/H1413+117_10x10arcsec_55*fits > \
           examples/ps1/H1413+117_10x10arcsec_Nebula4.log
        
      python LensTractor.py -n 2 \
-       -o examples/sdss/0951+2635/0951+2635_Nebula2.cat \
+       -o examples/sdss/0951+2635/0951+2635 \
           examples/sdss/0951+2635/*sci.fits > \
           examples/sdss/0951+2635/0951+2635_Nebula2.log
 
@@ -172,9 +172,9 @@ def main():
    # Lens model only:
    parser.add_argument('-l', '--lens', dest='lens', action='store_true', default=False, help='Fit Lens model')
    # Nebula model only:
-   parser.add_argument('-n', '--nebula', dest='K', type=int, default=4, help='Fit NebulaK model, provide K')
+   parser.add_argument('-n', '--nebula', dest='K', type=int, default=0, help='Fit NebulaK model, provide K')
    # Output filename:
-   parser.add_argument('-o', '--output', dest='outfile', type=str, default='lenstractor.cat', help='Output catalog filename')
+   parser.add_argument('-o', '--output', dest='outstem', type=str, default='lenstractor.cat', help='Output catalog filename stem')
    # Survey we are working on (affects data read-in):
    parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey (SDSS, PS1 or KIDS)")
 
@@ -194,7 +194,6 @@ def main():
       modelnames = ['Lens']
    elif args.K > 0:
       modelnames = ['Nebula'+str(args.K)]
-      # NB. Global default is Nebula4...
    else:
       modelnames = ['Nebula2','Nebula4','Lens']
          
@@ -226,6 +225,7 @@ def main():
    # Step through all the models in the workflow, initialising and fitting:
    
    previous = None
+   counter = 0
    for modelname in modelnames: 
       
        if vb: 
@@ -260,7 +260,7 @@ def main():
        # Pass in a copy of the image list, so that the PSF etc are 
        # initialised correctly for each model. 
        
-       LT = lenstractor.LensTractor(dataset,model,args.survey,vb=vb,noplots=args.noplots)
+       LT = lenstractor.LensTractor(dataset,model,args.survey,counter=counter,vb=vb,noplots=args.noplots)
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -289,10 +289,11 @@ def main():
        print modelname+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[modelname]
        
        # Write out simple one-line parameter catalog:
-       LT.write_catalog(args.outfile)
-       print modelname+" parameter values written to: "+args.outfile
+       outfile = LT.write_catalog(args.outstem)
+       print modelname+" parameter values written to: "+outfile
 
        previous = model.copy()
+       counter = LT.counter
 
    # -------------------------------------------------------------------------
    

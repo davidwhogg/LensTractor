@@ -145,10 +145,12 @@ class Model():
         # amount. Binary fission!
         parentstars = parent.srcs[1:]
         stars = []
+        fluxratio = 0.2 # MAGIC
         k = 0
         while len(stars) < self.K:
             star1 = parentstars[k]
-            star1.setBrightness(star1.getBrightness() + 2.5*np.log10(2.0))
+            parentBrightness = star1.getBrightness()
+            star1.setBrightness(parentBrightness + 2.5*np.log10(1.0/(1.0-fluxratio)))
             stars.append(star1)
             if self.vb: print "Point source",star1
             k += 1
@@ -157,6 +159,7 @@ class Model():
                 e = 0.1 # arcsec, MAGIC
                 dx,dy = e*np.random.randn(2)/3600.0
                 star2.setPosition(star2.getPosition() + tractor.RaDecPos(dx,dy))
+                star2.setBrightness(parentBrightness + 2.5*np.log10(1.0/fluxratio))
                 stars.append(star2)
                 if self.vb: print "Point source",star2
         for star in stars:

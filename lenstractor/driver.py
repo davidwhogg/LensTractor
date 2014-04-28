@@ -61,7 +61,7 @@ class LensTractor():
     '''
 # ----------------------------------------------------------------------------
     
-    def __init__(self,dataset,model,survey,vb=0,noplots=True):
+    def __init__(self,dataset,model,survey,counter=0,vb=0,noplots=True):
     
         self.name = 'LensTractor'
         self.survey = survey
@@ -87,6 +87,8 @@ class LensTractor():
         self.minchisq = None
         self.psteps = None
         
+        self.counter = counter
+        
         self.chug = tractor.Tractor(dataset)
         for src in self.model.srcs:
             self.chug.addSource(src)
@@ -101,7 +103,9 @@ class LensTractor():
         
         # Plot initial state:
         if not self.noplots: 
-            self.plot_state(self.model.name+'_progress_initial')
+            self.plot_state('progress-%02d_initial_'%self.counter+self.model.name)
+        
+        self.outstem = None
         
         return None
 
@@ -135,8 +139,9 @@ class LensTractor():
             self.sample()
             
             # Now optimize to refine model at fixed PSF:
-            self.settings['Nrounds'] = 3
-            self.settings['Nsteps_optimizing_catalog'] = 3
+            self.settings['Nrounds'] = 5
+            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
             
             # Finally, refine catalog and PSF
@@ -168,8 +173,8 @@ class LensTractor():
            print "   - no. of iterations per round to be spent on PSFs: ",Nsteps_optimizing_PSFs
            print "   - no. of rounds: ",Nrounds
 
-        k = 0
         for round in range(Nrounds):
+            self.counter += 1
 
             if self.vb: print "Fitting "+self.model.name+": seconds out, round",round
 
@@ -183,7 +188,7 @@ class LensTractor():
                dlnp,X,a = self.chug.optimize(damp=3,shared_params=False)
                # print "Fitting "+self.model.name+": at step",k,"parameter values are:",self.chug.getParams()
                if self.vb: 
-                   print "Progress: k,dlnp = ",k,dlnp
+                   print "Progress: counter,dlnp = ",self.counter,dlnp
                    print ""
                    print "Catalog parameters:",self.chug.getParamNames()
                    print "Catalog values:",self.chug.getParams()
@@ -191,9 +196,9 @@ class LensTractor():
                    print "Converged? Exiting..."
                    # Although this only leaves *this* loop...
                    break
-               k += 1
+            
             if not self.noplots: 
-                self.plot_state(self.model.name+'_progress_optimizing_step-%02d_catalog'%k)
+                self.plot_state('progress-%02d_optimizing_'%self.counter+self.model.name)
 
 #             if Nsteps_optimizing_PSFs > 0:
 #                 # Freeze the sources and sky and thaw the psfs:
@@ -214,10 +219,10 @@ class LensTractor():
 #                 for i in range(Nsteps_optimizing_PSFs):
 #                    dlnp,X,a = self.chug.optimize(shared_params=False)
 #                    if self.vb: print "Fitting PSF: at step",k,"parameter values are:",self.chug.getParams()
-#                    k += 1
+#                 self.counter += 1
 #                 if self.vb: print "Fitting PSF: After optimizing, zeroth PSF = ",self.chug.getImage(0).psf
 #                 if not self.noplots: self.plot_state(
-#                     self.model.name+'_progress_optimizing_step-%02d_catalog'%k)
+#                     'progress-%02d_optimizing_'%self.counter+self.model.name)
 # 
 #                 # BUG: PSF not being optimized correctly - missing derivatives?
 
@@ -229,10 +234,6 @@ class LensTractor():
 
         self.minchisq = -2.0*self.chug.getLogLikelihood()
         if self.vb: print "Optimizer: chisq at highest lnprob point: ",self.minchisq
-
-        # All rounds done! Plot state:
-        if not self.noplots: 
-            self.plot_state(self.model.name+'_progress_optimizing_zcomplete')
 
         return None
         
@@ -288,7 +289,8 @@ class LensTractor():
 
         # Take a few steps - memory leaks fast! (~10Mb per sec)
         for snapshot in range(1,Nsnapshots+1):
-
+              self.counter += 1
+              
               if self.vb: print 'Emcee: MCMC snapshot:', snapshot
               t0 = tractor.Time()
               pp,lnp,rstate = sampler.run_mcmc(pp, Nsteps_per_snapshot, lnprob0=lnp, rstate0=rstate)
@@ -307,7 +309,7 @@ class LensTractor():
               if self.vb: print "Emcee: chisq at highest lnprob point: ",self.minchisq
               if not self.noplots: 
                  self.chug.setParams(self.bestpars)
-                 self.plot_state(self.model.name+'_progress_sampling_snapshot-%02d'%snapshot)
+                 self.plot_state('progress-%02d_sampling_'%self.counter+self.model.name)
 
               if Restart:
                  # Make a new sample ball centred on the current best point,
@@ -324,9 +326,6 @@ class LensTractor():
 
         if self.vb: print 'Emcee: total run time', t_mcmc, 'sec'
 
-        # Make the final plot:
-        if not self.noplots: 
-            self.plot_state(self.model.name+'_progress_sampling_zcomplete')
 
         return None
         
@@ -342,7 +341,7 @@ class LensTractor():
 
 # ----------------------------------------------------------------------------
 
-    def write_catalog(self,outfile):    
+    def write_catalog(self,outstem):    
 
         # Get parameter names and values:
         parnames = self.chug.getParamNames()
@@ -354,6 +353,10 @@ class LensTractor():
         for image in self.chug.getImages():
             imgnames.append(image.name)
 
+        # Make sure outfile has model name in it:
+        self.outstem = outstem.split('.')[0]
+        outfile = self.outstem+'_'+self.model.name+'.cat'
+        
         # Open up a new file, over-writing any old one:
         try: os.remove(outfile)
         except OSError: pass
@@ -389,7 +392,7 @@ class LensTractor():
           print "Error: write subprocesses failed in some way :-/"
           sys.exit()
 
-        return
+        return outfile
 
            
 # ============================================================================
@@ -463,7 +466,10 @@ class LensTractor():
           self.tidyup_plot()
           plt.title('PSF')
 
-          plt.savefig(imname+'_'+suffix+'.png')   
+          pngfile = imname+'_'+suffix+'.png'
+          plt.savefig(pngfile)
+          if self.vb:
+              print "Progress snapshot saved to "+pngfile
 
        return
 
