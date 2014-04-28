@@ -525,4 +525,22 @@ python LensTractor.py -n 4 \
 # Next: init Nebula4 from Nebula2, and Lens form NebulaK.
 
 #=============================================================================
+# 2014-04-27 (Sunday) 18:33 PDT
+
+# On train from Santa Barbara. Implemented spawn Nebula method, and also 
+# experimented with default method of driving LensTractor
+# ("cunning_and_guile"). Seems promising - am getting good results on this test:
+
+time python LensTractor.py -v -n 4 
+  -o examples/ps1/H1413+117_10x10arcsec_Nebula4.cat
+     examples/ps1/H1413+117_10x10arcsec_*.fits >
+     examples/ps1/H1413+117_10x10arcsec_Nebula4.log 
+# 25.577u 1.771s 0:27.38 99.8%    0+0k 0+56io 0pf+0w
+
+# Runtime is not great, but fit is getting there...
+# Here's the clean up:
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log
+
+#=============================================================================
 FINISH:

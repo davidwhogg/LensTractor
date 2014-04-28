@@ -50,6 +50,7 @@ class LensTractor():
       by               A mode of operation ['optimizing','sampling']
       using            The required settings
       survey           The name of the survey being worked on
+      plot             Make plots if desired
 
     OUTPUTS
 
@@ -60,12 +61,24 @@ class LensTractor():
     '''
 # ----------------------------------------------------------------------------
     
-    def __init__(self,dataset,model,settings,survey,vb=0,noplots=True):
+    def __init__(self,dataset,model,survey,vb=0,noplots=True):
     
         self.name = 'LensTractor'
-        self.settings = settings
         self.survey = survey
+
+        self.settings = {}
+        # Optimization settings:
+        self.settings['Nrounds'] = 5
+        self.settings['Nsteps_optimizing_catalog'] = 5
+        self.settings['Nsteps_optimizing_PSFs'] = 0
+        # Sampling settings:
+        self.settings['Nwalkers_per_dim'] = 8
+        self.settings['Nsnapshots'] = 3
+        self.settings['Nsteps_per_snapshot'] = 10
+        self.settings['Restart'] = True
+        
         self.model = model
+        
         self.vb = vb
         self.noplots = noplots
         
@@ -76,29 +89,25 @@ class LensTractor():
         
         self.chug = tractor.Tractor(dataset)
         for src in self.model.srcs:
-           self.chug.addSource(src)
+            self.chug.addSource(src)
 
         # Freeze the PSFs, wcs and photocal, leaving the sky and sources:
         self.chug.thawParam('catalog')
         for image in self.chug.getImages():
-           image.thawParams('sky')
-           image.freezeParams('photocal')
-           image.freezeParams('wcs')
-           image.freezeParams('psf')
-           
+            image.thawParams('sky')
+            image.freezeParams('photocal')
+            image.freezeParams('wcs')
+            image.freezeParams('psf')
+        
+        # Plot initial state:
+        if not self.noplots: 
+            self.plot_state(self.model.name+'_progress_initial')
+        
         return None
 
 # ----------------------------------------------------------------------------
-# Drive the LensTractor! We have both steepest ascent and MCMC capability.
+# Drive the LensTractor. We have both steepest ascent and MCMC capability.
 # Try a mixture!
-# Default settings (from LensTractor.py - probs should move these) are:
-#   self.settings['Nrounds'] = 5
-#   self.settings['Nsteps_optimizing_catalog'] = 5
-#   self.settings['Nsteps_optimizing_PSFs'] = 0
-#   self.settings['Nwalkers_per_dim'] = 8
-#   self.settings['Nsnapshots'] = 3
-#   self.settings['Nsteps_per_snapshot'] = 10
-#   self.settings['Restart'] = True
    
     def drive(self,by='cunning_and_guile'):
         
@@ -116,6 +125,7 @@ class LensTractor():
          
             # First optimize to get the fluxes about right:
             self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 3
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
             
@@ -126,6 +136,7 @@ class LensTractor():
             
             # Now optimize to refine model at fixed PSF:
             self.settings['Nrounds'] = 3
+            self.settings['Nsteps_optimizing_catalog'] = 3
             self.optimize()
             
             # Finally, refine catalog and PSF
@@ -220,8 +231,8 @@ class LensTractor():
         if self.vb: print "Optimizer: chisq at highest lnprob point: ",self.minchisq
 
         # All rounds done! Plot state:
-        self.plot_state(self.model.name+'_progress_optimizing_zcomplete')
-
+        if not self.noplots: 
+            self.plot_state(self.model.name+'_progress_optimizing_zcomplete')
 
         return None
         
@@ -314,9 +325,11 @@ class LensTractor():
         if self.vb: print 'Emcee: total run time', t_mcmc, 'sec'
 
         # Make the final plot:
-        self.plot_state(self.model.name+'_progress_sampling_zcomplete')
+        if not self.noplots: 
+            self.plot_state(self.model.name+'_progress_sampling_zcomplete')
 
         return None
+        
 # ----------------------------------------------------------------------------
 
     def getBIC(self):    
