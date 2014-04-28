@@ -106,7 +106,8 @@ class LensTractor():
         return None
 
 # ----------------------------------------------------------------------------
-# Fit the model to the image data by maximizing the posterior PDF ("optimizing")
+# Fit the model to the image data by maximizing the posterior PDF 
+# ("optimizing") with respect to the parameters.
  
     def optimize(self):
 
@@ -189,7 +190,9 @@ class LensTractor():
         return None
         
 # ----------------------------------------------------------------------------
-# Compare the model to the image data by sampling the posterior PDF
+# Fit the model to the image data by drawing samples from the posterior PDF 
+# that have high probability density: note, this is not really sampling,
+# its *sampling to optimize*...
 
     def sample(self):
 
@@ -200,6 +203,7 @@ class LensTractor():
         nwalkers_per_dim = self.settings['nwp']
         nsnapshots = self.settings['ns']
         nsteps_per_snapshot = self.settings['nss']
+        restart = self.settings['rs']
         
 
         # Get the thawed parameters:
@@ -225,7 +229,6 @@ class LensTractor():
 
         else:
            # Good first guess should be some fraction of the optimization step sizes:
-#           psteps = 0.2*np.array(self.chug.getStepSizes())
            psteps = 0.01*np.array(self.chug.getStepSizes())
 
         # BUG - nebula+lens workflow not yet enabled!
@@ -234,9 +237,7 @@ class LensTractor():
 
         if self.vb: print "Initial size (in each dimension) of sample ball = ",psteps
 
-#        pp = emcee.EnsembleSampler.sampleBall(p0, psteps, nw)
         pp = emcee.utils.sample_ball(p0, psteps, nw)
-
         rstate = None
         lnp = None
 
@@ -251,23 +252,28 @@ class LensTractor():
               t_mcmc = (tractor.Time() - t0)
               if self.vb: print 'Emcee: Runtime:', t_mcmc
 
-              # Find the current posterior means:
-              # pbar = np.mean(pp,axis=0)
-              # print "Mean parameters: ",pbar,np.mean(lnp)
-
               # Find the current best sample:
               self.maxlnp = np.max(lnp)
               best = np.where(lnp == self.maxlnp)
               self.bestpars = np.ravel(pp[best,:])
-              
               if self.vb: print "Emcee: Best parameters: ",self.maxlnp,self.bestpars
-              self.chug.setParams(self.bestpars)
               
               self.minchisq = -2.0*self.chug.getLogLikelihood()
               if self.vb: print "Emcee: chisq at highest lnprob point: ",self.minchisq
               if not self.noplots: 
                  self.chug.setParams(self.bestpars)
                  self.plot_state(self.model.name+'_progress_sampling_snapshot-%02d'%snapshot)
+
+              if restart:
+                 # Make a new sample ball centred on the current best point,
+                 # and with width given by the standard deviations in each
+                 # dimension:
+                 self.chug.setParams(self.bestpars)
+                 p0 = np.array(self.chug.getParams())
+                 psteps = np.stdev(pp,axis=0)
+                 pp = emcee.utils.sample_ball(p0, psteps, nw)
+                 rstate = None
+                 lnp = None
 
 
         if self.vb: print 'Emcee: total run time', t_mcmc, 'sec'
