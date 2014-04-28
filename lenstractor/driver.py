@@ -60,9 +60,10 @@ class LensTractor():
     '''
 # ----------------------------------------------------------------------------
     
-    def __init__(self,dataset,model,survey,vb=0,noplots=True):
+    def __init__(self,dataset,model,settings,survey,vb=0,noplots=True):
     
         self.name = 'LensTractor'
+        self.settings = settings
         self.survey = survey
         self.model = model
         self.vb = vb
@@ -71,6 +72,7 @@ class LensTractor():
         self.bestpars = None
         self.maxlnp = None
         self.minchisq = None
+        self.psteps = None
         
         self.chug = tractor.Tractor(dataset)
         for src in self.model.srcs:
@@ -81,25 +83,56 @@ class LensTractor():
         for image in self.chug.getImages():
            image.thawParams('sky')
            image.freezeParams('photocal')
-#           image.freezeParams('wcs')
+           image.freezeParams('wcs')
            image.freezeParams('psf')
            
         return None
 
 # ----------------------------------------------------------------------------
-    
-    def drive(self,by='sampling',using=emcee_defaults):
+# Drive the LensTractor! We have both steepest ascent and MCMC capability.
+# Try a mixture!
+# Default settings (from LensTractor.py - probs should move these) are:
+#   self.settings['Nrounds'] = 5
+#   self.settings['Nsteps_optimizing_catalog'] = 5
+#   self.settings['Nsteps_optimizing_PSFs'] = 0
+#   self.settings['Nwalkers_per_dim'] = 8
+#   self.settings['Nsnapshots'] = 3
+#   self.settings['Nsteps_per_snapshot'] = 10
+#   self.settings['Restart'] = True
+   
+    def drive(self,by='cunning_and_guile'):
         
         self.method = by
-        self.settings = using
         
         if self.method == 'sampling':
         
             self.sample()
             
-        else:
+        elif self.method == 'optimizing':
          
             self.optimize()
+        
+        else:
+         
+            # First optimize to get the fluxes about right:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize()
+            
+            # Now draw a few samples to shuffle the positions:
+            self.settings['Nsnapshots'] = 1
+            self.settings['Nwalkers_per_dim'] = 2
+            self.sample()
+            
+            # Now optimize to refine model at fixed PSF:
+            self.settings['Nrounds'] = 3
+            self.optimize()
+            
+            # Finally, refine catalog and PSF
+            # self.settings['Nrounds'] = 1
+            # self.settings['Nsteps_optimizing_catalog'] = 3
+            # self.settings['Nsteps_optimizing_PSFs'] = 3
+            # self.optimize()
         
         self.getBIC()
         
@@ -109,11 +142,14 @@ class LensTractor():
 # Fit the model to the image data by maximizing the posterior PDF 
 # ("optimizing") with respect to the parameters.
  
+# BUG: progress counter in plot name does not update when optimize is 
+# re-called... 
+ 
     def optimize(self):
 
-        Nrounds = self.settings['Nr']
-        Nsteps_optimizing_catalog = self.settings['Nc']
-        Nsteps_optimizing_PSFs = self.settings['Np']
+        Nrounds = self.settings['Nrounds']
+        Nsteps_optimizing_catalog = self.settings['Nsteps_optimizing_catalog']
+        Nsteps_optimizing_PSFs = self.settings['Nsteps_optimizing_PSFs']
 
         if self.vb: 
            print "Optimizing model:"
@@ -194,65 +230,63 @@ class LensTractor():
 # that have high probability density: note, this is not really sampling,
 # its *sampling to optimize*...
 
+# BUG: sampling progress plots are not ordered with optimizations... 
+
     def sample(self):
 
         if self.vb: 
-           print "Sampling model parameters with emcee:"
+           print "Sampling model parameters with Emcee:"
 
         # Magic numbers:
-        nwalkers_per_dim = self.settings['nwp']
-        nsnapshots = self.settings['ns']
-        nsteps_per_snapshot = self.settings['nss']
-        restart = self.settings['rs']
-        
+        Nwalkers_per_dim = self.settings['Nwalkers_per_dim']
+        Nsnapshots = self.settings['Nsnapshots']
+        Nsteps_per_snapshot = self.settings['Nsteps_per_snapshot']
+        Restart = self.settings['Restart']
 
         # Get the thawed parameters:
         p0 = np.array(self.chug.getParams())
         if self.vb: print 'Tractor parameters:'
         for i,parname in enumerate(self.chug.getParamNames()):
               print '  ', parname, '=', p0[i]
-        ndim = len(p0)
-        if self.vb: print 'Number of parameter space dimensions: ',ndim
+        Ndim = len(p0)
+        if self.vb: print 'Number of parameter space dimensions: ',Ndim
 
         # Make an emcee sampler that uses our tractor to compute its logprob:
-        nw = nwalkers_per_dim*ndim # 8*ndim
-        sampler = emcee.EnsembleSampler(nw, ndim, self.chug, threads=4)
+        Nw = Nwalkers_per_dim*Ndim # 8*ndim
+        sampler = emcee.EnsembleSampler(Nw, Ndim, self.chug, threads=4)
 
         # Start the walkers off near the initialisation point - 
         # We need it to be ~1 pixel in position, and not too much
-        # flux restriction... 
-
-        if self.model.name=='Lens':
-           # The following gets us 0.2" in dec:
-           psteps = np.zeros_like(p0) + 0.00004
-           # This could be optimized, to allow more initial freedom in eg flux.
-
-        else:
-           # Good first guess should be some fraction of the optimization step sizes:
-           psteps = 0.01*np.array(self.chug.getStepSizes())
-
-        # BUG - nebula+lens workflow not yet enabled!
-        # psteps should really be a property of the model...
-
-
-        if self.vb: print "Initial size (in each dimension) of sample ball = ",psteps
-
-        pp = emcee.utils.sample_ball(p0, psteps, nw)
+        # flux restriction... But use any psteps we already have!
+        
+        if self.psteps is None:
+            if self.model.name=='Lens':
+               # The following gets us 0.2" in dec:
+               self.psteps = np.zeros_like(p0) + 0.00004
+               # This could be optimized, to allow more initial freedom in eg flux.
+            else:
+               # Good first guess should be some fraction of the optimization step sizes:
+               self.psteps = 0.01*np.array(self.chug.getStepSizes())
+               
+        if self.vb: print "Initial size (in each dimension) of sample ball = ",self.psteps
+        
+        pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
+        # pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
         rstate = None
         lnp = None
 
         # Take a few steps - memory leaks fast! (~10Mb per sec)
-        for snapshot in range(nsnapshots):
+        for snapshot in range(1,Nsnapshots+1):
 
               if self.vb: print 'Emcee: MCMC snapshot:', snapshot
               t0 = tractor.Time()
-              pp,lnp,rstate = sampler.run_mcmc(pp, nsteps_per_snapshot, lnprob0=lnp, rstate0=rstate)
+              pp,lnp,rstate = sampler.run_mcmc(pp, Nsteps_per_snapshot, lnprob0=lnp, rstate0=rstate)
 
               if self.vb: print 'Emcee: Mean acceptance fraction after', sampler.iterations, 'iterations =',np.mean(sampler.acceptance_fraction)
               t_mcmc = (tractor.Time() - t0)
               if self.vb: print 'Emcee: Runtime:', t_mcmc
 
-              # Find the current best sample:
+              # Find the current best sample, and sample ball:
               self.maxlnp = np.max(lnp)
               best = np.where(lnp == self.maxlnp)
               self.bestpars = np.ravel(pp[best,:])
@@ -264,14 +298,15 @@ class LensTractor():
                  self.chug.setParams(self.bestpars)
                  self.plot_state(self.model.name+'_progress_sampling_snapshot-%02d'%snapshot)
 
-              if restart:
+              if Restart:
                  # Make a new sample ball centred on the current best point,
                  # and with width given by the standard deviations in each
                  # dimension:
                  self.chug.setParams(self.bestpars)
                  p0 = np.array(self.chug.getParams())
-                 psteps = np.stdev(pp,axis=0)
-                 pp = emcee.utils.sample_ball(p0, psteps, nw)
+                 self.psteps = np.std(pp,axis=0)
+                 pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
+                 # pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
                  rstate = None
                  lnp = None
 

@@ -163,20 +163,22 @@ def main():
    parser.add_argument('inputfiles', metavar='N', nargs='+')
    # Verbosity:
    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False, help='Make more verbose')
-   # Sampling:
+   # Optimizing only:
+   parser.add_argument('-z', '--optimize', dest='optimize', action='store_true', default=False, help='Optimize posterior PDF')
+   # Sampling only:
    parser.add_argument('-s', '--sample', dest='MCMC', action='store_true', default=False, help='Sample posterior PDF')
    # Plotting:
    parser.add_argument('-x', '--no-plots', dest='noplots', action='store_true', default=False, help='Skip plotting')
    # Lens model only:
    parser.add_argument('-l', '--lens', dest='lens', action='store_true', default=False, help='Fit Lens model')
    # Nebula model only:
-   parser.add_argument('-n', '--nebula', dest='K', type=int, default=0, help='Fit NebulaK model, provide K')
+   parser.add_argument('-n', '--nebula', dest='K', type=int, default=4, help='Fit NebulaK model, provide K')
    # Output filename:
    parser.add_argument('-o', '--output', dest='outfile', type=str, default='lenstractor.cat', help='Output catalog filename')
    # Optimization workflow:
-   parser.add_argument('--optimization-rounds', dest='Nr', type=int, default=3, help='No. of optimization rounds')
-   parser.add_argument('--optimization-steps-catalog', dest='Nc', type=int, default=5, help='No. of optimization steps spent on source catalog')
-   parser.add_argument('--optimization-steps-psf', dest='Np', type=int, default=0, help='No. of optimization steps spent on PSFs')
+   # parser.add_argument('--optimization-rounds', dest='Nr', type=int, default=5, help='No. of optimization rounds')
+   # parser.add_argument('--optimization-steps-catalog', dest='Nc', type=int, default=5, help='No. of optimization steps spent on source catalog')
+   # parser.add_argument('--optimization-steps-psf', dest='Np', type=int, default=0, help='No. of optimization steps spent on PSFs')
    parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey (SDSS, PS1 or KIDS)")
 
    # Read in options and arguments - note only sci and wht images are supplied:
@@ -195,16 +197,22 @@ def main():
       modelnames = ['Lens']
    elif args.K > 0:
       modelnames = ['Nebula'+str(args.K)]
-      # NB. Global default is Nebula1!
+      # NB. Global default is Nebula4...
    else:
       modelnames = ['Nebula2','Nebula4','Lens']
          
    BIC = dict(zip(modelnames,np.zeros(len(modelnames))))
 
-   # Package up settings:
-   opt_settings = {'Nr':args.Nr, 'Nc':args.Nc, 'Np':args.Np}
-   # Magic sampling numbers!
-   mcmc_settings = {'nwp':20, 'ns':5, 'nss':1000, 'rs':True}
+   # Optimization settings:
+   settings = {}
+   settings['Nrounds'] = 5
+   settings['Nsteps_optimizing_catalog'] = 5
+   settings['Nsteps_optimizing_PSFs'] = 0
+   # Sampling settings:
+   settings['Nwalkers_per_dim'] = 8
+   settings['Nsnapshots'] = 3
+   settings['Nsteps_per_snapshot'] = 10
+   settings['Restart'] = True
 
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
@@ -265,21 +273,25 @@ def main():
        # Pass in a copy of the image list, so that the PSF etc are 
        # initialised correctly for each model. 
        
-       LT = lenstractor.LensTractor(dataset,model,args.survey,vb=vb,noplots=args.noplots)
+       LT = lenstractor.LensTractor(dataset,model,settings,args.survey,vb=vb,noplots=args.noplots)
 
        # Plot initial state:
        LT.plot_state(LT.model.name+'_progress_initial')
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-       if not args.MCMC:
+       if args.optimize:
 
-           LT.drive(by='optimizing',using=opt_settings)
+           LT.drive(by='optimizing')
 
+       elif args.MCMC:
+
+           LT.drive(by='sampling')
+           
        else:
 
-           LT.drive(by='sampling',using=mcmc_settings)
-
+           LT.drive(by='cunning_and_guile')
+           
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
        
        if vb:
