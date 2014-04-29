@@ -559,4 +559,62 @@ time python LensTractor.py -v
 # improvement still.
 
 #=============================================================================
+# 2014-04-29 (Tuesday) 14:15 PDT
+
+
+# OK, try initializing Lens. Adri's email:
+
+#    The Nebula--> Lens initialisation I had in mind is very simple:
+#    1- we adopt the galaxy as the center;
+#    2- we compute x-xg,y-yg for all the (2 or 4) images;
+#    3- we initialise the source xs,ys as Sum[x-xg,images]/N(images)
+#    4- we call the (projected, angular) distance between source and
+#     galaxy thetaS, the mean distance of the (2 or 4) images from
+#     source as thetaE
+#    5- te adopt a total magnification mu=2thetaS/thetaE,
+#     small shear aligned with the galaxy (or at 90deg?)
+#    6- the source's flux is the total flux from the (2 or 4)
+#     Nebula images divided by mu.
+# 
+#    This is a very rough initialisation, but it should be vague
+#     enough to offer a good initial guess in both cases (2 or 4 img's).
+# 
+#    So the workflow for initialising Lens from Nebula would be:
+#    -- drive Nebula by optimizing, with Nr=10, Nc=1000
+#    -- get X (the parameter array)
+#    -- do points 1-6 above
+#    -- drive Lens by optimizing, with Nc and Nc from the dictionary
+#     (i.e. fed from command-line).
+# 
+#    A *very* final hack would be some sort of simulated annealing:
+#    for iann in range(Nann)
+#       -- varaux = var/(1+Nann-iann)
+#       -- dataset =...
+#       -- chug=...
+#       -- drive [modeltype] by optimizing
+
+# SDSS example:
+
+\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log examples/sdss/0951+2635/*.cat 
+
+python LensTractor.py -v -l -z --survey SDSS \
+   examples/sdss/0951+2635/J*sci.fits
+
+# Works fine after fixing centroiding...
+
+python LensTractor.py -v -n 2 -z --survey SDSS \
+   examples/sdss/0951+2635/J*sci.fits
+
+# This fails in PS.getModelPatch...
+
+# Try PS1:
+
+time python LensTractor.py -v -l -z \
+  -o examples/ps1/H1413+117_10x10arcsec_Lens.cat \
+     examples/ps1/H1413+117_10x10arcsec_*.fits 
+
+
+
+
+#=============================================================================
 FINISH:

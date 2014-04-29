@@ -220,7 +220,7 @@ def main():
    
    # Package up:
    dataset = list(images)
-      
+            
    # -------------------------------------------------------------------------
    # Step through all the models in the workflow, initialising and fitting:
    

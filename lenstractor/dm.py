@@ -190,8 +190,10 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       NX,NY = sci.shape
       x = np.outer(np.ones(NX),np.linspace(0,NY-1,NY))
       y = np.outer(np.linspace(0,NX-1,NX),np.ones(NY))
-      x0 = np.sum(sci*x)/np.sum(x)
-      y0 = np.sum(sci*y)/np.sum(y)
+      x0 = np.sum(sci*x)/np.sum(sci)
+      y0 = np.sum(sci*y)/np.sum(sci)
+      # BUG: this returns pretty much the image center, not
+      # the object center... Need a better object finder!
       radec = wcs.pixelToPosition(x0,y0)
       centroids.append(radec)
       print "Flux centroid: ",radec
