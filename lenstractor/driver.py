@@ -88,7 +88,6 @@ class LensTractor():
         self.psteps = None
         
         self.counter = counter
-        print "Starting a LensTractor with initial counter = ",self.counter
         
         self.chug = tractor.Tractor(dataset)
         for src in self.model.srcs:

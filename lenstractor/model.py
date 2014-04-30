@@ -234,7 +234,7 @@ class Model():
         # Associate the lens light ellipticity with the lens potential shear...
         # (Warning, this could be crazy!)
         q = galshape.ab
-        gamma = (1-q)/(1+q)
+        gamma = 0.2*(1-q)/(1+q) # MAGIC 0.2
         phi   = galshape.phi # deg
         xshear = lenstractor.ExternalShear(gamma,phi)
         
@@ -248,6 +248,7 @@ class Model():
         # Now for the source position! 
         # SHOULD map these back to the source plane, 
         # and compute average there, to get source position (as an RaDecPos).
+        # ACTION: PHIL!
         
         # Quick hack to get started (Adri):
         

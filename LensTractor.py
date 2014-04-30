@@ -294,7 +294,7 @@ def main():
 
        # Save Nebula2 or Nebula4? Depends on BIC...
        previous = model.copy()
-       counter = LT.counter
+       counter = LT.counter + 1
 
    # -------------------------------------------------------------------------
    
