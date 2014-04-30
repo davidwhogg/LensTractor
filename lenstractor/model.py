@@ -91,8 +91,7 @@ class Model():
                 self.spawn_Nebula(template)
             
             elif self.flavor == 'Lens' and template.flavor == 'Nebula':
-                # self.spawn_Lens(template) # TO BE WRITTEN
-                assert False
+                self.spawn_Lens(template)
 
         return None
             
@@ -100,7 +99,7 @@ class Model():
     
     def create_Nebula(self,position,SED):
                 
-        # Start with an exponential galaxy at the object centroid:
+        # Start with an De Vaucouleurs galaxy at the object centroid:
         galpos = position
         # Give it its fair share of the flux, and start faint:
         fudge = 0.2 # MAGIC
@@ -111,7 +110,7 @@ class Model():
         theta = 0.0 # degrees
         galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
         # Package up:
-        nebulousgalaxy = tractor.sdss_galaxy.ExpGalaxy(galpos,galSED,galshape)
+        nebulousgalaxy = tractor.sdss_galaxy.DevGalaxy(galpos,galSED,galshape)
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
@@ -135,7 +134,7 @@ class Model():
         
         self.srcs = []
         
-        # Inherit the exponential galaxy from the parent:
+        # Inherit the De Vaucouleurs galaxy from the parent:
         nebulousgalaxy = parent.srcs[0]
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
@@ -159,6 +158,7 @@ class Model():
                 e = 0.1 # arcsec, MAGIC
                 dx,dy = e*np.random.randn(2)/3600.0
                 star2.setPosition(star2.getPosition() + tractor.RaDecPos(dx,dy))
+                # BUG: not quite the right way to add small offsets in WCs...
                 star2.setBrightness(parentBrightness + 2.5*np.log10(1.0/fluxratio))
                 stars.append(star2)
                 if self.vb: print "Point source",star2
@@ -192,6 +192,78 @@ class Model():
         galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
         if self.vb: print lensgalaxy
+
+        self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
+
+        return
+        
+# ----------------------------------------------------------------------------
+    
+    def spawn_Lens(self,parent):
+        
+        assert parent.flavor == 'Nebula'
+        
+        self.srcs = []
+        
+        # Inherit the De Vaucouleurs lens galaxy from the parent Nebula:
+        galaxy = parent.srcs[0]
+        # Now inherit a point source, based on the Nebula's point sources!
+        stars = parent.srcs[1:]
+        
+        # First, the lens galaxy light:
+        xd = galaxy.getPosition()
+        md = galaxy.getBrightness()
+        galshape = galaxy.getShape()
+        
+        # Now need thetaE (from image positions) and external shear. 
+        # Compute the image system centroid and, from that, the Einstein radius:
+        ra, dec = 0.0, 0.0
+        for star in stars: 
+            radec = star.getPosition()
+            ra += radec.ra
+            dec += radec.dec
+        ra, dec = ra/len(stars), dec/len(stars)
+        centroid = tractor.RaDecPos(ra,dec)
+        tE = 0.0
+        for star in stars: 
+            tE += radec.distanceFrom(centroid)
+        tE = tE*3600.0/len(stars)
+        thetaE = lenstractor.EinsteinRadius(tE)
+        if self.vb: print "Estimated Einstein Radius (arcsec) = ",thetaE
+        
+        # Associate the lens light ellipticity with the lens potential shear...
+        # (Warning, this could be crazy!)
+        q = galshape.ab
+        gamma = (1-q)/(1+q)
+        phi   = galshape.phi # deg
+        xshear = lenstractor.ExternalShear(gamma,phi)
+        
+        # Package into lensgalaxy:
+        lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
+        if self.vb: print lensgalaxy
+        # Note: this puts the lens mass where the galaxy light is!
+        # This will fail when the Nebula galaxy was just fitting junk...
+                         
+                                
+        # Now for the source position! 
+        # SHOULD map these back to the source plane, 
+        # and compute average there, to get source position (as an RaDecPos).
+        
+        # Quick hack to get started (Adri):
+        
+        xs = centroid
+        ms = stars[0].getBrightness()
+        # Start with just one point source's flux:
+        pointsource = tractor.PointSource(xs,ms)
+        # Add the other images' flux:
+        for star in stars[1:]: 
+            pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
+        # Correct source brightness for approximate magnification:
+        ts = xd.distanceFrom(centroid)*3600.0
+        mu = 2*tE/ts
+        pointsource.setBrightness(pointsource.getBrightness() + 2.5*np.log10(mu))
+        
+        if self.vb: print pointsource
 
         self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
 

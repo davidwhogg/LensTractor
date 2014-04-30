@@ -598,23 +598,14 @@ time python LensTractor.py -v
 \rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log examples/sdss/0951+2635/*.cat 
 
 python LensTractor.py -v -l -z --survey SDSS \
-   examples/sdss/0951+2635/J*sci.fits
+   -o examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000_r \
+      examples/sdss/0951+2635/J*_r_sci.fits > \
+      examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000_r.log &
 
 # Works fine after fixing centroiding...
+# Counter not being reset?
 
-python LensTractor.py -v -n 2 -z --survey SDSS \
-   examples/sdss/0951+2635/J*sci.fits
-
-# This fails in PS.getModelPatch...
-
-# Try PS1:
-
-time python LensTractor.py -v -l -z \
-  -o examples/ps1/H1413+117_10x10arcsec_Lens.cat \
-     examples/ps1/H1413+117_10x10arcsec_*.fits 
-
-
-
+# Anyway, lens now initialized from nebula, albeit badly...!
 
 #=============================================================================
 FINISH:

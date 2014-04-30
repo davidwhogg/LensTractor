@@ -182,7 +182,7 @@ def main():
    args = parser.parse_args()
    
       
-   if (len(args.inputfiles) < 2):
+   if (len(args.inputfiles) < 1):
       # parser.print_help()
       print main.__doc__  # Whoah! What does this do?! Some sort of magic.
       sys.exit(-1)
@@ -191,7 +191,7 @@ def main():
    
    # Workflow:
    if args.lens:
-      modelnames = ['Lens']
+      modelnames = ['Nebula2','Lens']
    elif args.K > 0:
       modelnames = ['Nebula'+str(args.K)]
    else:
@@ -292,6 +292,7 @@ def main():
        outfile = LT.write_catalog(args.outstem)
        print modelname+" parameter values written to: "+outfile
 
+       # Save Nebula2 or Nebula4? Depends on BIC...
        previous = model.copy()
        counter = LT.counter
 
