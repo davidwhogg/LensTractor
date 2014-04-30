@@ -117,7 +117,7 @@ class Model():
         # Now add the point sources, with flux divided equally:
         for i in range(self.K):
             # Small random offsets from nebula centre:
-            e = 0.2 # arcsec, MAGIC
+            e = 0.1 # arcsec, MAGIC
             dx,dy = e*np.random.randn(2)/3600.0
             starpos = position.copy() + tractor.RaDecPos(dx,dy)
             starSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)

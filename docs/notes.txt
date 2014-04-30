@@ -608,4 +608,41 @@ python LensTractor.py -v -l -z --survey SDSS \
 # Anyway, lens now initialized from nebula, albeit badly...!
 
 #=============================================================================
+# 2014-04-30 (Wednesday) 10:47 PDT
+
+# Experimenting with optimizing PSF too, after initial Nebula fit:
+
+# elif self.method == 'optimizing':
+# 
+#      # First optimize to get the model about right, at fixed PSF:
+#      self.settings['Nrounds'] = 3
+#      self.settings['Nsteps_optimizing_catalog'] = 5
+#      self.settings['Nsteps_optimizing_PSFs'] = 0
+#      self.optimize()
+# 
+#      # Now optimize PSF at fixed model:
+#      self.settings['Nrounds'] = 1
+#      self.settings['Nsteps_optimizing_catalog'] = 0
+#      self.settings['Nsteps_optimizing_PSFs'] = 5
+#      self.optimize()
+# 
+#      # Refine model at best PSF:
+#      self.settings['Nrounds'] = 1
+#      self.settings['Nsteps_optimizing_catalog'] = 5
+#      self.settings['Nsteps_optimizing_PSFs'] = 0
+#      self.optimize()
+ 
+# Test on 0951:
+
+\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log examples/sdss/0951+2635/*.cat 
+
+time python LensTractor.py -v -l -z --survey SDSS \
+   -o examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000 \
+      examples/sdss/0951+2635/J*_?_sci.fits > \
+      examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000.log &
+
+# Works fine! Needed to re-thaw/re-freeze after PSF optimization.
+# CPUtime to do Lens given Nebula with this optimization scheme ~ 1 minute.
+
+#=============================================================================
 FINISH:

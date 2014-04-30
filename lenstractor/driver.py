@@ -123,6 +123,22 @@ class LensTractor():
             
         elif self.method == 'optimizing':
          
+            # First optimize to get the model about right, at fixed PSF:
+            self.settings['Nrounds'] = 3
+            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize()
+        
+            # Now optimize PSF at fixed model:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 0
+            self.settings['Nsteps_optimizing_PSFs'] = 5
+            self.optimize()
+            
+            # Refine model at best PSF:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
         
         else:
@@ -157,10 +173,7 @@ class LensTractor():
 # ----------------------------------------------------------------------------
 # Fit the model to the image data by maximizing the posterior PDF 
 # ("optimizing") with respect to the parameters.
- 
-# BUG: progress counter in plot name does not update when optimize is 
-# re-called... 
- 
+  
     def optimize(self):
 
         Nrounds = self.settings['Nrounds']
@@ -168,6 +181,7 @@ class LensTractor():
         Nsteps_optimizing_PSFs = self.settings['Nsteps_optimizing_PSFs']
 
         if self.vb: 
+           print " "
            print "Optimizing model:"
            print "   - no. of iterations per round to be spent on catalog: ",Nsteps_optimizing_catalog
            print "   - no. of iterations per round to be spent on PSFs: ",Nsteps_optimizing_PSFs
@@ -200,31 +214,41 @@ class LensTractor():
             if not self.noplots: 
                 self.plot_state('progress-%02d_optimizing_'%self.counter+self.model.name)
 
-#             if Nsteps_optimizing_PSFs > 0:
-#                 # Freeze the sources and sky and thaw the psfs:
-#                 if self.vb: print "Freezing catalog..."
-#                 self.chug.freezeParam('catalog')
-#                 for image in self.chug.getImages():
-#                     if self.vb: print "Thawing PSF..."
-#                     image.thawParams('psf')
-#                     if self.vb: print "Freezing photocal, WCS, sky..."
-#                     image.freezeParams('photocal', 'wcs', 'sky')
-#                 if self.vb: 
-#                     print "Fitting PSF: After thawing, zeroth PSF = ",self.chug.getImage(0).psf
-#                     print "Fitting PSF: PSF parameters to be optimized are:",self.chug.getParamNames()
-#                     print "Fitting PSF: Initial values are:",self.chug.getParams()
-#                     print "Fitting PSF: Step sizes:",self.chug.getStepSizes()
-# 
-#                 # Optimize everything that is not frozen:
-#                 for i in range(Nsteps_optimizing_PSFs):
-#                    dlnp,X,a = self.chug.optimize(shared_params=False)
-#                    if self.vb: print "Fitting PSF: at step",k,"parameter values are:",self.chug.getParams()
-#                 self.counter += 1
-#                 if self.vb: print "Fitting PSF: After optimizing, zeroth PSF = ",self.chug.getImage(0).psf
-#                 if not self.noplots: self.plot_state(
-#                     'progress-%02d_optimizing_'%self.counter+self.model.name)
-# 
-#                 # BUG: PSF not being optimized correctly - missing derivatives?
+            if Nsteps_optimizing_PSFs > 0:
+            
+                # Freeze the sources and calibration, and thaw the psfs:
+                if self.vb: print "Freezing catalog..."
+                self.chug.freezeParams('catalog')
+                for image in self.chug.getImages():
+                    if self.vb: print "Thawing PSF..."
+                    image.thawParams('psf')
+                    if self.vb: print "Freezing photocal, WCS, sky (just to make sure...)"
+                    image.freezeParams('photocal', 'wcs', 'sky')
+                if self.vb: 
+                    print "Fitting PSF: After thawing, zeroth PSF = ",self.chug.getImage(0).psf
+                    print "Fitting PSF: PSF parameters to be optimized are:",self.chug.getParamNames()
+                    print "Fitting PSF: Initial values are:",self.chug.getParams()
+                    print "Fitting PSF: Step sizes:",self.chug.getStepSizes()
+
+                # Optimize everything that is not frozen:
+                for i in range(Nsteps_optimizing_PSFs):
+                   dlnp,X,a = self.chug.optimize(shared_params=False)
+                   if self.vb: print "Fitting PSF: at counter =",self.counter,"parameter values are:",self.chug.getParams()
+                self.counter += 1
+                
+                if self.vb: print "Fitting PSF: After optimizing, zeroth PSF = ",self.chug.getImage(0).psf
+                if not self.noplots: self.plot_state(
+                    'progress-%02d_optimizing_PSF_for_'%self.counter+self.model.name)
+
+                # Freeze the psf again, and thaw the sources:
+                if self.vb: print "Re-thawing catalog..."
+                self.chug.thawParams('catalog')
+                for image in self.chug.getImages():
+                    if self.vb: print "Re-freezing PSF..."
+                    image.freezeParams('psf')
+                    if self.vb: print "Re-freezing photocal, WCS, sky (just to make sure...)"
+                    image.freezeParams('photocal', 'wcs', 'sky')
+
 
         # Save the best parameters!
 
