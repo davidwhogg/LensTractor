@@ -730,6 +730,25 @@ time python LensTractor.py -v -n 1 -z --survey KIDS \
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 # Hmm. Higher chisq than both Nebula2 and Lens! What's going on?
+# Check number of images predicted by Lens:
+
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Lens results: chisq, K, N, BIC = 22271.7981695 16 30603 22437.0598226
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (131.88175,
+# 2.56326) with Mags: g=22.2736, r=21.8371, u=23.1691 and Galaxy Shape: re=0.11,
+# ab=0.98, phi=-31.3 and EinsteinRadius: 0.100867 and External shear: gamma=0.1,
+# phi=-20.9 and a PointSource at RaDecPos: RA, Dec = (131.88176, 2.56315) with
+# Mags: g=23.7331, r=23.2332, u=24.2091 where 1 images are predicted
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+# OK, reject these as weak lenses!
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# BIC =  {'Lens': 22439.465100882804, 'Nebula': 22468.750809488483}
+# Hypothesis test result: Bayes factor in favour of Lens is exp[ 14.6428543028 ]
+# BUT: Lens predicts only 1 image, so it's not a strong lens.
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+# OK. Need to write this result out as a cookie...
 
 #=============================================================================
 FINISH:

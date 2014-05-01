@@ -247,10 +247,7 @@ def main():
        else:
            model.initialize(previous)
        
-       if vb: 
-           print "Initialization complete."
-           print " "
-
+       
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
        # Set up logging to the terminal by The Tractor:   
@@ -313,11 +310,19 @@ def main():
    # Make some decision about the nature of this system.
    
    if len(modelnames) > 1:
+       assert model.name == 'Lens'
+       
    # Compare models and report:
        print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
        print "BIC = ",BIC
-       print "Hypothesis test result: Bayes factor in favour of Lens is exp[",-0.5*(BIC['Lens'] - BIC['Nebula']),"]"
+       logBF = -0.5*(BIC['Lens'] - BIC['Nebula'])
+       Nimg = model.srcs[0].getMultiplicity()
+       print "Hypothesis test result: Bayes factor in favour of Lens is exp[",logBF,"]"
+       if Nimg < 2:
+           print "BUT: Lens predicts only 1 image, so it's not a strong lens."
        print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
+
+       
 
    # -------------------------------------------------------------------------
    

@@ -72,7 +72,7 @@ class Model():
                 
         if template == 'from_scratch':
                         
-            print "Initializing",self.name,"model from scratch..."
+            if self.vb: print "Initializing",self.name,"model from scratch..."
            
             assert position is not None
             assert SED is not None
@@ -84,7 +84,7 @@ class Model():
 
         else:
             
-            print "Initializing",self.name,"model from",template.name,"template..."
+            if self.vb: print "Initializing",self.name,"model from",template.name,"template..."
             
             if self.flavor == 'Nebula' and template.flavor == 'Nebula':
                 assert self.K > template.K
@@ -92,6 +92,12 @@ class Model():
             
             elif self.flavor == 'Lens' and template.flavor == 'Nebula':
                 self.spawn_Lens(template)
+
+        if self.vb: 
+            print "Initialization complete: "
+            for component in self.srcs:
+                print component
+            print " "
 
         return None
             
