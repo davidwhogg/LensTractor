@@ -684,7 +684,7 @@ time python LensTractor.py -v -l -z --survey KIDS \
 
 # i band image has object masked out. Try running without this image:
 
-\rm examples/kids/*.png examples/kids/*.log examples/kids/*.cat 
+\rm examples/kids/*.png examples/kids/*.log examples/kids/*.cat examples/kids/*.cookie 
 
 set id = KIDS_SLID_10058881_SID_8668
 time python LensTractor.py -v -l -z --survey KIDS \
@@ -749,6 +749,7 @@ time python LensTractor.py -v -n 1 -z --survey KIDS \
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 # OK. Need to write this result out as a cookie...
+# Done! Amend rm statement.
 
 #=============================================================================
 FINISH:

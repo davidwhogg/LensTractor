@@ -291,15 +291,15 @@ def main():
               
        # Compute BIC for this fit:
        BIC[model.flavor] = LT.getBIC()
-       print modelname+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[model.flavor]
+       if vb: print modelname+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[model.flavor]
        
        # Have model print itself:
        for component in model.srcs:
-           print component
+           if vb: print component
        
        # Write out simple one-line parameter catalog:
        outfile = LT.write_catalog(args.outstem)
-       print modelname+" parameter values written to: "+outfile
+       if vb: print modelname+" parameter values written to: "+outfile
 
        # Save Nebula2 or Nebula4? Depends on BIC...
        previous = model.copy()
@@ -313,17 +313,23 @@ def main():
        assert model.name == 'Lens'
        
    # Compare models and report:
-       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
-       print "BIC = ",BIC
+       if vb: print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
+       if vb: print "BIC = ",BIC
        logBF = -0.5*(BIC['Lens'] - BIC['Nebula'])
        Nimg = model.srcs[0].getMultiplicity()
-       print "Hypothesis test result: Bayes factor in favour of Lens is exp[",logBF,"]"
+       if vb: print "Hypothesis test result: Bayes factor in favour of Lens is exp[",logBF,"]"
        if Nimg < 2:
-           print "BUT: Lens predicts only 1 image, so it's not a strong lens."
-       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
+           if vb: print "BUT: Lens predicts only 1 image, so it's not a strong lens."
+       if vb: print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
 
+       # Record result as a "cookie":
+       if logBF > 0 and Nimg > 1:
+           result = 'Lens'
+       else:
+           result = 'Nebula'
+       cookie = LT.set_cookie(args.outstem, result)
+       if vb: print 'Result "'+result+'" written to '+cookie
        
-
    # -------------------------------------------------------------------------
    
    print "LensTractor stopping."

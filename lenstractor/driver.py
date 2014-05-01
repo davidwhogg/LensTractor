@@ -419,6 +419,27 @@ class LensTractor():
         return outfile
 
            
+# ----------------------------------------------------------------------------
+
+    def set_cookie(self,outstem,result):    
+
+        # Make sure outfile has model name in it:
+        self.outstem = outstem.split('.')[0]
+        outfile = self.outstem+'_result.cookie'
+        
+        # Open up a new file, over-writing any old one:
+        try: os.remove(outfile)
+        except OSError: pass
+        output = open(outfile,'w')
+
+        # Write result to file:
+        output.write("%s\n" % result)    
+        # Close file:
+        output.close()
+
+        return outfile
+
+           
 # ============================================================================
 # All progress plots.
 
