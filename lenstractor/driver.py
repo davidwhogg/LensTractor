@@ -141,7 +141,8 @@ class LensTractor():
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
         
-        else:
+        
+        else: # Apply unning and guile!
          
             # First optimize to get the fluxes about right:
             self.settings['Nrounds'] = 1
@@ -155,16 +156,22 @@ class LensTractor():
             self.sample()
             
             # Now optimize to refine model at fixed PSF:
-            self.settings['Nrounds'] = 5
+            self.settings['Nrounds'] = 3
             self.settings['Nsteps_optimizing_catalog'] = 5
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
             
-            # Finally, refine catalog and PSF
-            # self.settings['Nrounds'] = 1
-            # self.settings['Nsteps_optimizing_catalog'] = 3
-            # self.settings['Nsteps_optimizing_PSFs'] = 3
-            # self.optimize()
+            # Now optimize PSF at fixed model:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 0
+            self.settings['Nsteps_optimizing_PSFs'] = 5
+            self.optimize()
+            
+            # Refine model at best PSF:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize()
         
         self.getBIC()
         

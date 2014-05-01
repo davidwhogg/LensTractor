@@ -751,5 +751,63 @@ time python LensTractor.py -v -n 1 -z --survey KIDS \
 # OK. Need to write this result out as a cookie...
 # Done! Amend rm statement.
 
-#=============================================================================
+# Now: test on 0951!
+
+\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log \
+    examples/sdss/0951+2635/*.cat examples/sdss/0951+2635/*.cookie 
+
+time python LensTractor.py -v -l -z --survey SDSS \
+   -o examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000 \
+      examples/sdss/0951+2635/J*_?_sci.fits > \
+      examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000.log &
+      
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Nebula2 results: chisq, K, N, BIC = 92569.9986223 21 22500 92780.4453047
+# DevGalaxy at RaDecPos: RA, Dec = (147.84399, 26.58708) with Mags: g=18.7648, i=18.2156, r=18.2473, z=18.8377 and Galaxy Shape: re=0.30, ab=0.62, phi=-51.5
+# PointSource at RaDecPos: RA, Dec = (147.84400, 26.58711) with Mags: g=19.5918, i=19.2204, r=19.3628, z=18.7996
+# PointSource at RaDecPos: RA, Dec = (147.84394, 26.58705) with Mags: g=18.1281, i=17.6969, r=17.7414, z=17.5997
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Lens results: chisq, K, N, BIC = 91081.5245173 18 22500 91261.9073878
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (147.84399, 26.58709) with Mags: g=18.6027, i=18.1117, r=18.1779, z=18.4956 and Galaxy Shape: re=0.37, ab=0.75, phi=-54.9 and EinsteinRadius: 0.15453 and External shear: gamma=0.1, phi=-81.8 and a PointSource at RaDecPos: RA, Dec = (147.84397, 26.58708) with Mags: g=19.3766, i=18.9119, r=18.9762, z=18.7924 where 2 images are predicted
+# Lens parameter values written to: examples/sdss/0951+2635/J0951n_30x30arcsec_99999_Lens.cat
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# BIC =  {'Lens': 91261.907387838088, 'Nebula': 92780.44530469543}
+# Hypothesis test result: Bayes factor in favour of Lens is exp[ 759.268958429 ]
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+
+# Hmm: Lens still returning lower chisq. Why is this?
+# Nebula seems to want to fit point sources with nebuluous galaxy. Lens has
+# to have 2 points, and so fits better. Do we need to return to Nebula 
+# after fitting Lens, in order to ensure chisq(Nebula) is lower? Hmm...
+
+# What do we get for H1413? Do Nebula2,4,Lens.
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+
+time python LensTractor.py -v -l -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec.log &
+
+# First time running with PSF optimization?
+# 
+# In this run, BIC(N4) < BIC(Lens) < BIC(N2) - but Lens loses big time.
+# Inspection of images shows that PSF screws up horribly, such that all fits 
+# are kind of meaningless. Need to do N4 without PSF optimization, in this case.
+# Run time was about 95 secs.
+
+# If we just do N4->Lens, we get bad fits too. Really needs sampling step?
+# Try with out the -z flag, to include a bit of optimization.
+
+time python LensTractor.py -v -l \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec.log &
+     
+# Helps a bit - but we really need Nebula4 to converge before optimizing the
+# PSFs, otherwise they go elliptical and cover up some of the bad fit...
+
+
+# =============================================================================
 FINISH:
