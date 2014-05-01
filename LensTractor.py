@@ -296,6 +296,10 @@ def main():
        BIC[model.flavor] = LT.getBIC()
        print modelname+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[model.flavor]
        
+       # Have model print itself:
+       for component in model.srcs:
+           print component
+       
        # Write out simple one-line parameter catalog:
        outfile = LT.write_catalog(args.outstem)
        print modelname+" parameter values written to: "+outfile

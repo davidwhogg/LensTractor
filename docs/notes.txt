@@ -694,6 +694,42 @@ time python LensTractor.py -v -l -z --survey KIDS \
       examples/kids/${id}_r_???.fits > \
       examples/kids/${id}.log &
 
+# Lens wins BIC by exp(100) or so, getting a better fit. Why?
+#  1) Nebula2 did not converge?
+#  2) Lens only has one image, so the fit isnt messed up by the second point source. 
+# Example output:
+
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Nebula2 results: chisq, K, N, BIC = 22306.2232536 18 30603 22492.1426134
+# DevGalaxy at RaDecPos: RA, Dec = (131.88174, 2.56325) with Mags: g=22.309, r=21.8946, u=23.2185 and Galaxy Shape: re=0.04, ab=0.92, phi=-126.0
+# PointSource at RaDecPos: RA, Dec = (131.88163, 2.56311) with Mags: g=24.734, r=24.253, u=24.758
+# PointSource at RaDecPos: RA, Dec = (131.88177, 2.56310) with Mags: g=23.8507, r=23.3332, u=24.8397
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Lens results: chisq, K, N, BIC = 22268.1172902 16 30603 22433.3789434
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (131.88175, 2.56326) with Mags: g=22.2455, r=21.8027, u=23.1461 and Galaxy Shape: re=0.11, ab=0.98, phi=72.0 and EinsteinRadius: 0.0737226 and External shear: gamma=0.2, phi=-149.1 and a PointSource at RaDecPos: RA, Dec = (131.88172, 2.56314) with Mags: g=23.7137, r=23.2222, u=24.177
+# Lens parameter values written to: examples/kids/KIDS_SLID_10058881_SID_8668_Lens.cat
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# BIC =  {'Lens': 22433.378943382228, 'Nebula': 22492.142613356249}
+# Hypothesis test result: Bayes factor in favour of Lens is exp[ 29.381834987 ]
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+# Try Nebula1 (init from scratch of course):
+
+set id = KIDS_SLID_10058881_SID_8668
+time python LensTractor.py -v -n 1 -z --survey KIDS \
+   -o examples/kids/${id} \
+      examples/kids/${id}_u_???.fits \
+      examples/kids/${id}_g_???.fits \
+      examples/kids/${id}_r_???.fits > \
+      examples/kids/${id}_Nebula1.log &
+
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Nebula1 results: chisq, K, N, BIC = 22371.1758922 13 30603 22505.4509854
+# DevGalaxy at RaDecPos: RA, Dec = (131.88174, 2.56326) with Mags: g=22.2449, r=21.8268, u=23.1753 and Galaxy Shape: re=0.04, ab=0.91, phi=-82.2
+# PointSource at RaDecPos: RA, Dec = (131.88174, 2.56309) with Mags: g=23.8223, r=23.3274, u=24.1568
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+# Hmm. Higher chisq than both Nebula2 and Lens! What's going on?
 
 #=============================================================================
 FINISH:
