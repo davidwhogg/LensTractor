@@ -645,4 +645,55 @@ time python LensTractor.py -v -l -z --survey SDSS \
 # CPUtime to do Lens given Nebula with this optimization scheme ~ 1 minute.
 
 #=============================================================================
+# 2014-04-30 (Wednesday) 13:31 PDT
+
+# Test on KiDS images that are checked in, and maybe some from the datapacks online.
+
+set KIDS_DIR = /Users/pjm/work/stronglensing/KiDS/test-cutouts/data
+
+set ids = (\
+SLID_10058881_SID_8668 \
+)
+
+foreach id ( $ids )
+    foreach filter ( u g r i )
+        set sci = `ls $KIDS_DIR/*_${filter}_*_${id}_*100.fits`
+        set exsci = examples/kids/KIDS_${id}_${filter}_sci.fits
+        cp -v $sci $exsci
+        set wht = $sci:r.weight.fits
+        set exwht = `echo $exsci | sed s/sci/wht/g`
+        cp -v $wht $exwht
+    end
+end
+
+set id = KIDS_SLID_10058881_SID_8668
+time python LensTractor.py -v -l -z --survey KIDS \
+   -o examples/kids/${id} \
+      examples/kids/${id}_?_???.fits > \
+      examples/kids/${id}.log &
+
+# Lens initializes, but can't make patches:
+
+#   File "/users/pjm/work/stronglensing/LensTractor/lenstractor/lens.py", line 199, in getModelPatch
+#     patch += PS.getModelPatch(img)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 525, in __add__
+#     return self.performArithmetic(other, '__iadd__')
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 492, in performArithmetic
+#     assert(isinstance(other, Patch))
+# AssertionError
+
+# i band image has object masked out. Try running without this image:
+
+\rm examples/kids/*.png examples/kids/*.log examples/kids/*.cat 
+
+set id = KIDS_SLID_10058881_SID_8668
+time python LensTractor.py -v -l -z --survey KIDS \
+   -o examples/kids/${id} \
+      examples/kids/${id}_u_???.fits \
+      examples/kids/${id}_g_???.fits \
+      examples/kids/${id}_r_???.fits > \
+      examples/kids/${id}.log &
+
+
+#=============================================================================
 FINISH:

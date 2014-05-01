@@ -126,7 +126,14 @@ def main():
           examples/sdss/0951+2635/*sci.fits > \
           examples/sdss/0951+2635/0951+2635_Nebula2.log
 
-       
+     set id = KIDS_SLID_10058881_SID_8668
+     python LensTractor.py -v -l -z --survey KIDS \
+       -o examples/kids/${id} \
+          examples/kids/${id}_u_???.fits \
+          examples/kids/${id}_g_???.fits \
+          examples/kids/${id}_r_???.fits > \
+          examples/kids/${id}.log &
+
    
    DEPENDENCIES
      * The Tractor     astrometry.net/svn/trunk/projects/tractor
@@ -197,7 +204,8 @@ def main():
    else:
       modelnames = ['Nebula2','Nebula4','Lens']
          
-   BIC = dict(zip(modelnames,np.zeros(len(modelnames))))
+   # BIC = dict(zip(modelnames,np.zeros(len(modelnames))))
+   BIC = dict()
 
 
    if vb: 
@@ -285,8 +293,8 @@ def main():
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
               
        # Compute BIC for this fit:
-       BIC[modelname] = LT.getBIC()
-       print modelname+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[modelname]
+       BIC[model.flavor] = LT.getBIC()
+       print modelname+" results: chisq, K, N, BIC =",LT.minchisq,LT.K,LT.N,BIC[model.flavor]
        
        # Write out simple one-line parameter catalog:
        outfile = LT.write_catalog(args.outstem)
@@ -298,13 +306,14 @@ def main():
 
    # -------------------------------------------------------------------------
    
-   # # Make some decision about the nature of this system.
-   # 
-   # if len(modelnames) > 1:
-   # # Compare models and report:
-   #     print "BIC = ",BIC
-   #     print "Hypothesis test result: Bayes factor in favour of nebula is exp[",-0.5*(BIC['Nebula'] - BIC['Lens']),"]"
-   #     print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
+   # Make some decision about the nature of this system.
+   
+   if len(modelnames) > 1:
+   # Compare models and report:
+       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
+       print "BIC = ",BIC
+       print "Hypothesis test result: Bayes factor in favour of Lens is exp[",-0.5*(BIC['Lens'] - BIC['Nebula']),"]"
+       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
 
    # -------------------------------------------------------------------------
    

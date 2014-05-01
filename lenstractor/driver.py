@@ -467,6 +467,7 @@ class LensTractor():
 
           model = self.chug.getModelImages()[i]
           # print "LensTractor.plot_state: minmax of model = ",np.min(model),np.max(model)
+          print "Model image shape: ",model.shape
           plt.subplot(py,px,2)
           plt.imshow(-model, **ima)
           self.tidyup_plot()
@@ -485,6 +486,7 @@ class LensTractor():
               plt.title('Residuals ($\pm 5\sigma$)')
 
           psfimage = image.psf.getPointSourcePatch(*model.shape).patch
+          print "PSF image shape: ",psfimage.shape
           plt.subplot(py,px,4)
           plt.imshow(-psfimage, **psfa)
           self.tidyup_plot()
