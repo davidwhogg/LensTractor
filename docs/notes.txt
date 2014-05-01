@@ -781,11 +781,12 @@ time python LensTractor.py -v -l -z --survey SDSS \
 # to have 2 points, and so fits better. Do we need to return to Nebula 
 # after fitting Lens, in order to ensure chisq(Nebula) is lower? Hmm...
 
-# What do we get for H1413? Do Nebula2,4,Lens.
+
+# Relatedly, what do we get for H1413? Do Nebula2,4,Lens.
 
 \rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
 
-time python LensTractor.py -v -l -z \
+time python LensTractor.py -v -z \
   -o examples/ps1/H1413+117_10x10arcsec \
      examples/ps1/H1413+117_10x10arcsec_*.fits > \
      examples/ps1/H1413+117_10x10arcsec.log &
@@ -797,8 +798,12 @@ time python LensTractor.py -v -l -z \
 # are kind of meaningless. Need to do N4 without PSF optimization, in this case.
 # Run time was about 95 secs.
 
-# If we just do N4->Lens, we get bad fits too. Really needs sampling step?
-# Try with out the -z flag, to include a bit of optimization.
+# If we just do N4->Lens, we get bad fits too. Hacked this into the main script:
+#      modelnames = ['Nebula4','Lens']
+# and ran with -l.
+
+# Does it really need the sampling step, then?
+# Try with out the -z flag, to include a bit of sampling.
 
 time python LensTractor.py -v -l \
   -o examples/ps1/H1413+117_10x10arcsec \
