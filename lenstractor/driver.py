@@ -125,21 +125,21 @@ class LensTractor():
          
             # First optimize to get the model about right, at fixed PSF:
             self.settings['Nrounds'] = 3
-            self.settings['Nsteps_optimizing_catalog'] = 5
-            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.settings['Nsteps_optimizing_catalog'] = 15 # 5
+            self.settings['Nsteps_optimizing_PSFs'] = 2
             self.optimize()
         
-            # Now optimize PSF at fixed model:
-            self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 0
-            self.settings['Nsteps_optimizing_PSFs'] = 5
-            self.optimize()
-            
-            # Refine model at best PSF:
-            self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 5
-            self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()
+#             # Now optimize PSF at fixed model:
+#             self.settings['Nrounds'] = 1
+#             self.settings['Nsteps_optimizing_catalog'] = 0
+#             self.settings['Nsteps_optimizing_PSFs'] = 5
+#             self.optimize()
+#             
+#             # Refine model at best PSF:
+#             self.settings['Nrounds'] = 1
+#             self.settings['Nsteps_optimizing_catalog'] = 5
+#             self.settings['Nsteps_optimizing_PSFs'] = 0
+#             self.optimize()
         
         
         else: # Apply unning and guile!
@@ -204,8 +204,31 @@ class LensTractor():
                 print "Fitting "+self.model.name+": Initial values are:",self.chug.getParams()
                 print "Fitting "+self.model.name+": Step sizes:",self.chug.getStepSizes()
 
-            # Optimize sources:
+            # 1) Optimize the model (but not Nebula's galaxy):
             for i in range(Nsteps_optimizing_catalog):
+               
+               # Freeze the PSFs, wcs and photocal, leaving the sky and sources:
+               for image in self.chug.getImages():
+                   image.thawParams('sky')
+                   image.freezeParams('photocal')
+                   image.freezeParams('wcs')
+                   image.freezeParams('psf')
+               
+               # Thaw the catalog:
+               self.chug.thawParam('catalog')
+               
+               # Freeze the galaxy!
+               if self.model.flavor == 'Nebula':
+                   nebulousgalaxy = self.chug.getCatalog()[0]
+                   nebulousgalaxy.freezeParam('pos')
+                   nebulousgalaxy.freezeParam('brightness')
+                   nebulousgalaxy.freezeParam('shape')
+               else: # it's a Lens...
+                   pointsourcelens = self.chug.getCatalog()[0]
+                   pointsourcelens.lensgalaxy.freezeParam('pos')
+                   pointsourcelens.lensgalaxy.freezeParam('brightness')
+                   pointsourcelens.lensgalaxy.freezeParam('shape')
+              
                dlnp,X,a = self.chug.optimize(damp=3,shared_params=False)
                # print "Fitting "+self.model.name+": at step",k,"parameter values are:",self.chug.getParams()
                if self.vb: 
@@ -221,6 +244,8 @@ class LensTractor():
             if not self.noplots: 
                 self.plot_state('progress-%02d_optimizing_'%self.counter+self.model.name)
 
+
+            # 2) Optimize the PSFs at fixed model:
             if Nsteps_optimizing_PSFs > 0:
             
                 # Freeze the sources and calibration, and thaw the psfs:
@@ -255,6 +280,35 @@ class LensTractor():
                     image.freezeParams('psf')
                     if self.vb: print "Re-freezing photocal, WCS, sky (just to make sure...)"
                     image.freezeParams('photocal', 'wcs', 'sky')
+
+
+            # 3) Optimize the model again (this time including Nebula's galaxy):
+            for i in range(Nsteps_optimizing_catalog):
+               
+               # Freeze the PSFs, wcs and photocal, leaving the sky and sources:
+               for image in self.chug.getImages():
+                   image.thawParams('sky')
+                   image.freezeParams('photocal')
+                   image.freezeParams('wcs')
+                   image.freezeParams('psf')
+               
+               # Thaw the catalog, including the galaxy!
+               self.chug.thawParam('catalog')
+               
+               dlnp,X,a = self.chug.optimize(damp=3,shared_params=False)
+               # print "Fitting "+self.model.name+": at step",k,"parameter values are:",self.chug.getParams()
+               if self.vb: 
+                   print "Progress: counter,dlnp = ",self.counter,dlnp
+                   print ""
+                   print "Catalog parameters:",self.chug.getParamNames()
+                   print "Catalog values:",self.chug.getParams()
+               if dlnp == 0: 
+                   print "Converged? Exiting..."
+                   # Although this only leaves *this* loop...
+                   break
+            
+            if not self.noplots: 
+                self.plot_state('progress-%02d_optimizing_'%self.counter+self.model.name)
 
 
         # Save the best parameters!

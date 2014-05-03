@@ -813,6 +813,54 @@ time python LensTractor.py -v -l \
 # Helps a bit - but we really need Nebula4 to converge before optimizing the
 # PSFs, otherwise they go elliptical and cover up some of the bad fit...
 
+# 2014-05-01 (Thursday) 18:07 PDT
 
+# With Adri, trying to turn off galaxy in the early stages of fit...
+
+#  self.settings['Nrounds'] = 3
+#  self.settings['Nsteps_optimizing_catalog'] = 15
+#  self.settings['Nsteps_optimizing_PSFs'] = 2
+#  self.optimize()
+
+# Only optimizing, only fitting Lens (but that means N2 first). 
+
+\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log \
+    examples/sdss/0951+2635/*.cat examples/sdss/0951+2635/*.cookie 
+
+time python LensTractor.py -v -l -z --survey SDSS \
+   -o examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000 \
+      examples/sdss/0951+2635/J*_?_sci.fits > \
+      examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000.log &
+
+# Hmm. Error:
+# 
+# Initialization complete: 
+# Traceback (most recent call last):
+#   File "LensTractor.py", line 344, in <module>
+#     main()
+#   File "LensTractor.py", line 269, in main
+#     LT = lenstractor.LensTractor(dataset,model,args.survey,counter=counter,vb=vb,noplots=args.noplots)
+#   File "/users/pjm/work/stronglensing/LensTractor/lenstractor/driver.py", line 106, in __init__
+#     self.plot_state('progress-%02d_initial_'%self.counter+self.model.name)
+#   File "/users/pjm/work/stronglensing/LensTractor/lenstractor/driver.py", line 523, in plot_state
+#     chi = self.chug.getChiImage(i)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 2507, in getChiImage
+#     mod = self.getModelImage(img, srcs=srcs, minsb=minsb)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 2373, in getModelImage
+#     patch = self.getModelPatch(img, src, minsb=minsb)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 2335, in getModelPatch
+#     deps = (img.hashkey(), src.hashkey())
+#   File "/Users/pjm/work/tractor/tractor/utils.py", line 669, in hashkey
+#     t.append(s.hashkey())
+# AttributeError: 'numpy.ndarray' object has no attribute 'hashkey'
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+
+time python LensTractor.py -v -l -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec.log &
+
+# Same error.
 # =============================================================================
 FINISH:

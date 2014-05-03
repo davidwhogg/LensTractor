@@ -95,9 +95,9 @@ class Model():
 
         if self.vb: 
             print "Initialization complete: "
-            for component in self.srcs:
-                print component
-            print " "
+#             for component in self.srcs:
+#                 print component
+#             print " "
 
         return None
             
@@ -107,9 +107,9 @@ class Model():
                 
         # Start with an De Vaucouleurs galaxy at the object centroid:
         galpos = position
-        # Give it its fair share of the flux, and start faint:
-        fudge = 0.2 # MAGIC
-        galSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
+        # Give it a very faint flux:
+        fudge = 0.0001 # MAGIC
+        galSED = SED.copy() + 2.5*np.log10(1.0/fudge)
         # Some standard shape and size parameters:
         re = 0.5    # arcsec
         q = 0.8     # axis ratio
@@ -126,7 +126,8 @@ class Model():
             e = 0.1 # arcsec, MAGIC
             dx,dy = e*np.random.randn(2)/3600.0
             starpos = position.copy() + tractor.RaDecPos(dx,dy)
-            starSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
+            # Divide up the remaining flux between the point sources:
+            starSED = SED.copy() - 2.5*np.log10((1.0-fudge)/self.K)
             # Package up:
             star = tractor.PointSource(starpos,starSED)
             if self.vb: print star
