@@ -828,6 +828,7 @@ time python LensTractor.py -v -z \
 # Next up:
 #  - overlay image name on data image, bottom lefthand corner
 #  - overlay cartoon model on predicted image
+#  - overlay goodness of fit on residual image
 #  - figure out how to zoom in to only show 6x6 arcsec
 #  - make PSF images only 6x6 arcsec...
 
