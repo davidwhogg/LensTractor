@@ -526,6 +526,9 @@ class LensTractor():
           plt.imshow(-image.data, **ima)
           self.tidyup_plot()
           plt.title('Observed image')
+          # Overlay image filter in lower left corner
+          plt.text(1,1,image.photocal.bandname)
+          # Figure out how to get this in bottom right hand corner instead
 
           # 2) Predicted image
           counter += 1
@@ -534,6 +537,11 @@ class LensTractor():
           plt.imshow(-model, **ima)
           self.tidyup_plot()
           plt.title('Predicted image')
+          # Overlay name of model in lower left corner
+          plt.text(1,1,self.model.name)
+          # Figure out how to get this in top left hand corner instead
+          # Overlay cartoon of model...
+          # TBI!
 
           # 3) Normalised residual
           counter += 1
@@ -548,6 +556,8 @@ class LensTractor():
               plt.title('Residuals (flexible scale)')
           else:
               plt.title('Residuals ($\pm 5\sigma$)')
+          # Overlay quantified goodness of fit, in sigma from acceptable...
+          # TBI!
 
           # 4) PSF image
           counter += 1
