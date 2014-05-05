@@ -266,7 +266,7 @@ def main():
        # Pass in a copy of the image list, so that the PSF etc are 
        # initialised correctly for each model. 
        
-       LT = lenstractor.LensTractor(dataset,model,args.survey,counter=counter,vb=vb,noplots=args.noplots)
+       LT = lenstractor.LensTractor(dataset,model,args.outstem,args.survey,counter=counter,vb=vb,noplots=args.noplots)
 
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -299,7 +299,7 @@ def main():
            if vb: print component
        
        # Write out simple one-line parameter catalog:
-       outfile = LT.write_catalog(args.outstem)
+       outfile = LT.write_catalog()
        if vb: print modelname+" parameter values written to: "+outfile
 
        # Save Nebula2 or Nebula4? Depends on BIC...

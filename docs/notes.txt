@@ -813,6 +813,23 @@ time python LensTractor.py -v -l \
 # Helps a bit - but we really need Nebula4 to converge before optimizing the
 # PSFs, otherwise they go elliptical and cover up some of the bad fit...
 
+# =============================================================================
+# 2014-05-04 (Sunday) 22:32 PDT
+
+# Put all panels in one plot...
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec.log &
+     
+# OK, looks good.
+# Next up:
+#  - overlay image name on data image, bottom lefthand corner
+#  - overlay cartoon model on predicted image
+#  - figure out how to zoom in to only show 6x6 arcsec
+#  - make PSF images only 6x6 arcsec...
 
 # =============================================================================
 FINISH:
