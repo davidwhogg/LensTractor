@@ -185,6 +185,8 @@ def main():
    parser.add_argument('-o', '--output', dest='outstem', type=str, default='lenstractor.cat', help='Output catalog filename stem')
    # Survey we are working on (affects data read-in):
    parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey (SDSS, PS1 or KIDS)")
+   # Manual input of model initialization:
+   parser.add_argument('--manual', dest='catalog', type=str, default="None", help="Catalog of Nebula model parameters, for initializing positions")
 
    # Read in options and arguments - note only sci and wht images are supplied:
    args = parser.parse_args()
@@ -197,13 +199,16 @@ def main():
    
    vb = args.verbose
    
+   # Manual initialization:
+   if args.catalog != 'None':
+      manual = True
+   else:
+      manual = False
+      
    # Workflow:
    if args.lens:
       # modelnames = ['Nebula2','Lens']
-      if manual:
-          modelnames = ['Lens']
-      else:
-          modelnames = ['Nebula4','Lens']
+      modelnames = ['Nebula4','Lens']
    elif args.K > 0:
       modelnames = ['Nebula'+str(args.K)]
    else:
@@ -248,7 +253,7 @@ def main():
        model = lenstractor.Model(modelname,vb=vb)
        
        if manual:
-           model.initialize('from_scratch', position=catalog, SED=SED)
+           model.initialize('from_scratch', position=args.catalog, SED=SED)
        
        else:
            if previous is None:

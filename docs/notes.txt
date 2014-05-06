@@ -833,4 +833,30 @@ time python LensTractor.py -v -z \
 #  - make PSF images only 6x6 arcsec...
 
 # =============================================================================
+# 2014-05-06 (Tuesday) 15:58 PDT
+
+# Manual initialization - for testing optimizer. Suggested by Tommaso.
+
+# Here's the H1413 example:
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -n 4 -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits
+
+cp examples/ps1/H1413+117_10x10arcsec_Nebula4.cat examples/ps1/n4.txt
+cp examples/ps1/H1413+117_10x10arcsec_progress-06_optimizing_Nebula4.png  examples/ps1/n4.PNG
+     
+# Save as "n4.txt" for initialization tests, also save plot for reference as 
+# "n4.PNG". Now run with manual optimization:
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -n 4 -z \
+  --manual examples/ps1/n4.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits
+
+# Looks good, except initial sources are quite faint? No, they're always like that. Check in.
+
+
+# =============================================================================
 FINISH:
