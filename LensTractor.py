@@ -97,6 +97,7 @@ def main():
 
    OPTIONAL INPUTS
      -n --nebula                  K    Only fit NebulaK model, initialized from scratch
+     --manual                  catalog Initialize model positions from catalog
      --optimization-rounds        Nr   Number of rounds of optimization [2]
      --optimization-steps-catalog Nc   Number of steps per round spent
                                         optimizing source catalog [10]
@@ -199,7 +200,10 @@ def main():
    # Workflow:
    if args.lens:
       # modelnames = ['Nebula2','Lens']
-      modelnames = ['Nebula4','Lens']
+      if manual:
+          modelnames = ['Lens']
+      else:
+          modelnames = ['Nebula4','Lens']
    elif args.K > 0:
       modelnames = ['Nebula'+str(args.K)]
    else:
@@ -243,10 +247,14 @@ def main():
                      
        model = lenstractor.Model(modelname,vb=vb)
        
-       if previous is None:
-           model.initialize('from_scratch', position=position, SED=SED)
+       if manual:
+           model.initialize('from_scratch', position=catalog, SED=SED)
+       
        else:
-           model.initialize(previous)
+           if previous is None:
+               model.initialize('from_scratch', position=position, SED=SED)
+           else:
+               model.initialize(previous)
        
        
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
