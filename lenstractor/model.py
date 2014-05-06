@@ -315,6 +315,7 @@ class Model():
         assert Npos == self.K
         
         # Create position objects:
+        # BUG! THESE HARDCODED INDICES ONLY WORK FOR NBANDS = 2
         positions.append(tractor.RaDecPos(x[0],x[1]))
         positions.append(tractor.RaDecPos(x[7],x[8]))
         positions.append(tractor.RaDecPos(x[11],x[12]))
