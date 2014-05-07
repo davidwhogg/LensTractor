@@ -876,5 +876,10 @@ cp ds9.cat examples/ps1/n4.txt
 
 # Works fine! Now ready for Adri to derive starting positions for SDSS examples.
 
+# Renamed examples:
+
+mv examples/ps1/n4.txt examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt
+mv examples/ps1/n4.reg examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg
+
 # =============================================================================
 FINISH:
