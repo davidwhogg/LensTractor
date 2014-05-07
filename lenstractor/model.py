@@ -70,6 +70,9 @@ class Model():
     
     def initialize(self,template,position=None,SED=None):
                 
+        assert position is not None
+        assert SED is not None
+
         if template == 'from_scratch':
                         
             # Are we initializing positions from a catalog?
@@ -78,15 +81,12 @@ class Model():
                 if self.vb: print "Initializing",self.name,"model from catalog..."
             
                 self.manual = True
-                position = self.get_positions_from(position)
+                position = self.get_positions_from(position,SED)
             
             else:
             
                 if self.vb: print "Initializing",self.name,"model from scratch..."
                 self.manual = False
-
-            assert position is not None
-            assert SED is not None
 
             if self.flavor == 'Nebula':
                 self.create_Nebula(position,SED)   # NB. Nebula position can be a list!
@@ -295,9 +295,10 @@ class Model():
         
 # ----------------------------------------------------------------------------
     
-    def get_positions_from(self,catalog):
+    def get_positions_from(self,catalog,SED):
     
         positions = []
+        Nbands = SED.numberOfParams()
         
         # Open up LT output catalog format file and read positions, assuming 
         # hard-coded column numbers:
@@ -315,13 +316,12 @@ class Model():
         assert Npos == self.K
         
         # Create position objects:
-        # BUG! THESE HARDCODED INDICES ONLY WORK FOR NBANDS = 2
-        positions.append(tractor.RaDecPos(x[0],x[1]))
-        positions.append(tractor.RaDecPos(x[7],x[8]))
-        positions.append(tractor.RaDecPos(x[11],x[12]))
-        if Npos == 4:
-            positions.append(tractor.RaDecPos(x[15],x[16]))
-            positions.append(tractor.RaDecPos(x[19],x[20]))
+        j = 0
+        positions.append(tractor.RaDecPos(x[j],x[j+1]))
+        j += 3
+        for i in range(Npos):
+            j += 2 + Nbands
+            positions.append(tractor.RaDecPos(x[j],x[j+1]))
 
         return positions
         

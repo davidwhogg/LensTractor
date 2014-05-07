@@ -874,6 +874,7 @@ more ds9.cat
 # Now test, by copying this into n4.txt and rerunning...
 cp ds9.cat examples/ps1/n4.txt 
 
+# Works fine! Now ready for Adri to derive starting positions for SDSS examples.
 
 # =============================================================================
 FINISH:
