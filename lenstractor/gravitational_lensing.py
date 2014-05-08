@@ -29,8 +29,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Caustic drawing:
-# from matplotlib import nxutils
-from matplotlib.path import Path  
+from matplotlib import nxutils
+#from matplotlib.path import Path  
 # Requires matplotlib v1.3.1 or greater; upgrade with 'pip install --upgrade matplotlib'
 
 # Global verbosity:
@@ -143,23 +143,23 @@ class GravitationalLens:
         rc=self.radial_caustic()
         tc=self.tangential_caustic()
 
-        # Old Matplotlib:
-        # if nxutils.points_inside_poly(np.atleast_2d(sourceposition),rc)[0]:
-        #     if nxutils.points_inside_poly(np.atleast_2d(sourceposition),tc)[0]:
-        #         return 4
-        #     return 2
-        # if nxutils.points_inside_poly(np.atleast_2d(sourceposition),tc)[0]:
-        #     return 3
-        
-        # New Matplotlib:
-        rc=Path(rc)
-        tc=Path(tc)
-        if rc.contains_points(np.atleast_2d(sourceposition))[0]:
-            if tc.contains_points(np.atleast_2d(sourceposition))[0]:
+        #Old Matplotlib:
+        if nxutils.points_inside_poly(np.atleast_2d(sourceposition),rc)[0]:
+            if nxutils.points_inside_poly(np.atleast_2d(sourceposition),tc)[0]:
                 return 4
             return 2
-        if tc.contains_points(np.atleast_2d(sourceposition))[0]:
+        if nxutils.points_inside_poly(np.atleast_2d(sourceposition),tc)[0]:
             return 3
+        
+        # New Matplotlib:
+        #rc=Path(rc)
+        #tc=Path(tc)
+        #if rc.contains_points(np.atleast_2d(sourceposition))[0]:
+        #    if tc.contains_points(np.atleast_2d(sourceposition))[0]:
+        #        return 4
+        #    return 2
+        #if tc.contains_points(np.atleast_2d(sourceposition))[0]:
+        #    return 3
 
         return 1
         

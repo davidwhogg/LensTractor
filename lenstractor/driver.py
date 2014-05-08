@@ -306,8 +306,8 @@ class LensTractor():
                
         if self.vb: print "Initial size (in each dimension) of sample ball = ",self.psteps
         
-        pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
-        # pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
+        #pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
+        pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
         rstate = None
         lnp = None
 
@@ -342,8 +342,8 @@ class LensTractor():
                  self.chug.setParams(self.bestpars)
                  p0 = np.array(self.chug.getParams())
                  self.psteps = np.std(pp,axis=0)
-                 pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
-                 # pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
+                 # pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
+                 pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
                  rstate = None
                  lnp = None
 
