@@ -645,4 +645,241 @@ time python LensTractor.py -v -l -z --survey SDSS \
 # CPUtime to do Lens given Nebula with this optimization scheme ~ 1 minute.
 
 #=============================================================================
+# 2014-04-30 (Wednesday) 13:31 PDT
+
+# Test on KiDS images that are checked in, and maybe some from the datapacks online.
+
+set KIDS_DIR = /Users/pjm/work/stronglensing/KiDS/test-cutouts/data
+
+set ids = (\
+SLID_10058881_SID_8668 \
+)
+
+foreach id ( $ids )
+    foreach filter ( u g r i )
+        set sci = `ls $KIDS_DIR/*_${filter}_*_${id}_*100.fits`
+        set exsci = examples/kids/KIDS_${id}_${filter}_sci.fits
+        cp -v $sci $exsci
+        set wht = $sci:r.weight.fits
+        set exwht = `echo $exsci | sed s/sci/wht/g`
+        cp -v $wht $exwht
+    end
+end
+
+set id = KIDS_SLID_10058881_SID_8668
+time python LensTractor.py -v -l -z --survey KIDS \
+   -o examples/kids/${id} \
+      examples/kids/${id}_?_???.fits > \
+      examples/kids/${id}.log &
+
+# Lens initializes, but can't make patches:
+
+#   File "/users/pjm/work/stronglensing/LensTractor/lenstractor/lens.py", line 199, in getModelPatch
+#     patch += PS.getModelPatch(img)
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 525, in __add__
+#     return self.performArithmetic(other, '__iadd__')
+#   File "/Users/pjm/work/tractor/tractor/engine.py", line 492, in performArithmetic
+#     assert(isinstance(other, Patch))
+# AssertionError
+
+# i band image has object masked out. Try running without this image:
+
+\rm examples/kids/*.png examples/kids/*.log examples/kids/*.cat examples/kids/*.cookie 
+
+set id = KIDS_SLID_10058881_SID_8668
+time python LensTractor.py -v -l -z --survey KIDS \
+   -o examples/kids/${id} \
+      examples/kids/${id}_u_???.fits \
+      examples/kids/${id}_g_???.fits \
+      examples/kids/${id}_r_???.fits > \
+      examples/kids/${id}.log &
+
+# Lens wins BIC by exp(100) or so, getting a better fit. Why?
+#  1) Nebula2 did not converge?
+#  2) Lens only has one image, so the fit isnt messed up by the second point source. 
+# Example output:
+
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Nebula2 results: chisq, K, N, BIC = 22306.2232536 18 30603 22492.1426134
+# DevGalaxy at RaDecPos: RA, Dec = (131.88174, 2.56325) with Mags: g=22.309, r=21.8946, u=23.2185 and Galaxy Shape: re=0.04, ab=0.92, phi=-126.0
+# PointSource at RaDecPos: RA, Dec = (131.88163, 2.56311) with Mags: g=24.734, r=24.253, u=24.758
+# PointSource at RaDecPos: RA, Dec = (131.88177, 2.56310) with Mags: g=23.8507, r=23.3332, u=24.8397
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Lens results: chisq, K, N, BIC = 22268.1172902 16 30603 22433.3789434
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (131.88175, 2.56326) with Mags: g=22.2455, r=21.8027, u=23.1461 and Galaxy Shape: re=0.11, ab=0.98, phi=72.0 and EinsteinRadius: 0.0737226 and External shear: gamma=0.2, phi=-149.1 and a PointSource at RaDecPos: RA, Dec = (131.88172, 2.56314) with Mags: g=23.7137, r=23.2222, u=24.177
+# Lens parameter values written to: examples/kids/KIDS_SLID_10058881_SID_8668_Lens.cat
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# BIC =  {'Lens': 22433.378943382228, 'Nebula': 22492.142613356249}
+# Hypothesis test result: Bayes factor in favour of Lens is exp[ 29.381834987 ]
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+# Try Nebula1 (init from scratch of course):
+
+set id = KIDS_SLID_10058881_SID_8668
+time python LensTractor.py -v -n 1 -z --survey KIDS \
+   -o examples/kids/${id} \
+      examples/kids/${id}_u_???.fits \
+      examples/kids/${id}_g_???.fits \
+      examples/kids/${id}_r_???.fits > \
+      examples/kids/${id}_Nebula1.log &
+
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Nebula1 results: chisq, K, N, BIC = 22371.1758922 13 30603 22505.4509854
+# DevGalaxy at RaDecPos: RA, Dec = (131.88174, 2.56326) with Mags: g=22.2449, r=21.8268, u=23.1753 and Galaxy Shape: re=0.04, ab=0.91, phi=-82.2
+# PointSource at RaDecPos: RA, Dec = (131.88174, 2.56309) with Mags: g=23.8223, r=23.3274, u=24.1568
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+# Hmm. Higher chisq than both Nebula2 and Lens! What's going on?
+# Check number of images predicted by Lens:
+
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Lens results: chisq, K, N, BIC = 22271.7981695 16 30603 22437.0598226
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (131.88175,
+# 2.56326) with Mags: g=22.2736, r=21.8371, u=23.1691 and Galaxy Shape: re=0.11,
+# ab=0.98, phi=-31.3 and EinsteinRadius: 0.100867 and External shear: gamma=0.1,
+# phi=-20.9 and a PointSource at RaDecPos: RA, Dec = (131.88176, 2.56315) with
+# Mags: g=23.7331, r=23.2332, u=24.2091 where 1 images are predicted
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+# OK, reject these as weak lenses!
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# BIC =  {'Lens': 22439.465100882804, 'Nebula': 22468.750809488483}
+# Hypothesis test result: Bayes factor in favour of Lens is exp[ 14.6428543028 ]
+# BUT: Lens predicts only 1 image, so it's not a strong lens.
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+# OK. Need to write this result out as a cookie...
+# Done! Amend rm statement.
+
+# Now: test on 0951!
+
+\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log \
+    examples/sdss/0951+2635/*.cat examples/sdss/0951+2635/*.cookie 
+
+time python LensTractor.py -v -l -z --survey SDSS \
+   -o examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000 \
+      examples/sdss/0951+2635/J*_?_sci.fits > \
+      examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000.log &
+      
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Nebula2 results: chisq, K, N, BIC = 92569.9986223 21 22500 92780.4453047
+# DevGalaxy at RaDecPos: RA, Dec = (147.84399, 26.58708) with Mags: g=18.7648, i=18.2156, r=18.2473, z=18.8377 and Galaxy Shape: re=0.30, ab=0.62, phi=-51.5
+# PointSource at RaDecPos: RA, Dec = (147.84400, 26.58711) with Mags: g=19.5918, i=19.2204, r=19.3628, z=18.7996
+# PointSource at RaDecPos: RA, Dec = (147.84394, 26.58705) with Mags: g=18.1281, i=17.6969, r=17.7414, z=17.5997
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# Lens results: chisq, K, N, BIC = 91081.5245173 18 22500 91261.9073878
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (147.84399, 26.58709) with Mags: g=18.6027, i=18.1117, r=18.1779, z=18.4956 and Galaxy Shape: re=0.37, ab=0.75, phi=-54.9 and EinsteinRadius: 0.15453 and External shear: gamma=0.1, phi=-81.8 and a PointSource at RaDecPos: RA, Dec = (147.84397, 26.58708) with Mags: g=19.3766, i=18.9119, r=18.9762, z=18.7924 where 2 images are predicted
+# Lens parameter values written to: examples/sdss/0951+2635/J0951n_30x30arcsec_99999_Lens.cat
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# BIC =  {'Lens': 91261.907387838088, 'Nebula': 92780.44530469543}
+# Hypothesis test result: Bayes factor in favour of Lens is exp[ 759.268958429 ]
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+
+# Hmm: Lens still returning lower chisq. Why is this?
+# Nebula seems to want to fit point sources with nebuluous galaxy. Lens has
+# to have 2 points, and so fits better. Do we need to return to Nebula 
+# after fitting Lens, in order to ensure chisq(Nebula) is lower? Hmm...
+
+
+# Relatedly, what do we get for H1413? Do Nebula2,4,Lens.
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+
+time python LensTractor.py -v -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec.log &
+
+# First time running with PSF optimization?
+# 
+# In this run, BIC(N4) < BIC(Lens) < BIC(N2) - but Lens loses big time.
+# Inspection of images shows that PSF screws up horribly, such that all fits 
+# are kind of meaningless. Need to do N4 without PSF optimization, in this case.
+# Run time was about 95 secs.
+
+# If we just do N4->Lens, we get bad fits too. Hacked this into the main script:
+#      modelnames = ['Nebula4','Lens']
+# and ran with -l.
+
+# Does it really need the sampling step, then?
+# Try with out the -z flag, to include a bit of sampling.
+
+time python LensTractor.py -v -l \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec.log &
+     
+# Helps a bit - but we really need Nebula4 to converge before optimizing the
+# PSFs, otherwise they go elliptical and cover up some of the bad fit...
+
+# =============================================================================
+# 2014-05-04 (Sunday) 22:32 PDT
+
+# Put all panels in one plot...
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec.log &
+     
+# OK, looks good.
+# Next up:
+#  - overlay image name on data image, bottom lefthand corner
+#  - overlay cartoon model on predicted image
+#  - overlay goodness of fit on residual image
+#  - figure out how to zoom in to only show 6x6 arcsec
+#  - make PSF images only 6x6 arcsec...
+
+# =============================================================================
+# 2014-05-06 (Tuesday) 15:58 PDT
+
+# Manual initialization - for testing optimizer. Suggested by Tommaso.
+
+# Here's the H1413 example:
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -n 4 -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits
+
+cp examples/ps1/H1413+117_10x10arcsec_Nebula4.cat examples/ps1/n4.txt
+cp examples/ps1/H1413+117_10x10arcsec_progress-06_optimizing_Nebula4.png  examples/ps1/n4.PNG
+     
+# Save as "n4.txt" for initialization tests, also save plot for reference as 
+# "n4.PNG". Now run with manual optimization:
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -n 4 -z \
+  --manual examples/ps1/n4.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits
+
+# Looks good, except initial sources are quite faint? No, they're always like that. Check in.
+
+# Now initialize from ds9 positions, using handy script:
+
+ds9regions2initcat.csh --filters 2  ds9.reg
+# Processing 1 ds9 region files...
+#        6 ds9.cat
+
+more ds9.cat
+# # Dummy LensTractor-format catalog containing Nebula positions
+# # Data source: ds9.reg
+# # Written by ds9regions2initcat.csh on Tue May 6 16:52:08 PDT 2014
+# # Model: Nebula4
+# # 
+# 213.94271 11.495453 99 99 99 99 99 213.94267 11.49535 99 99 213.94252 11.49555 99 99 213.94276 11.495617 99 99 213.94288 11.495387 99 99
+
+# Now test, by copying this into n4.txt and rerunning...
+cp ds9.cat examples/ps1/n4.txt 
+
+# Works fine! Now ready for Adri to derive starting positions for SDSS examples.
+
+# Renamed examples:
+
+mv examples/ps1/n4.txt examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt
+mv examples/ps1/n4.reg examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg
+
+# =============================================================================
 FINISH:

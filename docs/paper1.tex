@@ -34,7 +34,8 @@ strongly lensed quasars in ground-based imaging}
   David W. Hogg$^{3,4}$,
   Adriano Agnello$^{5}$,
   Dustin Lang$^{6}$,
-  Eric P. Morganson$^{4}$ 
+  Eric P. Morganson$^{4}$,
+  and others 
   \medskip\\
   $^1$\kipac\\
   $^2$\oxford\\
@@ -66,22 +67,27 @@ distorted background source and a foreground lensing galaxy than it is
 to explain it as a single object with very odd morphology.  Here we
 construct a quantitative approximation to this comparison of
 plausibilities by fitting multi-epoch, multi-band ground-based imaging
-of gravitational-lens candidates with two image models, one of which
-is a strongly lensed point source and simple lensing galaxy, and the
-other is a complex galaxy constructed from a simple galaxy and $K$
+of gravitational lens candidates with two image models, one of which, ``Lens,''
+is a point source being lensed by a simple model massive galaxy, and the
+other is a complex ``Nebula'' constructed from a simple galaxy and $K$
 point sources.  The relative plausibility of the lensing hypothesis is
-approximated by a likelihood ratio between these models, evaluated at
+\emph{approximated} by a likelihood ratio between these models, evaluated at
 best-fit (that is, not marginalized), penalized by a factor accounting
 for relative model freedom.  We fit these models and compute lensing
-plausibility for four candidate lens sources with \panstarrs\ $grizY$
-imaging.  Two of the sources are known lenses, and two are not; we
-find we can confidently identify the lenses and rule out the
-non-lenses with our plausibility.  Even though the plausibility
+plausibility for 
+% four candidate lens sources with \panstarrs\ $grizY$ imaging.  
+10 confirmed lensed quasars and 40 confirmed non-lenses from the SDSS Quasar Lens
+Search (SQLS).
+% Two of the sources are known lenses, and two are not;
+We find that we can confidently identify the lenses and rule out the
+non-lenses with our plausibility criteria.  Even though the plausibility
 calculation involves fitting highly parametrized models of
 astronomical sources and the varying point-spread function in many
-pixels of imaging, it can be calculated in seconds on contemporary
-hardware; it can be run at scale on lens candidates in \panstarrs\ and
-other surveys.
+pixels of imaging, it can be calculated in 
+% seconds
+a few minutes on contemporary
+hardware; we comment on how this scales to ongoing lens searches in various wide
+field imaging surveys.
 \end{abstract}
 
 % Full list of options at http://www.journals.uchicago.edu/ApJ/instruct.key.html
@@ -99,24 +105,28 @@ other surveys.
 \section{Introduction}
 \label{sec:intro}
 
-Our main goals can be summarised as follows:
+In this paper we ask the following questions:
 
 \begin{enumerate}
 
-\item We don't understand this.
+\item Can a relative lens plausibility be reliably computed across a
+realistic sample of pre-selected targets, such as those selected from the SDSS
+spectroscopic object catalog during the SQLS?
 
-\item Nor that.
+\item What challenges will be faced when attempting a similar computation in a
+wide-field imaging survey covering thousands of square degrees and potentially
+millions of targets? And with which further approximations might these be
+approached?
 
 \end{enumerate}
 
-One thing we know for sure is that the MNRAS style file deals badly
-with ``enumerate'' blocks.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%  SECTION 2: SELECTION
+%%  SECTION 2: MODELS AND INFERENCE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Model}
+\section{Models and Inference}
 \label{sec:model}
 
 
@@ -126,6 +136,7 @@ with ``enumerate'' blocks.
 
 \section{Test Dataset}
 \label{sec:data}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  SECTION 4: RESULTS
@@ -165,13 +176,18 @@ Our main results can be summarised as follows:
 
 % do these comment headers really help?
 % after all, the \section{} commands say THE SAME THING
+% PJM: Yes, they break up the text in the editor, making it easier to navigate
+% through a long file.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  ACKNOWLEDGMENTS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section*{Acknowledgments}
  
-We thank X for useful discussions and suggestions.
+We thank Sherry Suyu and James H.\ H.\ Chan, and Matt Auger and the STRIDES
+collaboration for useful discussions and suggestions.
+PJM acknowledges support from grants\ldots
+DWH acknowledges support from grants\ldots
 
 \input{acknowledgments.tex}
 

@@ -94,7 +94,7 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
          print "Making Tractor image from "+name+"_*.fits:"
 
       # Read in sci and wht images. Note assumptions about file format:
-      sci,invvar,hdr,total_flux = Read_in_data(scifile,varfile,vb)
+      sci,invvar,hdr,total_flux = Read_in_data(scifile,varfile,SURVEY=SURVEY,vb=vb)
       
       if total_flux == 0.0:
          print "No flux found in image from "+scifile
@@ -216,7 +216,7 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
 # ============================================================================
 # Read in sci and wht images. Note assumptions about file format:
 
-def Read_in_data(scifile,varfile,vb=False):
+def Read_in_data(scifile,varfile,SURVEY='PS1',vb=False):
 
    hdulist = pyfits.open(scifile)
    sci = hdulist[0].data
@@ -254,12 +254,19 @@ def Read_in_data(scifile,varfile,vb=False):
    # Check image sizes...
    assert sci.shape == var.shape
 
-# Convert var to wht, and find median uncertainty as well:
-# Regardless of maggy-count conversion, start again here:
-   invvar = 1.0/var
+
+   if SURVEY == 'KIDS':
+       # Var image is actually already an inverse variance image!
+       invvar = var.copy()
+       var = 1.0/invvar
+   else:
+       # Convert var to wht, and find median uncertainty as well:
+       # Regardless of maggy-count conversion, start again here:
+       invvar = 1.0/var
    # Assign zero weight to var=nan, var<=0:
    invvar[var != var] = 0.0
    invvar[var <= 0] = 0.0
+
 
    bad = np.where(invvar == 0)
    # Zero out sci image where wht is 0.0:
@@ -269,8 +276,8 @@ def Read_in_data(scifile,varfile,vb=False):
    assert(all(np.isfinite(invvar.ravel())))
 
    # Measure total flux in sci image:
-#   total_flux = np.sum(sci)
-#   background-subtracted
+   #   total_flux = np.sum(sci)
+   #   background-subtracted
    background = np.median(sci)
    diffimage = sci - background
    total_flux = np.sum(diffimage)

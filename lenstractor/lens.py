@@ -163,14 +163,20 @@ class PointSourceLens(tractor.MultiParams):
 
        def __str__(self):
             return (self.getName() + ' comprising a ' + str(self.lensgalaxy)
-                                   + ' and a ' + str(self.pointsource))
+                                   + ' and a ' + str(self.pointsource)
+                                   + ' where ' + str(self.getMultiplicity()) 
+                                   + ' images are predicted')
                                    
        def getName(self):
-               return 'PointSourceLens'
+            return 'PointSourceLens'
 
        def getNamedParams(self):
-#                return dict(lensgalaxy=0, pointsource=1, dmag=2)
-               return dict(lensgalaxy=0, pointsource=1)
+            # return dict(lensgalaxy=0, pointsource=1, dmag=2)
+            return dict(lensgalaxy=0, pointsource=1)
+
+       def getMultiplicity(self):
+            imagepositions, imagemagnifications = self.lensgalaxy.getLensedImages(self.pointsource)
+            return len(imagemagnifications)
 
        # Only 'img' is used in the function below.
        # The extra parmeters in the function definition are necessary to

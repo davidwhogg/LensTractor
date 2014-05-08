@@ -24,17 +24,6 @@ emcee_defaults = {}
 
 import pylab as plt
 
-# Global variables:
-px,py = 2,2
-figprops = dict(figsize=(5*px,5*py), dpi=128)
-adjustprops = dict(\
-   left=0.05,\
-   bottom=0.05,\
-   right=0.95,\
-   top=0.95,\
-   wspace=0.1,\
-   hspace=0.1)
-
 # ============================================================================
 
 class LensTractor():
@@ -61,7 +50,7 @@ class LensTractor():
     '''
 # ----------------------------------------------------------------------------
     
-    def __init__(self,dataset,model,survey,counter=0,vb=0,noplots=True):
+    def __init__(self,dataset,model,outstem,survey,counter=0,vb=0,noplots=True):
     
         self.name = 'LensTractor'
         self.survey = survey
@@ -81,6 +70,9 @@ class LensTractor():
         
         self.vb = vb
         self.noplots = noplots
+        self.plot_all = True
+        
+        self.outstem = outstem.split('.')[0]
         
         self.bestpars = None
         self.maxlnp = None
@@ -104,8 +96,6 @@ class LensTractor():
         # Plot initial state:
         if not self.noplots: 
             self.plot_state('progress-%02d_initial_'%self.counter+self.model.name)
-        
-        self.outstem = None
         
         return None
 
@@ -141,7 +131,8 @@ class LensTractor():
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
         
-        else:
+        
+        else: # Apply unning and guile!
          
             # First optimize to get the fluxes about right:
             self.settings['Nrounds'] = 1
@@ -155,16 +146,22 @@ class LensTractor():
             self.sample()
             
             # Now optimize to refine model at fixed PSF:
-            self.settings['Nrounds'] = 5
+            self.settings['Nrounds'] = 3
             self.settings['Nsteps_optimizing_catalog'] = 5
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
             
-            # Finally, refine catalog and PSF
-            # self.settings['Nrounds'] = 1
-            # self.settings['Nsteps_optimizing_catalog'] = 3
-            # self.settings['Nsteps_optimizing_PSFs'] = 3
-            # self.optimize()
+            # Now optimize PSF at fixed model:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 0
+            self.settings['Nsteps_optimizing_PSFs'] = 5
+            self.optimize()
+            
+            # Refine model at best PSF:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize()
         
         self.getBIC()
         
@@ -266,8 +263,6 @@ class LensTractor():
 # that have high probability density: note, this is not really sampling,
 # its *sampling to optimize*...
 
-# BUG: sampling progress plots are not ordered with optimizations... 
-
     def sample(self):
 
         if self.vb: 
@@ -365,7 +360,7 @@ class LensTractor():
 
 # ----------------------------------------------------------------------------
 
-    def write_catalog(self,outstem):    
+    def write_catalog(self):    
 
         # Get parameter names and values:
         parnames = self.chug.getParamNames()
@@ -377,8 +372,7 @@ class LensTractor():
         for image in self.chug.getImages():
             imgnames.append(image.name)
 
-        # Make sure outfile has model name in it:
-        self.outstem = outstem.split('.')[0]
+        # Set catalog file name:
         outfile = self.outstem+'_'+self.model.name+'.cat'
         
         # Open up a new file, over-writing any old one:
@@ -419,8 +413,27 @@ class LensTractor():
         return outfile
 
            
-# ============================================================================
-# All progress plots.
+# ----------------------------------------------------------------------------
+
+    def set_cookie(self,outstem,result):    
+
+        outfile = self.outstem+'_result.cookie'
+        
+        # Open up a new file, over-writing any old one:
+        try: os.remove(outfile)
+        except OSError: pass
+        output = open(outfile,'w')
+
+        # Write result to file:
+        output.write("%s\n" % result)    
+        # Close file:
+        output.close()
+
+        return outfile
+
+           
+# ----------------------------------------------------------------------------
+# Plot progress.
 
     def plot_state(self,suffix):
        '''
@@ -430,6 +443,50 @@ class LensTractor():
 
        self.chug is a Tractor object, containing a list of images.
        '''
+
+       if self.plot_all:
+           # Make one giant plot with all progress panels on it, and 
+           # save it to PNG:
+
+           # Plotting setup:
+           px,py = 4,len(self.chug.images)
+           figprops = dict(figsize=(5*px,5*py), dpi=128)
+           adjustprops = dict(\
+               left=0.05,\
+               bottom=0.05,\
+               right=0.95,\
+               top=0.95,\
+               wspace=0.1,\
+               hspace=0.1)
+           
+           # Start the plot:
+           fig = plt.figure(**figprops)
+           fig.subplots_adjust(**adjustprops)
+           plt.clf()
+           plt.gray()
+           counter = 0
+          
+           # Name the plot file:
+           pngfile = self.outstem+'_'+suffix+'.png'
+
+
+       else:
+           # Make one plot per image, and save each to PNG.
+
+           # Plotting setup:
+           px,py = 2,2
+           figprops = dict(figsize=(5*px,5*py), dpi=128)
+           adjustprops = dict(\
+              left=0.05,\
+              bottom=0.05,\
+              right=0.95,\
+              top=0.95,\
+              wspace=0.1,\
+              hspace=0.1)
+
+
+
+       # Loop over images, making plots:
 
        for i,image in enumerate(self.chug.images):
 
@@ -455,24 +512,40 @@ class LensTractor():
 
               psfa = dict(interpolation='nearest', origin='lower')
 
-          fig = plt.figure(**figprops)
-          fig.subplots_adjust(**adjustprops)
-          plt.clf()
-          plt.gray()
+          if not self.plot_all:
+              # Start a new plot:
+              fig = plt.figure(**figprops)
+              fig.subplots_adjust(**adjustprops)
+              plt.clf()
+              plt.gray()
+              counter = 0
 
-          plt.subplot(py,px,1)
+          # 1) Data Image
+          counter += 1
+          plt.subplot(py,px,counter)
           plt.imshow(-image.data, **ima)
           self.tidyup_plot()
           plt.title('Observed image')
+          # Overlay image filter in lower left corner
+          plt.text(1,1,image.photocal.bandname)
+          # Figure out how to get this in bottom right hand corner instead
 
+          # 2) Predicted image
+          counter += 1
+          plt.subplot(py,px,counter)
           model = self.chug.getModelImages()[i]
-          # print "LensTractor.plot_state: minmax of model = ",np.min(model),np.max(model)
-          plt.subplot(py,px,2)
           plt.imshow(-model, **ima)
           self.tidyup_plot()
           plt.title('Predicted image')
+          # Overlay name of model in lower left corner
+          plt.text(1,1,self.model.name)
+          # Figure out how to get this in top left hand corner instead
+          # Overlay cartoon of model...
+          # TBI!
 
-          plt.subplot(py,px,3)
+          # 3) Normalised residual
+          counter += 1
+          plt.subplot(py,px,counter)
           plt.imshow(-chi, **chia)
           self.tidyup_plot()
           if self.survey == 'KIDS':
@@ -483,17 +556,30 @@ class LensTractor():
               plt.title('Residuals (flexible scale)')
           else:
               plt.title('Residuals ($\pm 5\sigma$)')
+          # Overlay quantified goodness of fit, in sigma from acceptable...
+          # TBI!
 
+          # 4) PSF image
+          counter += 1
+          plt.subplot(py,px,counter)
           psfimage = image.psf.getPointSourcePatch(*model.shape).patch
-          plt.subplot(py,px,4)
           plt.imshow(-psfimage, **psfa)
           self.tidyup_plot()
           plt.title('PSF')
 
-          pngfile = imname+'_'+suffix+'.png'
-          plt.savefig(pngfile)
-          if self.vb:
-              print "Progress snapshot saved to "+pngfile
+          if not self.plot_all:
+              # Save this image's plot:
+              pngfile = imname+'_'+suffix+'.png'
+              plt.savefig(pngfile)
+              if self.vb:
+                  print "Progress snapshot saved to "+pngfile
+
+       if self.plot_all:
+           # Save the giant plot:
+           plt.savefig(pngfile)
+           if self.vb:
+               print "Progress snapshot saved to "+pngfile
+       
 
        return
 

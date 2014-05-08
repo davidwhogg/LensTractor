@@ -70,21 +70,32 @@ class Model():
     
     def initialize(self,template,position=None,SED=None):
                 
+        assert position is not None
+        assert SED is not None
+
         if template == 'from_scratch':
                         
-            print "Initializing",self.name,"model from scratch..."
-           
-            assert position is not None
-            assert SED is not None
+            # Are we initializing positions from a catalog?
+            if isinstance(position,basestring):
+                 
+                if self.vb: print "Initializing",self.name,"model from catalog..."
             
+                self.manual = True
+                position = self.get_positions_from(position,SED)
+            
+            else:
+            
+                if self.vb: print "Initializing",self.name,"model from scratch..."
+                self.manual = False
+
             if self.flavor == 'Nebula':
-                self.create_Nebula(position,SED)
+                self.create_Nebula(position,SED)   # NB. Nebula position can be a list!
             else:
                 self.create_Lens(position,SED)
 
         else:
             
-            print "Initializing",self.name,"model from",template.name,"template..."
+            if self.vb: print "Initializing",self.name,"model from",template.name,"template..."
             
             if self.flavor == 'Nebula' and template.flavor == 'Nebula':
                 assert self.K > template.K
@@ -93,6 +104,12 @@ class Model():
             elif self.flavor == 'Lens' and template.flavor == 'Nebula':
                 self.spawn_Lens(template)
 
+        if self.vb: 
+            print "Initialization complete: "
+            for component in self.srcs:
+                print component
+            print " "
+
         return None
             
 # ----------------------------------------------------------------------------
@@ -100,7 +117,10 @@ class Model():
     def create_Nebula(self,position,SED):
                 
         # Start with an De Vaucouleurs galaxy at the object centroid:
-        galpos = position
+        if self.manual:
+            galpos = position[0]
+        else:
+            galpos = position
         # Give it its fair share of the flux, and start faint:
         fudge = 0.2 # MAGIC
         galSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
@@ -116,10 +136,13 @@ class Model():
 
         # Now add the point sources, with flux divided equally:
         for i in range(self.K):
-            # Small random offsets from nebula centre:
-            e = 0.1 # arcsec, MAGIC
-            dx,dy = e*np.random.randn(2)/3600.0
-            starpos = position.copy() + tractor.RaDecPos(dx,dy)
+            if self.manual:
+                starpos = position[i+1]
+            else:
+                # Small random offsets from nebula centre:
+                e = 0.1 # arcsec, MAGIC
+                dx,dy = e*np.random.randn(2)/3600.0
+                starpos = position.copy() + tractor.RaDecPos(dx,dy)
             starSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
             # Package up:
             star = tractor.PointSource(starpos,starSED)
@@ -269,6 +292,38 @@ class Model():
         self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
 
         return
+        
+# ----------------------------------------------------------------------------
+    
+    def get_positions_from(self,catalog,SED):
+    
+        positions = []
+        Nbands = SED.numberOfParams()
+        
+        # Open up LT output catalog format file and read positions, assuming 
+        # hard-coded column numbers:
+        x = np.loadtxt(catalog)
+        
+        if len(x) == 23:
+            Npos = 4
+        elif len(x) == 13:
+            Npos = 2
+        else:
+            print "ERROR: unrecognised Nebula model in catalog, with ",len(x)," parameters"
+            assert False
+        
+        # Catalog must match this model!
+        assert Npos == self.K
+        
+        # Create position objects:
+        j = 0
+        positions.append(tractor.RaDecPos(x[j],x[j+1]))
+        j += 3
+        for i in range(Npos):
+            j += 2 + Nbands
+            positions.append(tractor.RaDecPos(x[j],x[j+1]))
+
+        return positions
         
 # ============================================================================
 
