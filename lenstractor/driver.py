@@ -57,14 +57,14 @@ class LensTractor():
 
         self.settings = {}
         # Optimization settings:
-        self.settings['Nrounds'] = 5
-        self.settings['Nsteps_optimizing_catalog'] = 5
-        self.settings['Nsteps_optimizing_PSFs'] = 0
+ #       self.settings['Nrounds'] = 5
+ #       self.settings['Nsteps_optimizing_catalog'] = 100
+ #       self.settings['Nsteps_optimizing_PSFs'] = 2
         # Sampling settings:
-        self.settings['Nwalkers_per_dim'] = 8
-        self.settings['Nsnapshots'] = 3
-        self.settings['Nsteps_per_snapshot'] = 10
-        self.settings['Restart'] = True
+ #       self.settings['Nwalkers_per_dim'] = 8
+ #       self.settings['Nsnapshots'] = 3
+ #       self.settings['Nsteps_per_snapshot'] = 10
+ #       self.settings['Restart'] = True
         
         self.model = model
         
@@ -114,8 +114,8 @@ class LensTractor():
         elif self.method == 'optimizing':
          
             # First optimize to get the model about right, at fixed PSF:
-            self.settings['Nrounds'] = 3
-            self.settings['Nsteps_optimizing_catalog'] = 100
+            self.settings['Nrounds'] = 5
+            self.settings['Nsteps_optimizing_catalog'] = 50000
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
         
@@ -126,13 +126,13 @@ class LensTractor():
             self.optimize()
             
             # Refine model at best PSF:
-            self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 100
+            self.settings['Nrounds'] = 2
+            self.settings['Nsteps_optimizing_catalog'] = 1000
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
         
         
-        else: # Apply unning and guile!
+        else: # Apply cunning and guile!
          
             # First optimize to get the fluxes about right:
             self.settings['Nrounds'] = 1

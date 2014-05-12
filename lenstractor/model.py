@@ -248,20 +248,23 @@ class Model():
             dec += radec.dec
         ra, dec = ra/len(stars), dec/len(stars)
         centroid = tractor.RaDecPos(ra,dec)
+
         tE = 0.0
         for star in stars: 
             tE += radec.distanceFrom(centroid)
         tE = tE*3600.0/len(stars)
-        thetaE = lenstractor.EinsteinRadius(tE)
-        if self.vb: print "Estimated Einstein Radius (arcsec) = ",thetaE
         
         # Associate the lens light ellipticity with the lens potential shear...
         # (Warning, this could be crazy!)
         q = galshape.ab
-        gamma = 0.2*(1-q)/(1+q) # MAGIC 0.2
+        gamma = 0.2#*(1-q)/(1+q) # MAGIC 0.5
         phi   = galshape.phi # deg
         xshear = lenstractor.ExternalShear(gamma,phi)
         
+        tE = tE*(1-gamma)*0.5 # start with separation sensibly smaller than the naively estimated one
+        thetaE = lenstractor.EinsteinRadius(tE)
+        if self.vb: print "Estimated Einstein Radius (arcsec) = ",thetaE
+
         # Package into lensgalaxy:
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
         if self.vb: print lensgalaxy
@@ -277,6 +280,9 @@ class Model():
         # Quick hack to get started (Adri):
         
         xs = centroid
+# Need to guess the source position better, for quads! Given tE and shear,
+# then xs can be obtained by summing the lens equation over the (2? 4?) images
+# ...
         ms = stars[0].getBrightness()
         # Start with just one point source's flux:
         pointsource = tractor.PointSource(xs,ms)
