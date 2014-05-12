@@ -115,19 +115,19 @@ class LensTractor():
          
             # First optimize to get the model about right, at fixed PSF:
             self.settings['Nrounds'] = 3
-            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_catalog'] = 100
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
         
             # Now optimize PSF at fixed model:
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 0
-            self.settings['Nsteps_optimizing_PSFs'] = 5
+            self.settings['Nsteps_optimizing_PSFs'] = 2
             self.optimize()
             
             # Refine model at best PSF:
             self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_catalog'] = 100
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
         

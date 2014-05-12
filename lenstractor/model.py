@@ -47,6 +47,8 @@ class Model():
         if self.flavor == 'Nebula':
            # How many point sources?
            self.K = int(name[6:7])
+#        else:
+#           self.K = 5
         
         if srcs == None:
             self.srcs = []
@@ -70,9 +72,6 @@ class Model():
     
     def initialize(self,template,position=None,SED=None):
                 
-        assert position is not None
-        assert SED is not None
-
         if template == 'from_scratch':
                         
             # Are we initializing positions from a catalog?
@@ -84,7 +83,9 @@ class Model():
                 position = self.get_positions_from(position,SED)
             
             else:
-            
+                assert position is not None
+                assert SED is not None
+
                 if self.vb: print "Initializing",self.name,"model from scratch..."
                 self.manual = False
 
@@ -98,7 +99,7 @@ class Model():
             if self.vb: print "Initializing",self.name,"model from",template.name,"template..."
             
             if self.flavor == 'Nebula' and template.flavor == 'Nebula':
-                assert self.K > template.K
+                assert self.K >= template.K
                 self.spawn_Nebula(template)
             
             elif self.flavor == 'Lens' and template.flavor == 'Nebula':
@@ -306,14 +307,16 @@ class Model():
         
         if len(x) == 23:
             Npos = 4
+            self.K = Npos
         elif len(x) == 13:
             Npos = 2
+            self.K = Npos
         else:
             print "ERROR: unrecognised Nebula model in catalog, with ",len(x)," parameters"
             assert False
         
         # Catalog must match this model!
-        assert Npos == self.K
+        assert Npos == self.K #overridden by self.K initialisation above
         
         # Create position objects:
         j = 0

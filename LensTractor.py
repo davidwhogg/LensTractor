@@ -252,15 +252,17 @@ def main():
                      
        model = lenstractor.Model(modelname,vb=vb)
        
-       if manual:
-           model.initialize('from_scratch', position=args.catalog, SED=SED)
-       
+       if modelname != 'Lens':
+          if manual:
+              model.initialize('from_scratch', position=args.catalog, SED=SED)
+          
+          else:
+              if previous is None:
+                  model.initialize('from_scratch', position=position, SED=SED)
+              else:
+                  model.initialize(previous)
        else:
-           if previous is None:
-               model.initialize('from_scratch', position=position, SED=SED)
-           else:
-               model.initialize(previous)
-       
+          model.initialize(previous)
        
        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
