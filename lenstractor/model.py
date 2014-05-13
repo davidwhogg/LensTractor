@@ -47,8 +47,6 @@ class Model():
         if self.flavor == 'Nebula':
            # How many point sources?
            self.K = int(name[6:7])
-#        else:
-#           self.K = 5
         
         if srcs == None:
             self.srcs = []
