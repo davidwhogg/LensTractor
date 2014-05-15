@@ -197,6 +197,16 @@ simultaneously. We do this using the flexible image fitting software ``The
 Tractor'' (Lang \& Hogg 2014). This approach is optimal in terms of its
 potential for information extraction, but its cost is to be investigated.
 
+An alternative approach is explored in a paper by Chan et al (2014). These
+authors investigate the greater execution speed achievable by first
+extracting point source positions by ad-hoc means, and then fitting lens
+models to these reduced data instead of the pixel values. They also pursue
+the first method for assessing lens plausibility, focusing on the goodness
+of fit of the lens models, and interpreting this in the context of a
+training set. Comparison between the two approaches will help guide the
+community as it approaches the wide field survey datasets of DES, HSC and
+LSST.
+
 This paper is organised as follows. In \Sref{sec:model} we describe our two
 competing models, and the approximate relative plausibility[ies?] we
 propose. These are implemented in a piece of software called \LT, which we
@@ -213,6 +223,15 @@ our results in \Sref{sec:discuss}, and draw brief conclusions in
 
 \section{Models and Inference}
 \label{sec:model}
+
+\subsection{Models: Lenses and Nebulae}
+\label{sec:model:ln}
+
+\subsection{Inference with The Tractor}
+\label{sec:model:tractor}
+
+\subsection{Model Comparison by Approximate Plausibility Ratio}
+\label{sec:model:bic}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
