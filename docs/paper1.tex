@@ -185,6 +185,18 @@ approached?
 %
 \end{enumerate}
 
+Wide field optical imaging survey data have, generically, the  property
+that the image quality varies from epoch to epoch, and so between images
+taken in different filters. This results from the need to cover large areas
+of sky at low overhead. An advantage of this observing strategy is that the
+multiplicity of images allows missing data or poor image quality in any
+given single exposure to be corrected for by the other exposures. To
+capitalise on this, and to extract as much information as possible from the
+data, we propose a joint fit of the same model to all images
+simultaneously. We do this using the flexible image fitting software ``The
+Tractor'' (Lang \& Hogg 2014). This approach is optimal in terms of its
+potential for information extraction, but its cost is to be investigated.
+
 This paper is organised as follows. In \Sref{sec:model} we describe our two
 competing models, and the approximate relative plausibility[ies?] we
 propose. These are implemented in a piece of software called \LT, which we
@@ -209,6 +221,7 @@ our results in \Sref{sec:discuss}, and draw brief conclusions in
 
 \section{Data}
 \label{sed:data}
+
 
 \subsection{Example}
 \label{sec:data:example}
