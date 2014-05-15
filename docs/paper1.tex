@@ -26,8 +26,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \title[Finding lensed quasars]
-{A simple probabilistic approach to finding 
-strongly lensed quasars in ground-based imaging}
+{Detecting strongly lensed quasars by pixel-level model comparison}
 
 \author[]{%
   Philip J. Marshall$^{1,2}$\thanks{\pjmemail},
@@ -60,34 +59,36 @@ strongly lensed quasars in ground-based imaging}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{abstract}
-In some heuristic sense, we end up believing that a particular source
-is a galaxy-scale strong gravitational lens because it is more
-plausible to explain it as a superposition of a gravitationally
-distorted background source and a foreground lensing galaxy than it is
-to explain it as a single object with very odd morphology.  Here we
-construct a quantitative approximation to this comparison of
-plausibilities by fitting multi-epoch, multi-band ground-based imaging
-of gravitational lens candidates with two image models, one of which, ``Lens,''
-is a point source being lensed by a simple model massive galaxy, and the
-other is a complex ``Nebula'' constructed from a simple galaxy and $K$
-point sources.  The relative plausibility of the lensing hypothesis is
-\emph{approximated} by a likelihood ratio between these models, evaluated at
-best-fit (that is, not marginalized), penalized by a factor accounting
-for relative model freedom.  We fit these models and compute lensing
-plausibility for 
-% four candidate lens sources with \panstarrs\ $grizY$ imaging.  
-10 confirmed lensed quasars and 40 confirmed non-lenses from the SDSS Quasar Lens
-Search (SQLS).
-% Two of the sources are known lenses, and two are not;
-We find that we can confidently identify the lenses and rule out the
-non-lenses with our plausibility criteria.  Even though the plausibility
-calculation involves fitting highly parametrized models of
-astronomical sources and the varying point-spread function in many
-pixels of imaging, it can be calculated in 
-% seconds
-a few minutes on contemporary
-hardware; we comment on how this scales to ongoing lens searches in various wide
-field imaging surveys.
+In some heuristic sense, we will end up believing that a particular
+astronomical source is a galaxy-scale strong gravitational lens only if it
+is more plausible to explain it as a superposition of a gravitationally
+distorted background source and a foreground lensing galaxy than it is to
+explain it as a single object with very odd morphology. The automated
+detection of strong gravitational lenses must involve consideration of
+these plausbilities.
+%
+We investigate the explicit implementation of this principle in practice,
+in the context of automated searches for lensed quasars in optical imaging
+surveys. We construct a quantitative approximation to this comparison of
+plausibilities by fitting multi-epoch, multi-band ground-based imaging of
+gravitational lens candidates with two image models, one of which,
+``Lens,'' is a point source being lensed by a simple model massive galaxy,
+and the other is a complex ``Nebula'' constructed from a simple galaxy and
+$K$ point sources.  We \emph{approximate} the relative plausibility of the
+lensing hypothesis with a likelihood ratio between these models, evaluated
+at best-fit (that is, not marginalized), penalized by a simple factor
+accounting for relative model freedom. \comment{PJM}{Other approximations
+should be investigated!}
+%
+We fit these models and compute the relative lensing plausibility for 10
+confirmed lensed quasars and 40 confirmed non-lenses from the SDSS Quasar
+Lens Search (SQLS).  We find that we [can/cannot] confidently identify the
+lenses and rule out the non-lenses with our plausibility criteria.  Even
+though the plausibility calculation involves fitting highly parametrized
+models of astronomical sources and the varying point-spread function in
+many pixels of imaging, it can be calculated in seconds to minutes on
+contemporary hardware; we comment on how this scales to ongoing lens
+searches in various wide field imaging surveys.
 \end{abstract}
 
 % Full list of options at http://www.journals.uchicago.edu/ApJ/instruct.key.html
@@ -109,9 +110,9 @@ In this paper we ask the following questions:
 
 \begin{enumerate}
 
-\item Can a relative lens plausibility be reliably computed across a
-realistic sample of pre-selected targets, such as those selected from the SDSS
-spectroscopic object catalog during the SQLS?
+\item Can an approximate lens plausibility be used to distinguish lenses from
+non-lenses across a realistic sample of pre-selected targets, such as those
+selected from the SDSS spectroscopic object catalog during the SQLS?
 
 \item What challenges will be faced when attempting a similar computation in a
 wide-field imaging survey covering thousands of square degrees and potentially
@@ -134,8 +135,18 @@ approached?
 %%  SECTION 3: DATA
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Test Dataset}
-\label{sec:data}
+\section{Example Dataset}
+\label{sec:data:example}
+
+As a simple first example, we consider the lensed quasar system H1413$+$117
+\citep{H1413}, as observed three times during the PS1 $3\pi$ survey. We 
+made 10-arcsecond postage stamp images from three frames taken over the
+course of one year (MJDs  55377, 55664, 55755) in two filters ($r$ and
+$z$). The image quality varies considerably between the three observing
+epochs.
+
+% \section{Test Dataset}
+% \label{sec:data:example}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -145,15 +156,58 @@ approached?
 \section{Results}
 \label{sec:results}
 
+\subsection{sec:results:example}
 
-% %%%%%%%%%%%%%%%%%%%%%%%%%%
-% \begin{figure*}
-% \centerline{
-% \includegraphics[width=0.9\linewidth]{figs/sth.png}}
-% \caption{}
-% \label{fig:sth}
-% \end{figure*}
-% %%%%%%%%%%%%%%%%%%%%%%%%%%
+We first illustrate the operation of \LT with a sequence of plots generated
+by the code. In \Fref{fig:H1413example-progress}, we show the Nebula4 model
+fit just before the PSF parameters were unfrozen, in order to show the
+impact of assuming a PSF model just based on the FWHM keyword in the image
+headers. The model was initialized by hand, using ds9 to identify the image
+positions.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}
+\centerline{
+\includegraphics[width=0.9\linewidth]{figs/H1413+117_10x10arcsec_progress-06_optimizing_Nebula4.png}}
+\caption{\LT example: three images of the known lens H1413+117, analyzed using
+the Nebula4 model. This snapshot was taken mid-way through the inference, just
+before the PSF parameters were unfrozen.}
+\label{fig:H1413example-progress}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\Fref{fig:H1413example-final} shows the final result of this fit, with both
+the Nebula4 and PSF models optimized. The residuals are small but not
+consistent with pure noise, suggesting either that the fit has not yet
+converged, or that our simple model is not able to capture all the details
+in the data, or both.
+
+\action{PJM}{Add cartoon model overlays so we can check the fits.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}
+\centerline{
+\includegraphics[width=0.9\linewidth]{figs/H1413+117_10x10arcsec_progress-09_optimizing_Nebula4.png}}
+\caption{\LT example: the final result from the inference shown in
+\Fref{fig:H1413example-progress}, with both the object and PSF models
+optimized.}
+\label{fig:H1413example-final}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The performance of the Lens model initialization is quite sensitive to its
+initialization. Ad-hoc placement of the model sources behind the 
+model lens does not work reliably. Instead, we map the Nebula4 point source
+positions back to the source plane through a lens with Einstein radius
+estimated from the average separation between the Nebula4 point sources and
+their mean position, and adjust the shear until the four corresponding
+posint source positions match as closely as possible. Such a ``source plane
+minimisation'' is fast, and accurate enough to initialize the lens model
+close to the peak of its likelihood function. 
+
+\comment{PJM}{This is a hypothesis, to be tested.}
+
+\action{PJM}{Implement this Lens intialization.}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
