@@ -912,4 +912,21 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Just need to work on Lens init from Nebula. AS USUAL
 
 # =============================================================================
+# 2014-05-16 (Friday) 00:13 PDT
+
+# Attempting to init Lens from Nebula in supercool branch...
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -l -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Lens.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
+
+# OK, code works, but initialization is no better. Need to not rely on the 
+# Nebula galaxy parameters... but solving for lens and source positions, plus REin
+# and xshear is tall order. Back to sampling?
+
+# =============================================================================
 FINISH:

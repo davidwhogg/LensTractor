@@ -246,7 +246,6 @@ class Model():
             dec += radec.dec
         ra, dec = ra/len(stars), dec/len(stars)
         centroid = tractor.RaDecPos(ra,dec)
-
         tE = 0.0
         for star in stars: 
             tE += radec.distanceFrom(centroid)
@@ -271,25 +270,28 @@ class Model():
                          
                                 
         # Now for the source position! 
-        # SHOULD map these back to the source plane, 
-        # and compute average there, to get source position (as an RaDecPos).
-        # ACTION: PHIL!
         
-        # Quick hack to get started (Adri):
+        # Map these back to the source plane, through our guessed lens,
+        # compute average there to get source position (as an RaDecPos).
         
-        xs = centroid
-# Need to guess the source position better, for quads! Given tE and shear,
-# then xs can be obtained by summing the lens equation over the (2? 4?) images
-# ...
+        ra, dec, mu = 0.0, 0.0, 0.0
+        for star in stars: 
+            xs,mus = lensgalaxy.getSourceFromImage(star)
+            ra += xs.ra
+            dec += xs.dec
+            mu += np.abs(mus)
+        ra, dec = ra/len(stars), dec/len(stars)
+        xs = tractor.RaDecPos(ra,dec)
+
+        # Now estimate the source brightness, based on the Nebula point sources
         ms = stars[0].getBrightness()
         # Start with just one point source's flux:
         pointsource = tractor.PointSource(xs,ms)
         # Add the other images' flux:
         for star in stars[1:]: 
             pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
-        # Correct source brightness for approximate magnification:
-        ts = xd.distanceFrom(centroid)*3600.0
-        mu = 2*tE/ts
+ 
+        # Correct source brightness for magnification:
         pointsource.setBrightness(pointsource.getBrightness() + 2.5*np.log10(mu))
         
         if self.vb: print pointsource

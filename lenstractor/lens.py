@@ -104,7 +104,7 @@ class LensGalaxy(sdss_galaxy.DevGalaxy):
             # Define a "trivial" coordinate system, centred on the lens, that
             # has 1 arcsec "pixels":
             lenswcs = lenstractor.LensPlaneWCS(self.pos) # Trivial tangent plane wcs, 1" pixels, N up
-            lenspixelpos = (0.0,0.0)                    # in Lens Plane WCS
+            lenspixelpos = (0.0,0.0)                     # in Lens Plane WCS
             
             # Unpack the source and convert position into trivial 
             # tangent-plane coordinates:
@@ -129,6 +129,40 @@ class LensGalaxy(sdss_galaxy.DevGalaxy):
             imagepositions = [lenswcs.pixelToPosition(p[0],p[1]) for p in imagepixelpos]
                         
             return imagepositions, imagemagnifications
+
+      def getSourceFromImage(self,image):
+            '''
+            Unpack the parameters of the input image point source object 
+            and pass its position to an instance of a gravitational lens, 
+            and ask for the corresponding source position and magnification.
+            '''
+            # Unpack the lens:
+            lensRein = self.Rein.getValue()
+            lensgamma = self.xshear[0]
+            lensphi = np.deg2rad(self.xshear[1]) # lens solver expects radians.
+            
+            # Define a "trivial" coordinate system, centred on the lens, that
+            # has 1 arcsec "pixels":
+            lenswcs = lenstractor.LensPlaneWCS(self.pos) # Trivial tangent plane wcs, 1" pixels, N up
+            lenspixelpos = (0.0,0.0)                     # in Lens Plane WCS
+            
+            # Unpack the image and convert position into trivial 
+            # tangent-plane coordinates:
+            imagepixelpos = np.array(lenswcs.positionToPixel(image.getPosition()))
+            
+            # Instantiate the gravitational lens:
+            SISX = lenstractor.GravitationalLens(lenspixelpos,lensRein,lensgamma,lensphi)
+            
+            # Compute source position and magnification:
+            sourcepixelpos = SISX.source_positions(imagepixelpos)
+            sourcemagnification = SISX.magnifications(imagepixelpos)[0]
+            
+            # Convert source position back to sky:
+            p = sourcepixelpos[0]
+            sourceposition = lenswcs.pixelToPosition(p[0],p[1])
+            
+            return sourceposition, sourcemagnification
+
 
 # ============================================================================
 
