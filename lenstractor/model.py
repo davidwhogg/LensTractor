@@ -238,7 +238,9 @@ class Model():
         xd = galaxy.getPosition()
         md = galaxy.getBrightness()
         galshape = galaxy.getShape()
-        
+        if self.vb:
+            print "Galaxy's brightness = ",md[0]
+#        
         # Now need thetaE (from image positions) and external shear. 
         # Compute the image system centroid and, from that, the Einstein radius:
         ra, dec = 0.0, 0.0
@@ -248,41 +250,158 @@ class Model():
             dec += radec.dec
         ra, dec = ra/len(stars), dec/len(stars)
         centroid = tractor.RaDecPos(ra,dec)
-
+#       for the new stuff: we need centroid position relative to galaxy
+        xs0, ys0 = ra-xd.ra, dec-xd.dec # there are in degrees!
+        if self.vb:
+            print "Zeroth-order source displacement = ",xs0,", ",ys0
+#       Old spawn
         tE = 0.0
         for star in stars: 
             tE += radec.distanceFrom(centroid)
         tE = tE*3600.0/len(stars)
+#       Old spawn        
+#        # Associate the lens light ellipticity with the lens potential shear...
+#        # (Warning, this could be crazy!)
+#        q = galshape.ab
+#        gamma = 0.2#*(1-q)/(1+q) # MAGIC 0.5
+#        phi   = galshape.phi # deg
+#        xshear = lenstractor.ExternalShear(gamma,phi)
+#        tE = tE*(1-gamma)*0.5 # start with separation sensibly smaller than the naively estimated one
         
-        # Associate the lens light ellipticity with the lens potential shear...
-        # (Warning, this could be crazy!)
-        q = galshape.ab
-        gamma = 0.2#*(1-q)/(1+q) # MAGIC 0.5
-        phi   = galshape.phi # deg
+        # First guess at source position is just the number-averaged centroid        
+        # will need to update it (xs1, ys1)--> xs = tractor.RaDecPos(xs1+xd.ra,ys1+xd.dec)                 
+        xs = centroid
+        ts = xd.distanceFrom(centroid)*3600.0
+#       New workflow
+#        irep=1
+#        while irep<10:
+#        #indent!
+        magicdist=0.5*tE
+        numb=len(stars)
+        if self.vb:
+            print "Number of peaks = ", numb
+        if numb==2: # spawn double
+            if ts >= magicdist:
+                #-- reposition galaxy, reset axis ratio and p.a.
+                galpx, galpy, weight = 0.0, 0.0, 0.0
+                for star in stars:
+                    galpx += star.getPosition().ra/star.getBrightness()[0]
+                    galpy += star.getPosition().dec/star.getBrightness()[0]
+                    weight += 1./star.getBrightness()[0]
+                galpx, galpy = galpx/weight, galpy/weight
+                xd.ra, xd.dec = galpx, galpy
+                galshape.ab = 0.8 # magic reset to axis ratio
+                galshape.phi = 0.0                    
+                #-- set zero shear, phi = p.a.
+                gamma = 0.0
+                phi = galshape.phi
+                #-- leave xs as it is
+            else:
+                #-- compute Ax etc
+                Ax = Ay = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
+                #-- optimize for shear
+                treg = 0.001 # just not to have zero denominator in blabla/thetai
+                for star in stars:
+                    stradec = star.getPosition()
+                    thetai = treg + stradec.distanceFrom(xd)*3600
+                    xi = (stradec.ra-xd.ra)*3600
+                    yi = (stradec.dec-xd.dec)*3600
+                    Ax += xi/thetai # units should be the same above and below
+                    Ay += yi/thetai # same here
+                    sum1 += (xi**2 - yi**2)/thetai
+                    sum2 += thetai**2
+                    sum3 += yi**2 - xi**2
+                    sum4 += xi*yi/thetai
+                    sum5 += xi*yi
+#                Ax, Ay, sum1, sum2, sum3, sum4, sum5 = Ax/len(stars), Ay/len(stars), sum1/len(stars), sum2/len(stars), sum3/len(stars), sum4/len(stars), sum5/len(stars)
+                A21 = (ys0*3600*Ay-xs0*3600*Ax+sum1)/len(stars) # I'm converting xs0, ys0 in arcseconds like the other quantities
+                A22 = sum2/len(stars) -(xs0*3600)**2 -(ys0*3600)**2
+                B2 = (ys0*3600)**2 - (xs0*3600)**2 +sum3/len(stars)
+                gamma1 = (B2-A21*tE)/A22
+                A31 = (Ax*ys0*3600-Ay*xs0*3600-2*sum4)/len(stars)
+                A33 = 2*sum2/len(stars) - (ys0*3600)**2 - (xs0*3600)**2
+                B3 = 2*sum5/len(stars) -xs0*ys0*(3600**2)
+                gamma2 = (B3 - A31*tE)/A33
+                #-- compute gamma, phi, xs1, ys1, update xs
+                shreg = 0.0001
+                gamma = (gamma1**2+gamma2**2)**0.5
+                phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+                xs1 = ys1 = 0.0
+                for star in stars:
+                    stradec = star.getPosition()
+                    thetai = treg + stradec.distanceFrom(xd)*3600
+                    xs1 += (stradec.ra-xd.ra)*(1.0-tE/thetai-gamma1) - gamma2*(stradec.dec-xd.dec) # lens equation
+                    ys1 += (stradec.dec-xd.dec)*(1.0-tE/thetai+gamma1) - gamma2*(stradec.ra-xd.ra) # lens equation
+                xs1, ys1 = xs1/len(stars), ys1/len(stars)
+                xs = tractor.RaDecPos(xs1+xd.ra,ys1+xd.dec) 
+        else: # spawn quad, practically same as above
+            if ts >= magicdist:
+                if self.vb:
+                    print "Galaxy may be fictitious, repositioning."
+                #-- reposition galaxy using magnitudes in the first card, reset axis ratio and p.a.
+                galpx, galpy, weight = 0.0, 0.0, 0.0
+                pippo0 = stars[0].getBrightness()[0]
+                for star in stars:
+                    pippo1 = 10**(-0.4*star.getBrightness()[0]+0.4*pippo0)
+                    galpx += star.getPosition().ra/pippo1
+                    galpy += star.getPosition().dec/pippo1
+                    weight += 1./pippo1
+                galpx, galpy = galpx/weight, galpy/weight
+                xd.ra, xd.dec = galpx, galpy
+                galshape.ab = 0.8 # magic reset to axis ratio
+                galshape.phi = 0.0                    
+            #-- else: do nothing
+        if self.vb:
+            print "Galaxy position = ", xd.ra,", ", xd.dec
+            #-- now compute Ax etc
+            Ax = Ay = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
+            #-- optimize for shear
+            treg = 0.001 # just not to have zero denominator in blabla/thetai
+            for star in stars:
+                stradec = star.getPosition()
+                thetai = treg + stradec.distanceFrom(xd)*3600
+                xi = (stradec.ra-xd.ra)*3600
+                yi = (stradec.dec-xd.dec)*3600
+                Ax += xi/thetai # units should be the same above and below
+                Ay += yi/thetai # same here
+                sum1 += (xi**2 - yi**2)/thetai
+                sum2 += thetai**2
+                sum3 += yi**2 - xi**2
+                sum4 += xi*yi/thetai
+                sum5 += xi*yi
+#            Ax, Ay, sum1, sum2, sum3, sum4, sum5 = Ax/len(stars), Ay/len(stars), sum1/len(stars), sum2/len(stars), sum3/len(stars), sum4/len(stars), sum5/len(stars)
+#            if self.vb:
+#                print "Shear optimization parameters = ", Ax,", ", Ay,", ", sum1,", ", sum2,", ", sum3,", ", sum4,", ", sum5
+#
+            A21 = (ys0*3600*Ay-xs0*3600*Ax+sum1)/len(stars) # I'm converting xs0, ys0 in arcseconds like the other quantities
+            A22 = sum2/len(stars) -(xs0*3600)**2 -(ys0*3600)**2
+            B2 = (ys0*3600)**2 - (xs0*3600)**2 +sum3/len(stars)
+            gamma1 = (B2-A21*tE)/A22
+            A31 = (Ax*ys0*3600-Ay*xs0*3600-2*sum4)/len(stars)
+            A33 = 2*sum2/len(stars) - (ys0*3600)**2 - (xs0*3600)**2
+            B3 = 2*sum5/len(stars) -xs0*ys0*(3600**2)
+            gamma2 = (B3 - A31*tE)/A33
+            #-- compute gamma, phi, update xs
+            shreg = 0.0001
+            gamma = (gamma1**2+gamma2**2)**0.5
+            phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+            xs1 = ys1 = 0.0
+            for star in stars:
+                stradec = star.getPosition()
+                thetai = treg + stradec.distanceFrom(xd)*3600
+                xs1 += (stradec.ra-xd.ra)*(1.0-tE/thetai-gamma1) - gamma2*(stradec.dec-xd.dec) # lens equation
+                ys1 += (stradec.dec-xd.dec)*(1.0-tE/thetai+gamma1) - gamma2*(stradec.ra-xd.ra) # lens equation
+            xs1, ys1 = xs1/len(stars), ys1/len(stars)
+            xs = tractor.RaDecPos(xs1+xd.ra,ys1+xd.dec)
+#
+#           irep++
+# Iterate? I.e. optimize in tE given gamma1, gamma2, re-solve in gamma1, gamma2 etc.
+#
+# instantiate ExternalShear object
+        phi = np.rad2deg(phi)
         xshear = lenstractor.ExternalShear(gamma,phi)
         
-        tE = tE*(1-gamma)*0.5 # start with separation sensibly smaller than the naively estimated one
-        thetaE = lenstractor.EinsteinRadius(tE)
-        if self.vb: print "Estimated Einstein Radius (arcsec) = ",thetaE
-
-        # Package into lensgalaxy:
-        lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
-        if self.vb: print lensgalaxy
-        # Note: this puts the lens mass where the galaxy light is!
-        # This will fail when the Nebula galaxy was just fitting junk...
-                         
-                                
-        # Now for the source position! 
-        # SHOULD map these back to the source plane, 
-        # and compute average there, to get source position (as an RaDecPos).
-        # ACTION: PHIL!
-        
-        # Quick hack to get started (Adri):
-        
-        xs = centroid
-# Need to guess the source position better, for quads! Given tE and shear,
-# then xs can be obtained by summing the lens equation over the (2? 4?) images
-# ...
+#       Old workflow piece still valid
         ms = stars[0].getBrightness()
         # Start with just one point source's flux:
         pointsource = tractor.PointSource(xs,ms)
@@ -290,14 +409,26 @@ class Model():
         for star in stars[1:]: 
             pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
         # Correct source brightness for approximate magnification:
-        ts = xd.distanceFrom(centroid)*3600.0
         mu = 2*tE/ts
         pointsource.setBrightness(pointsource.getBrightness() + 2.5*np.log10(mu))
+#
+        thetaE = lenstractor.EinsteinRadius(tE)
+        if self.vb:
+            print "Offset in Enstein radii = ",ts/tE
+            print "Estimated Einstein Radius (arcsec) = ",thetaE
+            print "Estimated shear amplitude gamma1 = ",gamma1
+            print "Estimated shear amplitude gamma2 = ",gamma2
+            print "Estimated shear amplitude gamma = ",gamma
+            print "Estimated shear angle (degrees) = ",phi
+        # Package into lensgalaxy:
+        lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
+#        if self.vb: print lensgalaxy
+        # Note: this puts the lens mass where the galaxy light is!
         
+
         if self.vb: print pointsource
 
         self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
-
         return
         
 # ----------------------------------------------------------------------------

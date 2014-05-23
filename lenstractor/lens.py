@@ -82,7 +82,8 @@ class LensGalaxy(sdss_galaxy.DevGalaxy):
                                    + ' with ' + str(self.brightness) 
                                    + ' and ' + str(self.shape)
                                    + ' and ' + str(self.Rein)
-                                   + ' and ' + str(self.xshear))
+                                   + ' and ' + str(self.xshear)
+                   )
       
       def getName(self):
             return 'LensGalaxy'
