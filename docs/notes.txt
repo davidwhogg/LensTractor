@@ -881,5 +881,35 @@ cp ds9.cat examples/ps1/n4.txt
 mv examples/ps1/n4.txt examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt
 mv examples/ps1/n4.reg examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg
 
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -n 4 -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Nebula4.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Nebula4.log
+
+# Nebula4 results: chisq, K, N, BIC = 9541.14230606 23 7203 9745.43412241
+
+# OK, good. Now try lens - this runs Nebula4 first in any case...
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -l -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Lens.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
+
+# Nebula4 results: chisq, K, N, BIC = 9541.14230606 23 7203 9745.43412241
+# Lens results: chisq, K, N, BIC = 17196.5458015 14 7203 17320.8973419
+# BIC =  {'Lens': 17320.897341899403, 'Nebula': 9745.4341224117252}
+# Hypothesis test result: Bayes factor in favour of Lens is exp[ -3787.73160974 ]
+# BUT: Lens predicts only 1 image, so it's not a strong lens.
+
+# Hmm. Lens intialization is *terrible*! 
+# Also note Nebula4 optimized to the exact same BIC as before, good.
+# Just need to work on Lens init from Nebula. AS USUAL
+
 # =============================================================================
 FINISH:
