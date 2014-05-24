@@ -912,4 +912,71 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Just need to work on Lens init from Nebula. AS USUAL
 
 # =============================================================================
+# 2014-05-23 (Friday) 14:28 PDT
+
+# New code from Adri, differet way of spawning lens. Try it out!
+# He's working in the master branch...
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -l -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Lens.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
+
+# Runs, despite odd indentation:
+
+# Initializing model: Lens
+# Initializing Lens model from Nebula4 template...
+# Galaxy's brightness =  14.1211924654
+# Zeroth-order source displacement =  -0.000105005422256 ,  -1.97001781128e-05
+# Number of peaks =  4
+# Galaxy position =  213.942815197 ,  11.4955025664
+# Offset in Enstein radii =  0.489670368782
+# Estimated Einstein Radius (arcsec) =  EinsteinRadius: 0.770238
+# Estimated shear amplitude gamma1 =  -0.40717027515
+# Estimated shear amplitude gamma2 =  -0.15526175081
+# Estimated shear amplitude gamma =  0.435768108322
+# Estimated shear angle (degrees) =  10.438741833
+# PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225
+# Initialization complete: 
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (213.94282, 11.49550) with Mags: r=14.1212, z=14.5674 and Galaxy Shape: re=0.53, ab=0.96, phi=-91.1 and EinsteinRadius: 0.770238 and External shear: gamma=0.4, phi=10.4 and a PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225 where 4 images are predicted
+
+# But images show ra separation is way too high. Need to multiply by cos(dec), probably.
+# Adri's request:
+
+#    I've pushed the new spawn, it's in model.py, I'm still working on the formulae but we
+#    must also convert ra,dec into pixel positions (to compute Ax, Ay, sum etc) and just at
+#    the end into ra,dec again. @drphilmarshall , would you please manage to do it? It'd take
+#    longer to me digging into the Tractor than to you simply writing the two necessary lines
+#    of code. We'd like to get to the next strides telecon with results! I'll refine the
+#    formulae in the meanwhile.
+
+# He doesn't mean pixel positions I think... th emodel is all in world coords. 
+# But the separations do need to be correct...
+
+# Implemented declination correction, fixed indentation bug. Initial model still sucks!
+
+# Initializing model: Lens
+# Initializing Lens model from Nebula4 template...
+# Galaxy's brightness =  14.1211924654
+# Solving for source position, shear etc...
+# Zeroth-order source displacement (arcsec) =  -0.37043658168 ,  -0.0709206412061
+# Number of images =  4
+# Galaxy position =  213.942815197 ,  11.4955025664
+# Offset in Einstein radii =  0.489670368782
+# Estimated Einstein Radius (arcsec) =  EinsteinRadius: 0.770238
+# Estimated shear amplitude gamma1 =  -0.341016536494
+# Estimated shear amplitude gamma2 =  -0.151342002784
+# Estimated shear amplitude gamma =  0.373090712788
+# Estimated shear angle (degrees) =  11.9688598778
+# PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225
+# Initialization complete: 
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (213.94282, 11.49550) with Mags: r=14.1212, z=14.5674 and Galaxy Shape: re=0.53, ab=0.96, phi=-91.1 and EinsteinRadius: 0.770238 and External shear: gamma=0.4, phi=12.0 and a PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225 where 4 images are predicted
+
+
+# Email back to Adri, to check equations. Galaxy brightness looks suspiciously high...
+
+# =============================================================================
 FINISH:

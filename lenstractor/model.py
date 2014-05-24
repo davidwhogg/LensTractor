@@ -18,6 +18,8 @@ import numpy as np
 import tractor
 import lenstractor
 
+deg2rad = 0.017453292
+
 # ============================================================================
 
 class Model():
@@ -240,7 +242,7 @@ class Model():
         galshape = galaxy.getShape()
         if self.vb:
             print "Galaxy's brightness = ",md[0]
-#        
+        
         # Now need thetaE (from image positions) and external shear. 
         # Compute the image system centroid and, from that, the Einstein radius:
         ra, dec = 0.0, 0.0
@@ -250,36 +252,38 @@ class Model():
             dec += radec.dec
         ra, dec = ra/len(stars), dec/len(stars)
         centroid = tractor.RaDecPos(ra,dec)
-#       for the new stuff: we need centroid position relative to galaxy
-        xs0, ys0 = ra-xd.ra, dec-xd.dec # there are in degrees!
+
+        # For the new stuff: we need the centroid position *relative to the galaxy*
         if self.vb:
-            print "Zeroth-order source displacement = ",xs0,", ",ys0
-#       Old spawn
+            print "Solving for source position, shear etc..."
+        deccorr = np.cos(xd.dec*deg2rad)
+        xs0 = (ra - xd.ra)*deccorr*3600.0
+        ys0 = (dec - xd.dec)*3600.0
+        # First guess at source position is just the image centroid.        
+        xs = centroid
+        if self.vb:
+            print "Zeroth-order source displacement (arcsec) = ",xs0,", ",ys0
+
+        # Rough initial estimate of Einstein radius:
         tE = 0.0
         for star in stars: 
             tE += radec.distanceFrom(centroid)
         tE = tE*3600.0/len(stars)
-#       Old spawn        
-#        # Associate the lens light ellipticity with the lens potential shear...
-#        # (Warning, this could be crazy!)
-#        q = galshape.ab
-#        gamma = 0.2#*(1-q)/(1+q) # MAGIC 0.5
-#        phi   = galshape.phi # deg
-#        xshear = lenstractor.ExternalShear(gamma,phi)
-#        tE = tE*(1-gamma)*0.5 # start with separation sensibly smaller than the naively estimated one
+
+        # Update source position according to Adri's math.
+        # Remember to add back in xd ra and dec, and take care of dec!
+        # (xs1, ys1) --> xs = tractor.RaDecPos(xd.ra + xs1/deccorr, xd.dec + ys1)                 
         
-        # First guess at source position is just the number-averaged centroid        
-        # will need to update it (xs1, ys1)--> xs = tractor.RaDecPos(xs1+xd.ra,ys1+xd.dec)                 
-        xs = centroid
-        ts = xd.distanceFrom(centroid)*3600.0
-#       New workflow
-#        irep=1
-#        while irep<10:
-#        #indent!
+        ts = xd.distanceFrom(xs)*3600.0 # in arcsec
+        # New workflow
+        #  irep=1
+        #  while irep<10:
+        #  #indent!
         magicdist=0.5*tE
         numb=len(stars)
         if self.vb:
-            print "Number of peaks = ", numb
+            print "Number of images = ", numb
+        
         if numb==2: # spawn double
             if ts >= magicdist:
                 #-- reposition galaxy, reset axis ratio and p.a.
@@ -290,8 +294,8 @@ class Model():
                     weight += 1./star.getBrightness()[0]
                 galpx, galpy = galpx/weight, galpy/weight
                 xd.ra, xd.dec = galpx, galpy
-                galshape.ab = 0.8 # magic reset to axis ratio
-                galshape.phi = 0.0                    
+                galshape.ab = 0.8  # MAGIC reset axis ratio to be reasonably round...
+                galshape.phi = 0.0 # MAGIC reset orientation, no idea why. Adri?                   
                 #-- set zero shear, phi = p.a.
                 gamma = 0.0
                 phi = galshape.phi
@@ -303,24 +307,24 @@ class Model():
                 treg = 0.001 # just not to have zero denominator in blabla/thetai
                 for star in stars:
                     stradec = star.getPosition()
-                    thetai = treg + stradec.distanceFrom(xd)*3600
-                    xi = (stradec.ra-xd.ra)*3600
-                    yi = (stradec.dec-xd.dec)*3600
-                    Ax += xi/thetai # units should be the same above and below
-                    Ay += yi/thetai # same here
+                    thetai = treg + stradec.distanceFrom(xd)*3600.0
+                    xi = (stradec.ra-xd.ra)*deccorr*3600.0
+                    yi = (stradec.dec-xd.dec)*3600.0
+                    Ax += xi/thetai # Units should be the same above and below
+                    Ay += yi/thetai # And here too
                     sum1 += (xi**2 - yi**2)/thetai
                     sum2 += thetai**2
                     sum3 += yi**2 - xi**2
                     sum4 += xi*yi/thetai
                     sum5 += xi*yi
-#                Ax, Ay, sum1, sum2, sum3, sum4, sum5 = Ax/len(stars), Ay/len(stars), sum1/len(stars), sum2/len(stars), sum3/len(stars), sum4/len(stars), sum5/len(stars)
-                A21 = (ys0*3600*Ay-xs0*3600*Ax+sum1)/len(stars) # I'm converting xs0, ys0 in arcseconds like the other quantities
-                A22 = sum2/len(stars) -(xs0*3600)**2 -(ys0*3600)**2
-                B2 = (ys0*3600)**2 - (xs0*3600)**2 +sum3/len(stars)
+                # Ax, Ay, sum1, sum2, sum3, sum4, sum5 = Ax/len(stars), Ay/len(stars), sum1/len(stars), sum2/len(stars), sum3/len(stars), sum4/len(stars), sum5/len(stars)
+                A21 = (ys0*Ay-xs0*Ax+sum1)/len(stars) # xs0, ys0 are in arcseconds
+                A22 = sum2/len(stars) - xs0**2 - ys0**2
+                B2 = ys0**2 - xs0**2 +sum3/len(stars)
                 gamma1 = (B2-A21*tE)/A22
-                A31 = (Ax*ys0*3600-Ay*xs0*3600-2*sum4)/len(stars)
-                A33 = 2*sum2/len(stars) - (ys0*3600)**2 - (xs0*3600)**2
-                B3 = 2*sum5/len(stars) -xs0*ys0*(3600**2)
+                A31 = (Ax*ys0-Ay*xs0-2*sum4)/len(stars)
+                A33 = 2*sum2/len(stars) - ys0**2 - xs0**2
+                B3 = 2*sum5/len(stars) -xs0*ys0
                 gamma2 = (B3 - A31*tE)/A33
                 #-- compute gamma, phi, xs1, ys1, update xs
                 shreg = 0.0001
@@ -330,11 +334,14 @@ class Model():
                 for star in stars:
                     stradec = star.getPosition()
                     thetai = treg + stradec.distanceFrom(xd)*3600
-                    xs1 += (stradec.ra-xd.ra)*(1.0-tE/thetai-gamma1) - gamma2*(stradec.dec-xd.dec) # lens equation
-                    ys1 += (stradec.dec-xd.dec)*(1.0-tE/thetai+gamma1) - gamma2*(stradec.ra-xd.ra) # lens equation
-                xs1, ys1 = xs1/len(stars), ys1/len(stars)
-                xs = tractor.RaDecPos(xs1+xd.ra,ys1+xd.dec) 
-        else: # spawn quad, practically same as above
+                    dxs = (stradec.ra-xd.ra)*deccorr
+                    dys = (stradec.dec-xd.dec)
+                    xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
+                    ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
+                xs1, ys1 = xs1/len(stars), ys1/len(stars) # Nb. in degrees
+                xs = tractor.RaDecPos(xd.ra + xs1/deccorr, xd.dec + ys1) 
+
+        elif numb==4: # spawn quad, practically same as above
             if ts >= magicdist:
                 if self.vb:
                     print "Galaxy may be fictitious, repositioning."
@@ -351,8 +358,8 @@ class Model():
                 galshape.ab = 0.8 # magic reset to axis ratio
                 galshape.phi = 0.0                    
             #-- else: do nothing
-        if self.vb:
-            print "Galaxy position = ", xd.ra,", ", xd.dec
+            if self.vb:
+                print "Galaxy position = ", xd.ra,", ", xd.dec
             #-- now compute Ax etc
             Ax = Ay = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
             #-- optimize for shear
@@ -360,8 +367,8 @@ class Model():
             for star in stars:
                 stradec = star.getPosition()
                 thetai = treg + stradec.distanceFrom(xd)*3600
-                xi = (stradec.ra-xd.ra)*3600
-                yi = (stradec.dec-xd.dec)*3600
+                xi = (stradec.ra-xd.ra)*deccorr*3600.0
+                yi = (stradec.dec-xd.dec)*3600.0
                 Ax += xi/thetai # units should be the same above and below
                 Ay += yi/thetai # same here
                 sum1 += (xi**2 - yi**2)/thetai
@@ -373,13 +380,13 @@ class Model():
 #            if self.vb:
 #                print "Shear optimization parameters = ", Ax,", ", Ay,", ", sum1,", ", sum2,", ", sum3,", ", sum4,", ", sum5
 #
-            A21 = (ys0*3600*Ay-xs0*3600*Ax+sum1)/len(stars) # I'm converting xs0, ys0 in arcseconds like the other quantities
-            A22 = sum2/len(stars) -(xs0*3600)**2 -(ys0*3600)**2
-            B2 = (ys0*3600)**2 - (xs0*3600)**2 +sum3/len(stars)
+            A21 = (ys0*Ay-xs0*Ax+sum1)/len(stars) # xs0, ys0 are in arcsec
+            A22 = sum2/len(stars) - xs0**2 - ys0**2
+            B2 = ys0**2 - xs0**2 +sum3/len(stars)
             gamma1 = (B2-A21*tE)/A22
-            A31 = (Ax*ys0*3600-Ay*xs0*3600-2*sum4)/len(stars)
-            A33 = 2*sum2/len(stars) - (ys0*3600)**2 - (xs0*3600)**2
-            B3 = 2*sum5/len(stars) -xs0*ys0*(3600**2)
+            A31 = (Ax*ys0-Ay*xs0-2*sum4)/len(stars)
+            A33 = 2*sum2/len(stars) - ys0**2 - xs0**2
+            B3 = 2*sum5/len(stars) -xs0*ys0
             gamma2 = (B3 - A31*tE)/A33
             #-- compute gamma, phi, update xs
             shreg = 0.0001
@@ -389,10 +396,12 @@ class Model():
             for star in stars:
                 stradec = star.getPosition()
                 thetai = treg + stradec.distanceFrom(xd)*3600
-                xs1 += (stradec.ra-xd.ra)*(1.0-tE/thetai-gamma1) - gamma2*(stradec.dec-xd.dec) # lens equation
-                ys1 += (stradec.dec-xd.dec)*(1.0-tE/thetai+gamma1) - gamma2*(stradec.ra-xd.ra) # lens equation
+                dxs = (stradec.ra-xd.ra)*deccorr
+                dys = (stradec.dec-xd.dec)
+                xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
+                ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
             xs1, ys1 = xs1/len(stars), ys1/len(stars)
-            xs = tractor.RaDecPos(xs1+xd.ra,ys1+xd.dec)
+            xs = tractor.RaDecPos(xd.ra + xs1/deccorr,xd.dec + ys1)
 #
 #           irep++
 # Iterate? I.e. optimize in tE given gamma1, gamma2, re-solve in gamma1, gamma2 etc.
@@ -414,7 +423,7 @@ class Model():
 #
         thetaE = lenstractor.EinsteinRadius(tE)
         if self.vb:
-            print "Offset in Enstein radii = ",ts/tE
+            print "Offset in Einstein radii = ",ts/tE
             print "Estimated Einstein Radius (arcsec) = ",thetaE
             print "Estimated shear amplitude gamma1 = ",gamma1
             print "Estimated shear amplitude gamma2 = ",gamma2
