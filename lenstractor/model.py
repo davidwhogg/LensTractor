@@ -257,6 +257,7 @@ class Model():
         if self.vb:
             print "Solving for source position, shear etc..."
         deccorr = np.cos(xd.dec*deg2rad)
+#        deccorr = 1.0
         xs0 = (ra - xd.ra)*deccorr*3600.0
         ys0 = (dec - xd.dec)*3600.0
         # First guess at source position is just the image centroid.        
@@ -275,14 +276,15 @@ class Model():
         # (xs1, ys1) --> xs = tractor.RaDecPos(xd.ra + xs1/deccorr, xd.dec + ys1)                 
         
         ts = xd.distanceFrom(xs)*3600.0 # in arcsec
-        # New workflow
-        #  irep=1
-        #  while irep<10:
-        #  #indent!
-        magicdist=0.5*tE
+        magicdist=0.75*tE
         numb=len(stars)
+        # NrectE-1 = recursions in determining tE, gamma1, gamma2
+        NrectE = 1000
+        Nreccen = 1000
         if self.vb:
             print "Number of images = ", numb
+            print "Offset in Einstein radii = ",ts/tE
+            print "Estimated Einstein Radius (arcsec) = ",tE
         
         if numb==2: # spawn double
             if ts >= magicdist:
@@ -302,38 +304,52 @@ class Model():
                 #-- leave xs as it is
             else:
                 #-- compute Ax etc
-                Ax = Ay = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
+                Ax = Ay = sum0 = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
                 #-- optimize for shear
-                treg = 0.001 # just not to have zero denominator in blabla/thetai
+                treg = 0.00001 # just not to have zero denominator in blabla/thetai
                 for star in stars:
+                    # deccorr = 1.0
                     stradec = star.getPosition()
                     thetai = treg + stradec.distanceFrom(xd)*3600.0
                     xi = (stradec.ra-xd.ra)*deccorr*3600.0
                     yi = (stradec.dec-xd.dec)*3600.0
                     Ax += xi/thetai # Units should be the same above and below
                     Ay += yi/thetai # And here too
+                    sum0 += thetai
                     sum1 += (xi**2 - yi**2)/thetai
                     sum2 += thetai**2
                     sum3 += yi**2 - xi**2
                     sum4 += xi*yi/thetai
                     sum5 += xi*yi
-                # Ax, Ay, sum1, sum2, sum3, sum4, sum5 = Ax/len(stars), Ay/len(stars), sum1/len(stars), sum2/len(stars), sum3/len(stars), sum4/len(stars), sum5/len(stars)
+                #-- params of tE as a function of gamma
+                A11 = len(stars) -(Ax**2)/len(stars) -(Ay**2)/len(stars)
+                A12 = sum1 - Ax*xs0 +Ay*ys0
+                A13 = 2.0*sum4 -Ax*ys0 - Ay*xs0
+                B1 = sum0 - Ax*xs0 - Ay*ys0
                 A21 = (ys0*Ay-xs0*Ax+sum1)/len(stars) # xs0, ys0 are in arcseconds
                 A22 = sum2/len(stars) - xs0**2 - ys0**2
-                B2 = ys0**2 - xs0**2 +sum3/len(stars)
+                B2 = ys0**2 - xs0**2 -sum3/len(stars)
                 gamma1 = (B2-A21*tE)/A22
-                A31 = (Ax*ys0-Ay*xs0-2*sum4)/len(stars)
-                A33 = 2*sum2/len(stars) - ys0**2 - xs0**2
-                B3 = 2*sum5/len(stars) -xs0*ys0
+                A31 = -(Ax*ys0+Ay*xs0-2*sum4)/len(stars)
+                A33 = A22
+                B3 = +2.0*sum5/len(stars) -2.0*xs0*ys0/len(stars)
                 gamma2 = (B3 - A31*tE)/A33
+                #-- solve recursively in tE, gamma1, gamma2
+                irec=1
+                while irec<NrectE:
+                    tE = (B1 -gamma1*A12 -A13*gamma2)/A11
+                    gamma1 = (B2-A21*tE)/A22
+                    gamma2 = (B3 - A31*tE)/A33
+                    irec += 1    
                 #-- compute gamma, phi, xs1, ys1, update xs
                 shreg = 0.0001
                 gamma = (gamma1**2+gamma2**2)**0.5
                 phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
                 xs1 = ys1 = 0.0
                 for star in stars:
+                    # deccorr = 1.0
                     stradec = star.getPosition()
-                    thetai = treg + stradec.distanceFrom(xd)*3600
+                    thetai = treg + stradec.distanceFrom(xd)*3600.0
                     dxs = (stradec.ra-xd.ra)*deccorr
                     dys = (stradec.dec-xd.dec)
                     xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
@@ -350,61 +366,122 @@ class Model():
                 pippo0 = stars[0].getBrightness()[0]
                 for star in stars:
                     pippo1 = 10**(-0.4*star.getBrightness()[0]+0.4*pippo0)
+#                    pippo1 = 1
                     galpx += star.getPosition().ra/pippo1
                     galpy += star.getPosition().dec/pippo1
                     weight += 1./pippo1
                 galpx, galpy = galpx/weight, galpy/weight
                 xd.ra, xd.dec = galpx, galpy
                 galshape.ab = 0.8 # magic reset to axis ratio
-                galshape.phi = 0.0                    
-            #-- else: do nothing
-            if self.vb:
-                print "Galaxy position = ", xd.ra,", ", xd.dec
-            #-- now compute Ax etc
-            Ax = Ay = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
-            #-- optimize for shear
-            treg = 0.001 # just not to have zero denominator in blabla/thetai
-            for star in stars:
-                stradec = star.getPosition()
-                thetai = treg + stradec.distanceFrom(xd)*3600
-                xi = (stradec.ra-xd.ra)*deccorr*3600.0
-                yi = (stradec.dec-xd.dec)*3600.0
-                Ax += xi/thetai # units should be the same above and below
-                Ay += yi/thetai # same here
-                sum1 += (xi**2 - yi**2)/thetai
-                sum2 += thetai**2
-                sum3 += yi**2 - xi**2
-                sum4 += xi*yi/thetai
-                sum5 += xi*yi
-#            Ax, Ay, sum1, sum2, sum3, sum4, sum5 = Ax/len(stars), Ay/len(stars), sum1/len(stars), sum2/len(stars), sum3/len(stars), sum4/len(stars), sum5/len(stars)
-#            if self.vb:
-#                print "Shear optimization parameters = ", Ax,", ", Ay,", ", sum1,", ", sum2,", ", sum3,", ", sum4,", ", sum5
+                galshape.phi = 0.0   
+                #-- We need the centroid position *relative to the galaxy*, so we need to re-do this when resetting
+                if self.vb:
+                    print "Solving for source position, shear etc..."
+                deccorr = np.cos(xd.dec*deg2rad)
+                # deccorr = 1.0
+                xs0 = (ra - xd.ra)*deccorr*3600.0
+                ys0 = (dec - xd.dec)*3600.0
+                # First guess at source position is just the image centroid.        
+                xs = centroid
+#                     
+            #-- else: do nothing; then, recursively optimize
+            ireccen=1
+            while ireccen<Nreccen:
+                if self.vb:
+                    print "Galaxy position = ", xd.ra,", ", xd.dec
+                #-- now compute Ax etc
+                Ax = Ay = sum0 = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
+                #-- optimize for shear
+                treg = 0.001 # just not to have zero denominator in blabla/thetai
+                for star in stars:
+#                    deccorr = 1.0
+                    stradec = star.getPosition()
+                    xi = (stradec.ra-xd.ra)*deccorr*3600.0
+                    yi = (stradec.dec-xd.dec)*3600.0
+#                    thetai = treg + (xi**2 + yi**2)**0.5
+                    thetai = treg + stradec.distanceFrom(xd)*3600.0
+                    Ax += xi/thetai # units should be the same above and below
+                    Ay += yi/thetai # same here
+                    sum0 += thetai
+                    sum1 += (xi**2 - yi**2)/thetai
+                    sum2 += thetai**2
+                    sum3 += yi**2 - xi**2
+                    sum4 += xi*yi/thetai
+                    sum5 += xi*yi
 #
-            A21 = (ys0*Ay-xs0*Ax+sum1)/len(stars) # xs0, ys0 are in arcsec
-            A22 = sum2/len(stars) - xs0**2 - ys0**2
-            B2 = ys0**2 - xs0**2 +sum3/len(stars)
-            gamma1 = (B2-A21*tE)/A22
-            A31 = (Ax*ys0-Ay*xs0-2*sum4)/len(stars)
-            A33 = 2*sum2/len(stars) - ys0**2 - xs0**2
-            B3 = 2*sum5/len(stars) -xs0*ys0
-            gamma2 = (B3 - A31*tE)/A33
-            #-- compute gamma, phi, update xs
+                A11 = len(stars) -(Ax**2)/len(stars) -(Ay**2)/len(stars)
+                A12 = sum1 - Ax*xs0 +Ay*ys0
+                A13 = 2.0*sum4 -Ax*ys0 - Ay*xs0
+                B1 = sum0 - Ax*xs0 - Ay*ys0
+                A21 = (ys0*Ay-xs0*Ax+sum1)/len(stars) # xs0, ys0 are in arcseconds
+                A22 = sum2/len(stars) - xs0**2 - ys0**2
+                B2 = ys0**2 - xs0**2 -sum3/len(stars)
+                gamma1 = (B2-A21*tE)/A22
+                A31 = -(Ax*ys0+Ay*xs0-2.0*sum4)/len(stars)
+                A33 = A22
+                B3 = +2.0*sum5/len(stars) -2.0*xs0*ys0/len(stars)
+                gamma2 = (B3 - A31*tE)/A33
+                #-- solve recursively in tE, gamma1, gamma2
+                irec=1
+                while irec<NrectE:
+                    tE = (B1 -gamma1*A12 -A13*gamma2)/A11
+                    gamma1 = (B2-A21*tE)/A22
+                    gamma2 = (B3 - A31*tE)/A33
+                    irec += 1    
+                #-- compute gamma, phi, update source
+#                shreg = 0.0001
+#                gamma = (gamma1**2+gamma2**2)**0.5
+#                phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+                xs1 = ys1 = 0.0
+                for star in stars:
+#                    deccorr = 1
+                    stradec = star.getPosition()
+                    thetai = treg + stradec.distanceFrom(xd)*3600.0
+#                    thetai = treg + (xi**2 + yi**2)**0.5
+                    dxs = (stradec.ra-xd.ra)*deccorr
+                    dys = (stradec.dec-xd.dec)
+                    xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
+                    ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
+                xs1, ys1 = xs1/len(stars), ys1/len(stars)
+                xs = tractor.RaDecPos(xd.ra + xs1/deccorr,xd.dec + ys1)
+                #-- adjust center
+                #-- learnrate = learning rate
+                learnrate = 0.05
+                d11 = d12 = 0.0
+                d21 = d22 = 0.0
+                dchi2xd = dchi2yd = 0.0
+                squares = 0.0 # used for source-plane chi2, i.e. variance in pred.source positions in units of tE^2
+                for star in stars:
+                    stradec = star.getPosition()
+                    thetai = treg + stradec.distanceFrom(xd) # in degrees
+                    thetai = thetai/3600.0 #in arcseconds
+                    dxs = (stradec.ra-xd.ra)*deccorr
+                    dys = (stradec.dec-xd.dec)
+                    dxs, dys = dxs/3600.0, dys/3600.0
+                    d11 = -1.0 + gamma1 + tE*(dys**2)/(thetai**3)
+                    d12 = gamma2 - tE*dys*dxs/(thetai**3)
+                    d21 = d12
+                    d22 = -1.0 -gamma1 + tE*(dxs**2)/(thetai**3)
+                    xsi = dxs*(1.0 -tE/thetai -gamma1) - gamma2*dys # in arcseconds
+                    ysi = dys*(1.0 -tE/thetai +gamma1) - gamma2*dxs # in arcseconds
+                    dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 -(xs1*3600.0)*d11 -(ys1*3600.0)*d12) # in arcseconds
+                    dchi2yd += (2./len(stars))*(xsi*d21 +ysi*d22 -(xs1*3600.0)*d21 -(ys1*3600.0)*d22) # in arcseconds
+#                    squares += (1./len(stars))*(xsi**2 + ysi**2)
+                dispx = dchi2xd/deccorr #in arcseconds
+                dispy = dchi2yd # in arcseconds
+                displamp = (dispx**2 + dispy**2)**0.5 #in arcseconds
+                displamp = displamp/tE # pure number
+                if self.vb:
+#                    print "source-plane chi2  = ",squares - (xs1**2 +ys1**2)
+                    print "displacement/tE = ", displamp
+                    print "deflector's adjustments (arcsec) = ",dispx*learnrate/(learnrate+displamp),dispy*learnrate/(learnrate+displamp)
+                xd.ra, xd.dec = xd.ra -(dispx/3600.0)*learnrate/(learnrate+displamp), xd.dec -(dispy/3600.0)*learnrate/(learnrate+displamp) # in degrees
+#
+                ireccen += 1
+#
             shreg = 0.0001
             gamma = (gamma1**2+gamma2**2)**0.5
             phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-            xs1 = ys1 = 0.0
-            for star in stars:
-                stradec = star.getPosition()
-                thetai = treg + stradec.distanceFrom(xd)*3600
-                dxs = (stradec.ra-xd.ra)*deccorr
-                dys = (stradec.dec-xd.dec)
-                xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
-                ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
-            xs1, ys1 = xs1/len(stars), ys1/len(stars)
-            xs = tractor.RaDecPos(xd.ra + xs1/deccorr,xd.dec + ys1)
-#
-#           irep++
-# Iterate? I.e. optimize in tE given gamma1, gamma2, re-solve in gamma1, gamma2 etc.
 #
 # instantiate ExternalShear object
         phi = np.rad2deg(phi)
@@ -418,7 +495,7 @@ class Model():
         for star in stars[1:]: 
             pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
         # Correct source brightness for approximate magnification:
-        mu = 2*tE/ts
+        mu = 2*len(stars)*tE/ts
         pointsource.setBrightness(pointsource.getBrightness() + 2.5*np.log10(mu))
 #
         thetaE = lenstractor.EinsteinRadius(tE)
@@ -438,6 +515,7 @@ class Model():
         if self.vb: print pointsource
 
         self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
+#        assert False
         return
         
 # ----------------------------------------------------------------------------
