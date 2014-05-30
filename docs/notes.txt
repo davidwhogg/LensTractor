@@ -1007,7 +1007,6 @@ set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
 
 python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
 
-# Hmm: looks like dstn insists we provide run, camcol, field. Sigh
 
 
 # =============================================================================
