@@ -187,7 +187,7 @@ def main():
    # Survey we are working on (affects data read-in):
    parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey (SDSS, PS1 or KIDS)")
    # Use SDSS sky server to get data:
-   parser.add_argument('--SDSS', dest='radecroi', type=str, default="None", help="Use SDSS skyserver to return cutouts")
+   parser.add_argument('--SDSS', dest='rcfstring', type=str, default="None", help="Use SDSS skyserver to return cutouts, supply run,camcol,field,ra,dec,roi")
    # Manual input of model initialization:
    parser.add_argument('--manual', dest='catalog', type=str, default="None", help="Catalog of Nebula model parameters, for initializing positions")
 
@@ -196,7 +196,7 @@ def main():
    args = parser.parse_args()
       
       
-   if (args.radecroi == 'None' and len(args.inputfiles) < 1):
+   if (args.rcfstring == 'None' and len(args.inputfiles) < 1):
       # parser.print_help()
       print main.__doc__  # Whoah! What does this do?! Some sort of magic.
       sys.exit(-1)
@@ -228,10 +228,13 @@ def main():
       manual = False
    
    # SDSS skyserver:
-   if args.radecroi != 'None': 
+   if args.rcfstring != 'None': 
        survey = 'SDSS'
-       radecroi = [float(x) for x in args.radecroi.split(',')]
-       assert len(radecroi) == 3
+       data = [float(x) for x in args.rcfstring.split(',')]
+       rcf = data[0:5]
+       rcf[0:3] = [int(x) for x in rcf[0:3]]
+       roi = data[5]
+       assert len(rcf) == 5
        
    # -------------------------------------------------------------------------
 
@@ -242,7 +245,7 @@ def main():
        datadir = string.join(args.outstem.split('/')[0:-1],'/')
        if len(datadir) == 0: datadir = '.'
        
-       images,centroids,total_mags,bands = lenstractor.getSDSSdata(radecroi,datadir,vb=vb)
+       images,centroids,total_mags,bands = lenstractor.getSDSSdata(rcf,roi,datadir,vb=vb)
    
    else:
    

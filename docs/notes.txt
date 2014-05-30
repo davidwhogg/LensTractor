@@ -999,11 +999,15 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # 09:51:22.57 +26:35:13.96
 
 # Here's the test command. Note that the -o option shows where the 
-# FITS files are to be downloaded to.
+# FITS files are to be downloaded to. Run, camcol, field (frame?) come from
+# 0951 example fits files. We'll have to look up all of these numbers for the sample...
 
-python LensTractor.py -v -n 4 -z --SDSS 147.844080,26.587220,10.0 \
-   -o examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec 
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
 
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Hmm: looks like dstn insists we provide run, camcol, field. Sigh
 
 
 # =============================================================================

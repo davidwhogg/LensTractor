@@ -192,10 +192,11 @@ def SDSS_imshow_settings(image, chi):
 # ============================================================================
 # Get SDSS data, dstndstn style!
 
-def getSDSSdata(x,datadir,vb=False):
+def getSDSSdata(rcf,roi,datadir,vb=False):
     '''
     INPUTS
-        radecroi     A list of floats, specifying ra, dec and region of interest diameter (in arcsec)
+        rcf          A list of number, specifying the SDSS run, camcol and field ids, ra and dec
+        roi          Width of region of interest (in arcsec)
         datadir      Name of directory where fits images will be written to (for posterity)
         vb           Verbose operation?
 
@@ -206,9 +207,17 @@ def getSDSSdata(x,datadir,vb=False):
         bands        List of filter names, one per image
     '''
     
+    run,camcol,field,ra,dec = rcf[0],rcf[1],rcf[2],rcf[3],rcf[4]
+    roipix = int(roi/0.396)
+    
     if vb:
-        print "Querying SDSS skyserver for data at ra,dec = ",x[0],x[1]
-        print "Looking to make cutouts that are ",x[2]," arcsec across"
+        print "Querying SDSS skyserver for data at ra,dec = ",ra,dec
+        print "  in run, camcol, field = ",[run,camcol,field]
+        print "Looking to make cutouts that are ",roi," arcsec (",roipix," pixels) across"
+    
+    # Ideally we would first get SDSS run, camcol and field id:
+    #   rcf = radec_to_sdss_rcf(ra,dec,radius=math.hypot(fieldradius,13./2.),tablefn="dr9fields.fits")
+    # but, we do not have this table. So need an rcf passed in as an argument.
 
     return [],[],[],[]
 
