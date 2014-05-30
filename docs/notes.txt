@@ -1007,6 +1007,22 @@ set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
 
 python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
 
+# OK, close. The call to get_tractor_image fails because the astrometry code has not built:
+
+# File "/Users/pjm/work/astrometry/astrometry/libkd/spherematch.py", line 409, in <module>
+#     tree_permute = spherematch_c.kdtree_permute
+# AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+# In the tractor/astrometry directory, I followed the steps in checkout.sh and got:
+
+cd $TRACTOR_dir/astrometry/libkd
+make pyspherematch
+
+# clang -arch x86_64 -g -Wall   -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE   -I../qfits-an -I../util -I../util  -I../qfits-an -I../util -I../gsl-an  -I/usr/local/Cellar/python/2.7.2/include/python2.7 -MM -MP  pyspherematch.c > pyspherematch.dep.tmp && mv pyspherematch.dep.tmp pyspherematch.dep
+# pyspherematch.c:24:10: fatal error: 'numpy/arrayobject.h' file not found
+# #include "numpy/arrayobject.h"
+
+# Emailed dstn.
 
 
 # =============================================================================
