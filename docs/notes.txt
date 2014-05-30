@@ -979,4 +979,32 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Email back to Adri, to check equations. Galaxy brightness looks suspiciously high...
 
 # =============================================================================
+# 2014-05-29 (Thursday) 18:56 PDT
+
+# Dustin recommends getting SDSS data with his sdss_getimage tractor code.
+# This would (I think) grab a suitably sized cutout, including weight image, 
+# given Ra and Dec. Give LensTractor the option, if --survey SDSS, of 
+# --radec alpha delta (in degrees), and the go and pull the data down into 
+# a suitably named directory before Riffling and Dealing it.
+
+# Look up Ra, Dec for SDSSJ0951.
+# At http://www-utap.phys.s.u-tokyo.ac.jp/~sdss/sqls/lens.html
+# there is a link to the skyserver at
+# http://cas.sdss.org/astro/en/tools/explore/obj.asp?ra=147.844080&dec=+26.587220
+
+# Degrees:
+# 147.844080 +26.587220
+
+# Hexagesimal:
+# 09:51:22.57 +26:35:13.96
+
+# Here's the test command. Note that the -o option shows where the 
+# FITS files are to be downloaded to.
+
+python LensTractor.py -v -n 4 -z --SDSS 147.844080,26.587220,10.0 \
+   -o examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec 
+
+
+
+# =============================================================================
 FINISH:

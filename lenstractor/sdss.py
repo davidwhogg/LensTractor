@@ -189,3 +189,27 @@ def SDSS_imshow_settings(image, chi):
  
     return (ima, chia, psfa)
 
+# ============================================================================
+# Get SDSS data, dstndstn style!
+
+def getSDSSdata(x,datadir,vb=False):
+    '''
+    INPUTS
+        radecroi     A list of floats, specifying ra, dec and region of interest diameter (in arcsec)
+        datadir      Name of directory where fits images will be written to (for posterity)
+        vb           Verbose operation?
+
+    OUTPUTS
+        images       A list of tractor image objects, one per image
+        centroids    List of flux centroids, one per image
+        total_mags   List of total magnitudes, one per image
+        bands        List of filter names, one per image
+    '''
+    
+    if vb:
+        print "Querying SDSS skyserver for data at ra,dec = ",x[0],x[1]
+        print "Looking to make cutouts that are ",x[2]," arcsec across"
+
+    return [],[],[],[]
+
+# ============================================================================
