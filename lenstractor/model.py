@@ -280,7 +280,7 @@ class Model():
         numb=len(stars)
         # NrectE-1 = recursions in determining tE, gamma1, gamma2
         NrectE = 1000
-        Nreccen = 1000
+        Nreccen = 5
         if self.vb:
             print "Number of images = ", numb
             print "Offset in Einstein radii = ",ts/tE
@@ -366,7 +366,7 @@ class Model():
                 pippo0 = stars[0].getBrightness()[0]
                 for star in stars:
                     pippo1 = 10**(-0.4*star.getBrightness()[0]+0.4*pippo0)
-#                    pippo1 = 1
+#                    pippo1 = 1.
                     galpx += star.getPosition().ra/pippo1
                     galpy += star.getPosition().dec/pippo1
                     weight += 1./pippo1
@@ -397,6 +397,7 @@ class Model():
 #                    deccorr = 1.0
                     stradec = star.getPosition()
                     xi = (stradec.ra-xd.ra)*deccorr*3600.0
+#                    xi = (stradec.ra-xd.ra)*3600.0
                     yi = (stradec.dec-xd.dec)*3600.0
 #                    thetai = treg + (xi**2 + yi**2)**0.5
                     thetai = treg + stradec.distanceFrom(xd)*3600.0
@@ -438,15 +439,16 @@ class Model():
                     stradec = star.getPosition()
                     thetai = treg + stradec.distanceFrom(xd)*3600.0
 #                    thetai = treg + (xi**2 + yi**2)**0.5
-                    dxs = (stradec.ra-xd.ra)*deccorr
-                    dys = (stradec.dec-xd.dec)
+                    dxs = (stradec.ra-xd.ra)*deccorr*3600.0
+                    dys = (stradec.dec-xd.dec)*3600.0
                     xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
                     ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
                 xs1, ys1 = xs1/len(stars), ys1/len(stars)
+                xs1, ys1 = xs1/3600, ys1/3600
                 xs = tractor.RaDecPos(xd.ra + xs1/deccorr,xd.dec + ys1)
                 #-- adjust center
                 #-- learnrate = learning rate
-                learnrate = 0.05
+                learnrate = 0.001
                 d11 = d12 = 0.0
                 d21 = d22 = 0.0
                 dchi2xd = dchi2yd = 0.0
@@ -454,10 +456,10 @@ class Model():
                 for star in stars:
                     stradec = star.getPosition()
                     thetai = treg + stradec.distanceFrom(xd) # in degrees
-                    thetai = thetai/3600.0 #in arcseconds
+                    thetai = thetai*3600.0 #in arcseconds
                     dxs = (stradec.ra-xd.ra)*deccorr
                     dys = (stradec.dec-xd.dec)
-                    dxs, dys = dxs/3600.0, dys/3600.0
+                    dxs, dys = dxs*3600.0, dys*3600.0
                     d11 = -1.0 + gamma1 + tE*(dys**2)/(thetai**3)
                     d12 = gamma2 - tE*dys*dxs/(thetai**3)
                     d21 = d12
@@ -473,8 +475,9 @@ class Model():
                 displamp = displamp/tE # pure number
                 if self.vb:
 #                    print "source-plane chi2  = ",squares - (xs1**2 +ys1**2)
+                    print "tE (arcsec) = ", tE
                     print "displacement/tE = ", displamp
-                    print "deflector's adjustments (arcsec) = ",dispx*learnrate/(learnrate+displamp),dispy*learnrate/(learnrate+displamp)
+                    print "deflector's adjustments (units of tE) = ",dispx*learnrate/((learnrate+displamp)*tE),dispy*learnrate/((learnrate+displamp)*tE)
                 xd.ra, xd.dec = xd.ra -(dispx/3600.0)*learnrate/(learnrate+displamp), xd.dec -(dispy/3600.0)*learnrate/(learnrate+displamp) # in degrees
 #
                 ireccen += 1
