@@ -125,10 +125,11 @@ class Model():
         else:
             galpos = position
         # Give it its fair share of the flux, and start faint:
-        fudge = 0.2 # MAGIC
+        fudge = 0.2
         galSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
         # Some standard shape and size parameters:
-        re = 0.5    # arcsec
+        re = 0.5    # in arcsec, appropriate for the PS1 example
+#        re = 1.0    # in arcsec, probably appropriate for the SQLS example
         q = 0.8     # axis ratio
         theta = 0.0 # degrees
         galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
@@ -277,18 +278,24 @@ class Model():
         
         ts = xd.distanceFrom(xs)*3600.0 # in arcsec
         magicdist=0.75*tE
+        toodist=1.5*tE
         numb=len(stars)
         # NrectE-1 = recursions in determining tE, gamma1, gamma2
         NrectE = 1000
-        Nreccen = 5
+        Nreccen = 500
         if self.vb:
             print "Number of images = ", numb
             print "Offset in Einstein radii = ",ts/tE
             print "Estimated Einstein Radius (arcsec) = ",tE
         
         if numb==2: # spawn double
-            if ts >= magicdist:
-                #-- reposition galaxy, reset axis ratio and p.a.
+            if ts >= toodist:
+                print "Not a lens, the galaxy is way too far from the quasars!"
+                assert False
+            elif ts >= magicdist:
+                if self.vb:
+                    print "Galaxy may be fictitious, repositioning."
+                 #-- reposition galaxy, reset axis ratio and p.a.
                 galpx, galpy, weight = 0.0, 0.0, 0.0
                 for star in stars:
                     galpx += star.getPosition().ra/star.getBrightness()[0]
@@ -300,6 +307,7 @@ class Model():
                 galshape.phi = 0.0 # MAGIC reset orientation, no idea why. Adri?                   
                 #-- set zero shear, phi = p.a.
                 gamma = 0.0
+                gamma1, gamma2 = 0.0, 0.0
                 phi = galshape.phi
                 #-- leave xs as it is
             else:
@@ -350,11 +358,12 @@ class Model():
                     # deccorr = 1.0
                     stradec = star.getPosition()
                     thetai = treg + stradec.distanceFrom(xd)*3600.0
-                    dxs = (stradec.ra-xd.ra)*deccorr
-                    dys = (stradec.dec-xd.dec)
+                    dxs = (stradec.ra-xd.ra)*deccorr*3600.0
+                    dys = (stradec.dec-xd.dec)*3600.0
                     xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
                     ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
-                xs1, ys1 = xs1/len(stars), ys1/len(stars) # Nb. in degrees
+                xs1, ys1 = xs1/len(stars), ys1/len(stars) # Nb. in arcsec
+                xs1, ys1 = xs1/3600, ys1/3600 # Nb. in degrees
                 xs = tractor.RaDecPos(xd.ra + xs1/deccorr, xd.dec + ys1) 
 
         elif numb==4: # spawn quad, practically same as above
@@ -446,6 +455,8 @@ class Model():
                 xs1, ys1 = xs1/len(stars), ys1/len(stars)
                 xs1, ys1 = xs1/3600, ys1/3600
                 xs = tractor.RaDecPos(xd.ra + xs1/deccorr,xd.dec + ys1)
+                if self.vb:
+                    print "tE (arcsec) = ", tE
                 #-- adjust center
                 #-- learnrate = learning rate
                 learnrate = 0.001
@@ -529,13 +540,15 @@ class Model():
         Nbands = SED.numberOfParams()
         
         # Open up LT output catalog format file and read positions, assuming 
-        # hard-coded column numbers:
+        # hard-coded column numbers from the PS1 example:
+        # Need to change that for other surveys!
         x = np.loadtxt(catalog)
         
         if len(x) == 23:
             Npos = 4
             self.K = Npos
-        elif len(x) == 13:
+#        elif len(x) == 15: # PS1 case (two bands)
+        elif len(x) == 21: # SQLS case (four bands)
             Npos = 2
             self.K = Npos
         else:

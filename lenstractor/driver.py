@@ -117,19 +117,30 @@ class LensTractor():
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 100000
             self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()
-        
+            self.optimize()        
             # Now optimize PSF at fixed model:
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 0
             self.settings['Nsteps_optimizing_PSFs'] = 2
-            self.optimize()
-            
+            self.optimize()            
             # Refine model at best PSF:
-            self.settings['Nrounds'] = 1
+            self.settings['Nrounds'] = 2
             self.settings['Nsteps_optimizing_catalog'] = 10000
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
+            # When running just Nebula, uncomment these, so as to make a fair comparison.
+            # This is UGLY: it should be coded up into the main script!
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 100000
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize()        
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 0
+            self.settings['Nsteps_optimizing_PSFs'] = 2
+            self.optimize()            
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 10000
+            self.settings['Nsteps_optimizing_PSFs'] = 0
         
         
         else: # Apply cunning and guile!
@@ -139,11 +150,20 @@ class LensTractor():
             self.settings['Nsteps_optimizing_catalog'] = 100000
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()          
+            # Now optimize PSF at fixed model:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 0
+            self.settings['Nsteps_optimizing_PSFs'] = 2
+            self.optimize()           
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 10000
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize() 
             
             # Now draw a few samples to shuffle the positions:
-            self.settings['Nsnapshots'] = 3
-            self.settings['Nwalkers_per_dim'] = 2
-            self.settings['Nsteps_per_snapshot'] = 4000
+            self.settings['Nsnapshots'] = 2
+            self.settings['Nwalkers_per_dim'] = 4
+            self.settings['Nsteps_per_snapshot'] = 2500
             self.settings['Restart'] = True
             self.sample()
             
