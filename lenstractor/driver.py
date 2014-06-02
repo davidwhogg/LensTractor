@@ -161,7 +161,7 @@ class LensTractor():
             self.optimize() 
             
             # Now draw a few samples to shuffle the positions:
-            self.settings['Nsnapshots'] = 2
+            self.settings['Nsnapshots'] = 1
             self.settings['Nwalkers_per_dim'] = 4
             self.settings['Nsteps_per_snapshot'] = 2500
             self.settings['Restart'] = True
