@@ -1077,13 +1077,21 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 
 # Try Adri's test:
 
-python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1
-mkdir -p firstpassage; mv *png lenstractor_Nebula4.cat firstpassage/
+python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage.log
+mkdir -p firstpassage; mv *png lenstractor_Nebula4.cat firstpassage.log firstpassage/
 
-python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 --manual firstpassage/lenstractor_Nebula4.cat
-mkdir -p secondpassage; mv *png lenstractor_Nebula4.cat secondpassage/
+python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 \
+  --manual firstpassage/lenstractor_Nebula4.cat > secondpassage.log
+mkdir -p secondpassage; mv *png lenstractor_Nebula4.cat secondpassage.log secondpassage/
 
+# Compare plots:
 
+open firstpassage/lenstractor_progress-04_optimizing_Nebula4.png \
+    secondpassage/lenstractor_progress-00_initial_Nebula4.png
+
+# Its true, initial positions of second passage do not match final positions of first passage.
+# Check positions after read in. 
 
 # =============================================================================
 FINISH:

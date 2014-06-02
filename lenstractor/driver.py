@@ -61,10 +61,10 @@ class LensTractor():
  #       self.settings['Nsteps_optimizing_catalog'] = 100
  #       self.settings['Nsteps_optimizing_PSFs'] = 2
         # Sampling settings:
- #       self.settings['Nwalkers_per_dim'] = 8
- #       self.settings['Nsnapshots'] = 3
- #       self.settings['Nsteps_per_snapshot'] = 10
- #       self.settings['Restart'] = True
+        self.settings['Nwalkers_per_dim'] = 8
+        self.settings['Nsnapshots'] = 3
+        self.settings['Nsteps_per_snapshot'] = 5000
+        self.settings['Restart'] = True
         
         self.model = model
         
@@ -117,7 +117,7 @@ class LensTractor():
             
                 # First optimize to get the Nebula model about right, at fixed PSF:
                 self.settings['Nrounds'] = 2
-                self.settings['Nsteps_optimizing_catalog'] = 1000
+                self.settings['Nsteps_optimizing_catalog'] = 100000
                 self.settings['Nsteps_optimizing_PSFs'] = 0
                 self.optimize()
 
@@ -129,7 +129,7 @@ class LensTractor():
 
                 # Refine Nebula model at best PSF:
                 self.settings['Nrounds'] = 2
-                self.settings['Nsteps_optimizing_catalog'] = 1000
+                self.settings['Nsteps_optimizing_catalog'] = 10000
                 self.settings['Nsteps_optimizing_PSFs'] = 0
                 self.optimize()
         
@@ -148,33 +148,40 @@ class LensTractor():
          
             # First optimize to get the fluxes about right:
             self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 3
+            self.settings['Nsteps_optimizing_catalog'] = 100000
             self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()
-            
-            # Now draw a few samples to shuffle the positions:
-            self.settings['Nsnapshots'] = 1
-            self.settings['Nwalkers_per_dim'] = 2
-            self.sample()
-            
-            # Now optimize to refine model at fixed PSF:
-            self.settings['Nrounds'] = 3
-            self.settings['Nsteps_optimizing_catalog'] = 5
-            self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()
-            
+            self.optimize()          
             # Now optimize PSF at fixed model:
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 0
-            self.settings['Nsteps_optimizing_PSFs'] = 5
-            self.optimize()
-            
-            # Refine model at best PSF:
+            self.settings['Nsteps_optimizing_PSFs'] = 2
+            self.optimize()           
             self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_catalog'] = 10000
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize() 
+            
+            # Now draw a few samples to shuffle the positions:
+            self.settings['Nsnapshots'] = 1
+            self.settings['Nwalkers_per_dim'] = 4
+            self.settings['Nsteps_per_snapshot'] = 2500
+            self.settings['Restart'] = True
+            self.sample()
+            
+            # Now optimize to refine model and PSF:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 50000
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
-        
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 0
+            self.settings['Nsteps_optimizing_PSFs'] = 2
+            self.optimize()
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 10000
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize()
+            
         self.getBIC()
         
         return None
@@ -304,8 +311,8 @@ class LensTractor():
         
         if self.psteps is None:
             if self.model.name=='Lens':
-               # The following gets us 0.2" in dec:
-               self.psteps = np.zeros_like(p0) + 0.00004
+               # The following gets us 0.05" in dec:
+               self.psteps = np.zeros_like(p0) + 0.00001
                # This could be optimized, to allow more initial freedom in eg flux.
             else:
                # Good first guess should be some fraction of the optimization step sizes:

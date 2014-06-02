@@ -19,6 +19,7 @@ import tractor
 import lenstractor
 
 deg2rad = 0.017453292
+resetre = 1.0 # effective radius for the galaxy reset, 0.5 for PS1 and 1.0 for SQLS
 
 # ============================================================================
 
@@ -125,10 +126,11 @@ class Model():
         else:
             galpos = position
         # Give it its fair share of the flux, and start faint:
-        fudge = 0.2 # MAGIC
+        fudge = 0.5
         galSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
         # Some standard shape and size parameters:
-        re = 0.5    # arcsec
+#        re = 0.5    # in arcsec, appropriate for the PS1 example?
+        re = 1.0    # in arcsec, probably appropriate for the SQLS examples?
         q = 0.8     # axis ratio
         theta = 0.0 # degrees
         galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
@@ -276,37 +278,48 @@ class Model():
         # (xs1, ys1) --> xs = tractor.RaDecPos(xd.ra + xs1/deccorr, xd.dec + ys1)                 
         
         ts = xd.distanceFrom(xs)*3600.0 # in arcsec
-        magicdist=0.75*tE
+        magicdist=0.5*tE
+        toodist=5*tE
         numb=len(stars)
         # NrectE-1 = recursions in determining tE, gamma1, gamma2
         NrectE = 1000
-        Nreccen = 1000
+        Nreccen = 500
         # PJM: Better would be to recurse until the system has converged. 
         #      If it doesn't converge, there's a problem with the code that
         #      has to be fixed - so the code should *fail* in this 
         #      eventuality.
-        
         if self.vb:
             print "Number of images = ", numb
             print "Offset in Einstein radii = ",ts/tE
             print "Estimated Einstein Radius (arcsec) = ",tE
         
         if numb==2: # spawn double
-            if ts >= magicdist:
-                #-- reposition galaxy, reset axis ratio and p.a.
+            if ts >= toodist:
+                print "Not a lens, the galaxy is way too far from the quasars!"
+                assert False
+            elif ts >= magicdist:
+                if self.vb:
+                    print "Galaxy may be fictitious, repositioning."
+                 #-- reposition galaxy, reset axis ratio and p.a.
                 galpx, galpy, weight = 0.0, 0.0, 0.0
+                pippo0 = stars[0].getBrightness()[0]
                 for star in stars:
-                    galpx += star.getPosition().ra/star.getBrightness()[0]
-                    galpy += star.getPosition().dec/star.getBrightness()[0]
-                    weight += 1./star.getBrightness()[0]
+                    pippo1 = 10.0**(-0.4*star.getBrightness()[0]+0.4*pippo0)
+                    galpx += star.getPosition().ra/pippo1
+                    galpy += star.getPosition().dec/pippo1
+                    weight += 1./pippo1
                 galpx, galpy = galpx/weight, galpy/weight
                 xd.ra, xd.dec = galpx, galpy
+                # LT tries to reabsorb defects in the Nebula fit by playing around with very elongated or localised galaxy component
                 galshape.ab = 0.8  # MAGIC reset axis ratio to be reasonably round...
-                galshape.phi = 0.0 # MAGIC reset orientation, no idea why. Adri?                   
+                galshape.phi = 0.0 # MAGIC reset orientation to avoid mimicking the QSO residuals
+                galshape.re = tE # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation        
                 #-- set zero shear, phi = p.a.
                 gamma = 0.0
+                gamma1, gamma2 = 0.0, 0.0
                 phi = galshape.phi
                 #-- leave xs as it is
+                mu = 2.0*tE/ts # SIS total magnification
             else:
                 #-- compute Ax etc
                 Ax = Ay = sum0 = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
@@ -358,15 +371,22 @@ class Model():
                 #      which makes bugs twice as common, and half as easy to find and fix...
                 
                 xs1 = ys1 = 0.0
+                mu = 0.0 # for the SIS+XS total magnification
+                mureg = 0.001 # to cope with possibly infinite magnification (although vey unlikely)
                 for star in stars:
                     # deccorr = 1.0
                     stradec = star.getPosition()
                     thetai = treg + stradec.distanceFrom(xd)*3600.0
-                    dxs = (stradec.ra-xd.ra)*deccorr
-                    dys = (stradec.dec-xd.dec)
+                    dxs = (stradec.ra-xd.ra)*deccorr*3600.0
+                    dys = (stradec.dec-xd.dec)*3600.0
                     xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
                     ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
-                xs1, ys1 = xs1/len(stars), ys1/len(stars) # Nb. in degrees
+                    muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
+                    muinv = np.abs(muinv)+mureg
+                    muinv = 1.0/muinv
+                    mu += 1.0/muinv
+                xs1, ys1 = xs1/len(stars), ys1/len(stars) # Nb. in arcsec
+                xs1, ys1 = xs1/3600, ys1/3600 # Nb. in degrees
                 xs = tractor.RaDecPos(xd.ra + xs1/deccorr, xd.dec + ys1) 
 
         elif numb==4: # spawn quad, practically same as above
@@ -377,8 +397,8 @@ class Model():
                 galpx, galpy, weight = 0.0, 0.0, 0.0
                 pippo0 = stars[0].getBrightness()[0]
                 for star in stars:
-                    pippo1 = 10**(-0.4*star.getBrightness()[0]+0.4*pippo0)
-#                    pippo1 = 1
+                    pippo1 = 10.0**(-0.4*star.getBrightness()[0]+0.4*pippo0)
+#                    pippo1 = 1.
                     galpx += star.getPosition().ra/pippo1
                     galpy += star.getPosition().dec/pippo1
                     weight += 1./pippo1
@@ -386,6 +406,7 @@ class Model():
                 xd.ra, xd.dec = galpx, galpy
                 galshape.ab = 0.8 # magic reset to axis ratio
                 galshape.phi = 0.0   
+                galshape.re = tE
                 #-- We need the centroid position *relative to the galaxy*, so we need to re-do this when resetting
                 if self.vb:
                     print "Solving for source position, shear etc..."
@@ -409,6 +430,7 @@ class Model():
 #                    deccorr = 1.0
                     stradec = star.getPosition()
                     xi = (stradec.ra-xd.ra)*deccorr*3600.0
+#                    xi = (stradec.ra-xd.ra)*3600.0
                     yi = (stradec.dec-xd.dec)*3600.0
 #                    thetai = treg + (xi**2 + yi**2)**0.5
                     thetai = treg + stradec.distanceFrom(xd)*3600.0
@@ -446,20 +468,39 @@ class Model():
                 # phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
                 # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
                 xs1 = ys1 = 0.0
+                mu = 0.0 # for the SIS+XS total magnification
+                mureg = 0.001 #see above
                 for star in stars:
                     # deccorr = 1
                     stradec = star.getPosition()
                     thetai = treg + stradec.distanceFrom(xd)*3600.0
-                    # thetai = treg + (xi**2 + yi**2)**0.5
-                    dxs = (stradec.ra-xd.ra)*deccorr
-                    dys = (stradec.dec-xd.dec)
+
+# PJM: this was a git merge conflict. I don't know which is correct. Adri, please fix!
+# <<<<<<< HEAD
+#                     # thetai = treg + (xi**2 + yi**2)**0.5
+#                     dxs = (stradec.ra-xd.ra)*deccorr
+#                     dys = (stradec.dec-xd.dec)
+# =======
+                    dxs = (stradec.ra-xd.ra)*deccorr*3600.0
+                    dys = (stradec.dec-xd.dec)*3600.0
+# >>>>>>> 4ab4799a16b341d7b53f4b91e1f922bf17fad278
+
+
+
                     xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
-                    ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
+                    ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation                    
+                    muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
+                    muinv = np.abs(muinv)+mureg
+                    muinv = 1.0/muinv
+                    mu += 1.0/muinv
                 xs1, ys1 = xs1/len(stars), ys1/len(stars)
+                xs1, ys1 = xs1/3600, ys1/3600
                 xs = tractor.RaDecPos(xd.ra + xs1/deccorr,xd.dec + ys1)
+                if self.vb:
+                    print "tE (arcsec) = ", tE
                 #-- adjust center
                 #-- learnrate = learning rate
-                learnrate = 0.05
+                learnrate = 0.001
                 d11 = d12 = 0.0
                 d21 = d22 = 0.0
                 dchi2xd = dchi2yd = 0.0
@@ -467,10 +508,10 @@ class Model():
                 for star in stars:
                     stradec = star.getPosition()
                     thetai = treg + stradec.distanceFrom(xd) # in degrees
-                    thetai = thetai/3600.0 #in arcseconds
+                    thetai = thetai*3600.0 #in arcseconds
                     dxs = (stradec.ra-xd.ra)*deccorr
                     dys = (stradec.dec-xd.dec)
-                    dxs, dys = dxs/3600.0, dys/3600.0
+                    dxs, dys = dxs*3600.0, dys*3600.0
                     d11 = -1.0 + gamma1 + tE*(dys**2)/(thetai**3)
                     d12 = gamma2 - tE*dys*dxs/(thetai**3)
                     d21 = d12
@@ -486,8 +527,9 @@ class Model():
                 displamp = displamp/tE # pure number
                 if self.vb:
                     # print "source-plane chi2  = ",squares - (xs1**2 +ys1**2)
+                    print "tE (arcsec) = ", tE
                     print "displacement/tE = ", displamp
-                    print "deflector's adjustments (arcsec) = ",dispx*learnrate/(learnrate+displamp),dispy*learnrate/(learnrate+displamp)
+                    print "deflector's adjustments (units of tE) = ",dispx*learnrate/((learnrate+displamp)*tE),dispy*learnrate/((learnrate+displamp)*tE)
                 xd.ra, xd.dec = xd.ra -(dispx/3600.0)*learnrate/(learnrate+displamp), xd.dec -(dispy/3600.0)*learnrate/(learnrate+displamp) # in degrees
 
                 ireccen += 1
@@ -497,6 +539,7 @@ class Model():
             # phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
             phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
             # PJM: again, tried arctan2. This code needs checking carefully against analytic results. 
+            # mu = 2.0*len(stars)*tE/ts
 
         # Instantiate ExternalShear object
         phi = np.rad2deg(phi)
@@ -515,7 +558,6 @@ class Model():
         for star in stars[1:]: 
             pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
         # Correct source brightness for approximate magnification:
-        mu = 2*len(stars)*tE/ts
         pointsource.setBrightness(pointsource.getBrightness() + 2.5*np.log10(mu))
 
         thetaE = lenstractor.EinsteinRadius(tE)
@@ -546,13 +588,15 @@ class Model():
         Nbands = SED.numberOfParams()
         
         # Open up LT output catalog format file and read positions, assuming 
-        # hard-coded column numbers:
+        # hard-coded column numbers from the PS1 example:
+        # Need to change that for other surveys!
         x = np.loadtxt(catalog)
         
         if len(x) == 23:
             Npos = 4
             self.K = Npos
-        elif len(x) == 13:
+#        elif len(x) == 15: # PS1 case (two bands)
+        elif len(x) == 21: # SQLS case (four bands)
             Npos = 2
             self.K = Npos
         else:
