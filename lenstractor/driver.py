@@ -116,8 +116,8 @@ class LensTractor():
             if self.model.flavor == 'Nebula':
             
                 # First optimize to get the Nebula model about right, at fixed PSF:
-                self.settings['Nrounds'] = 1 # 2
-                self.settings['Nsteps_optimizing_catalog'] = 10 # 1000
+                self.settings['Nrounds'] = 2
+                self.settings['Nsteps_optimizing_catalog'] = 1000
                 self.settings['Nsteps_optimizing_PSFs'] = 0
                 self.optimize()
 
@@ -128,8 +128,8 @@ class LensTractor():
                 self.optimize()
 
                 # Refine Nebula model at best PSF:
-                self.settings['Nrounds'] = 1 # 2
-                self.settings['Nsteps_optimizing_catalog'] = 10 # 1000
+                self.settings['Nrounds'] = 2
+                self.settings['Nsteps_optimizing_catalog'] = 1000
                 self.settings['Nsteps_optimizing_PSFs'] = 0
                 self.optimize()
         
