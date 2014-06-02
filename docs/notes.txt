@@ -1056,7 +1056,9 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Converted these to two github issues. Do refactor first, then look at init 
 # problem.
 
-# Test lens model:
+# Issue 2) refactor to model-specific optimization. 
+
+# Test on lens model:
 
 \rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
 time python LensTractor.py -v -l -z \
@@ -1069,6 +1071,19 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Optimization scheme seems like it could work. 
 # Code fails to initialize lens from nebula though: looks like a problem with 
 # angles for Adri to solve.
+
+
+# Issue 1) Manual init scramblings.
+
+# Try Adri's test:
+
+python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1
+mkdir -p firstpassage; mv *png lenstractor_Nebula4.cat firstpassage/
+
+python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 --manual firstpassage/lenstractor_Nebula4.cat
+mkdir -p secondpassage; mv *png lenstractor_Nebula4.cat secondpassage/
+
+
 
 # =============================================================================
 FINISH:
