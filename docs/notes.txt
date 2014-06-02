@@ -1066,5 +1066,9 @@ time python LensTractor.py -v -l -z \
      examples/ps1/H1413+117_10x10arcsec_Lens.log &
 tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 
+# Optimization scheme seems like it could work. 
+# Code fails to initialize lens from nebula though: looks like a problem with 
+# angles for Adri to solve.
+
 # =============================================================================
 FINISH:
