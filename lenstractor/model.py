@@ -281,8 +281,12 @@ class Model():
         toodist=5*tE
         numb=len(stars)
         # NrectE-1 = recursions in determining tE, gamma1, gamma2
-        NrectE = 10000
+        NrectE = 1000
         Nreccen = 1000
+        # PJM: Better would be to recurse until the system has converged. 
+        #      If it doesn't converge, there's a problem with the code that
+        #      has to be fixed - so the code should *fail* in this 
+        #      eventuality.
         if self.vb:
             print "Number of images = ", numb
             print "Offset in Einstein radii = ",ts/tE
@@ -357,7 +361,14 @@ class Model():
                 #-- compute gamma, phi, xs1, ys1, update xs
                 shreg = 0.0001
                 gamma = (gamma1**2+gamma2**2)**0.5
-                phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+                # phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+                phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+                # PJM: I suspect a problem with angle definitions. 
+                #      I tried using arctan2 instaed of arctan, this often helps - but its not this.
+                #      You need to check the solve that is going on here carefully for errors.
+                #      Modularising will hel pyou do this: there's a lot of repeated code,
+                #      which makes bugs twice as common, and half as easy to find and fix...
+                
                 xs1 = ys1 = 0.0
                 mu = 0.0 # for the SIS+XS total magnification
                 mureg = 0.001 # to cope with possibly infinite magnification (although vey unlikely)
@@ -452,19 +463,22 @@ class Model():
                     tE = (B1 -gamma1*A12 -A13*gamma2)/A11
                     irec += 1    
                 #-- compute gamma, phi, update source
-#                shreg = 0.0001
-#                gamma = (gamma1**2+gamma2**2)**0.5
-#                phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+                # shreg = 0.0001
+                # gamma = (gamma1**2+gamma2**2)**0.5
+                # phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+                # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
                 xs1 = ys1 = 0.0
                 mu = 0.0 # for the SIS+XS total magnification
                 mureg = 0.001 #see above
                 for star in stars:
-#                    deccorr = 1
+                    # deccorr = 1
                     stradec = star.getPosition()
                     dxs = (stradec.ra-xd.ra)*deccorr*3600.0
                     dys = (stradec.dec-xd.dec)*3600.0
-#                    thetai = treg + stradec.distanceFrom(xd)*3600.0
                     thetai = treg + (dxs**2 +dys**2)**0.5
+#                    thetai = treg + stradec.distanceFrom(xd)*3600.0
+                    dxs = (stradec.ra-xd.ra)*deccorr*3600.0
+                    dys = (stradec.dec-xd.dec)*3600.0
                     xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
                     ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation                    
                     muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
@@ -499,29 +513,38 @@ class Model():
                     ysi = dys*(1.0 -tE/thetai +gamma1) - gamma2*dxs # in arcseconds
                     dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 -(xs1*3600.0)*d11 -(ys1*3600.0)*d12) # in arcseconds
                     dchi2yd += (2./len(stars))*(xsi*d21 +ysi*d22 -(xs1*3600.0)*d21 -(ys1*3600.0)*d22) # in arcseconds
-#                    squares += (1./len(stars))*(xsi**2 + ysi**2)
+                    # squares += (1./len(stars))*(xsi**2 + ysi**2)
                 dispx = dchi2xd/deccorr #in arcseconds
                 dispy = dchi2yd # in arcseconds
                 displamp = (dispx**2 + dispy**2)**0.5 #in arcseconds
                 displamp = displamp/tE # pure number
                 if self.vb:
-#                    print "source-plane chi2  = ",squares - (xs1**2 +ys1**2)
+                    # print "source-plane chi2  = ",squares - (xs1**2 +ys1**2)
                     print "tE (arcsec) = ", tE
                     print "displacement/tE = ", displamp
                     print "deflector's adjustments (units of tE) = ",dispx*learnrate/((learnrate+displamp)*tE),dispy*learnrate/((learnrate+displamp)*tE)
                 xd.ra, xd.dec = xd.ra -(dispx/3600.0)*learnrate/(learnrate+displamp), xd.dec -(dispy/3600.0)*learnrate/(learnrate+displamp) # in degrees
-#
+
                 ireccen += 1
-#
+
             shreg = 0.0001
             gamma = (gamma1**2+gamma2**2)**0.5
-            phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+            # instantiate ExternalShear object
+            # phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+            phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+            # PJM: again, tried arctan2. This code needs checking carefully against analytic results. 
+            # mu = 2.0*len(stars)*tE/ts
 
-# instantiate ExternalShear object
+        # Instantiate ExternalShear object
         phi = np.rad2deg(phi)
         xshear = lenstractor.ExternalShear(gamma,phi)
+        # PJM: this is also potentially a source of error - a mismatch between your
+        #      definition of phi and LensTractor's. Really, all this source estimation stuff
+        #      should be a getLensedSource method in the LensGalaxy class (as I was writing).
+        #      Not sure if that would help with the angle issues here, but it woudl keep 
+        #      the code modular...
         
-#       Old workflow piece still valid
+        # Old workflow piece still valid
         ms = stars[0].getBrightness()
         # Start with just one point source's flux:
         pointsource = tractor.PointSource(xs,ms)
@@ -532,7 +555,7 @@ class Model():
             pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
         # Correct source brightness for approximate magnification:
         pointsource.setBrightness(pointsource.getBrightness() + 2.5*np.log10(mu))
-#
+
         thetaE = lenstractor.EinsteinRadius(tE)
         if self.vb:
             print "Offset in Einstein radii = ",ts/tE
@@ -543,14 +566,14 @@ class Model():
             print "Estimated shear angle (degrees) = ",phi
         # Package into lensgalaxy:
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
-#        if self.vb: print lensgalaxy
+        # if self.vb: print lensgalaxy
         # Note: this puts the lens mass where the galaxy light is!
         
-
         if self.vb: print pointsource
 
         self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
-#        assert False
+        # assert False
+        
         return
         
 # ----------------------------------------------------------------------------

@@ -112,38 +112,39 @@ class LensTractor():
             self.sample()
             
         elif self.method == 'optimizing':
-         
-            # First optimize to get the model about right, at fixed PSF:
-            self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 100000
-            self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()        
-            # Now optimize PSF at fixed model:
-            self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 0
-            self.settings['Nsteps_optimizing_PSFs'] = 2
-            self.optimize()            
-            # Refine model at best PSF:
-            self.settings['Nrounds'] = 2
-            self.settings['Nsteps_optimizing_catalog'] = 10000
-            self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()
-            # When running just Nebula, uncomment these, so as to make a fair comparison.
-            # This is UGLY: it should be coded up into the main script!
-#            self.settings['Nrounds'] = 1
-#            self.settings['Nsteps_optimizing_catalog'] = 100000
-#            self.settings['Nsteps_optimizing_PSFs'] = 0
-#            self.optimize()        
-#            self.settings['Nrounds'] = 1
-#            self.settings['Nsteps_optimizing_catalog'] = 0
-#            self.settings['Nsteps_optimizing_PSFs'] = 2
-#            self.optimize()            
-#            self.settings['Nrounds'] = 1
-#            self.settings['Nsteps_optimizing_catalog'] = 10000
-#            self.settings['Nsteps_optimizing_PSFs'] = 0
+
+            if self.model.flavor == 'Nebula':
+            
+                # First optimize to get the Nebula model about right, at fixed PSF:
+                self.settings['Nrounds'] = 2
+                self.settings['Nsteps_optimizing_catalog'] = 100000
+                self.settings['Nsteps_optimizing_PSFs'] = 0
+                self.optimize()
+
+                # Now optimize PSF at fixed model:
+                self.settings['Nrounds'] = 1
+                self.settings['Nsteps_optimizing_catalog'] = 0
+                self.settings['Nsteps_optimizing_PSFs'] = 2
+                self.optimize()
+
+                # Refine Nebula model at best PSF:
+                self.settings['Nrounds'] = 2
+                self.settings['Nsteps_optimizing_catalog'] = 10000
+                self.settings['Nsteps_optimizing_PSFs'] = 0
+                self.optimize()
         
+            elif self.model.flavor == 'Lens':
+            
+                # PSF is already optimized, during Nebula run.
+                # Just do the lens part:
+                
+                self.settings['Nrounds'] = 2
+                self.settings['Nsteps_optimizing_catalog'] = 10000
+                self.settings['Nsteps_optimizing_PSFs'] = 0
+                self.optimize()
+               
         
-        else: # Apply cunning and guile!
+        else: # Apply cunning and guile! Both optimization and sampling.
          
             # First optimize to get the fluxes about right:
             self.settings['Nrounds'] = 1

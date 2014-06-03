@@ -979,4 +979,119 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Email back to Adri, to check equations. Galaxy brightness looks suspiciously high...
 
 # =============================================================================
+# 2014-06-02 (Monday) 14:10 PDT
+
+# The collected woes of Adriano Agnello:
+# 
+# 1) May 30: Manual init catalogs not being interpreted properly?
+# 
+# From Adri:
+# 
+# It seems that the initialization does something strange when reading in from
+# .cat files; if you do
+# 
+#     python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1
+# 
+# and then
+# 
+#     python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 --manual lenstractor_Nebula4.cat
+# 
+# you'll see that the last snapshot of the first passage does *not* correspond
+# to the zeroth snapshot of the second passage! When reading from the
+# catalogue, the point-sources are somehow scrambled and I don't understand
+# why. Do you know what's happening?!
+# 
+# 
+# 2) May 31: Fitting Nebula and Lens equally
+# 
+# From Adri:
+# 
+# I'd like chug to know how to optimize based on the model, so
+# I'd actually add another argument to the driver. The idea is:
+# 
+# if we ask for Lens from command line, it should
+# 
+#     optimize nebula sources
+#     optimize psf
+#     re-optimize nebula sources
+#     spawn lens
+#     optimize lens sources
+#     optimize psf
+#     re-optimize lens sources
+# 
+# else, if we ask for Nebula from command line, it should
+# 
+#     [ optimize nebula sources
+#     optimize psf
+#     re-optimize nebula sources ] *twice*
+# 
+# I guess we should either write two very similar optimizer classes,
+# i.e. opt_lens and opt_neb, to be called from the main LensTractor
+# script, or introduce the modelname variable inside the
+# existing optimizer. This however is what I'm not able to do
+# without making a major mess. Do you think you'd be able to
+# make this refactor?
+# 
+# 
+# 3) June 1: Manual init catalogs not being interpreted properly?
+# 
+# From Adri:
+# 
+# I've tried running LT on the 0951 example, with manual initalisation
+# otherwise it does stupid stuff, but there are *serious* problems with
+# properly initialising the sources from the input catalog. I'm sending it
+# attached, I've done it simply by drag-and-click with ds9 but then
+# LensTractor puts the guys in completely wrong places! Try running and see...
+# 
+#     python LensTractor.py -n 2 -z -v examples/... --survey SDSS --manual examples/.../init.txt
+# 
+# I've emailed you the init.txt file.
+# 
+# In model.py I have commented a line out (which was tuned on PS1) and
+# inserted the correct option for the SQLS examples. There's a double round of
+# optimization in drive.py, which I comment out when running Lens. Can you
+# figure out what's happening?
+
+
+# Converted these to two github issues. Do refactor first, then look at init 
+# problem.
+
+# Issue 2) refactor to model-specific optimization. 
+
+# Test on lens model:
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -l -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Lens.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
+
+# Optimization scheme seems like it could work. 
+# Code fails to initialize lens from nebula though: looks like a problem with 
+# angles for Adri to solve.
+
+
+# Issue 1) Manual init scramblings.
+
+# Try Adri's test:
+
+python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage.log
+mkdir -p firstpassage; mv *png lenstractor_Nebula4.cat firstpassage.log firstpassage/
+
+python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 \
+  --manual firstpassage/lenstractor_Nebula4.cat > secondpassage.log
+mkdir -p secondpassage; mv *png lenstractor_Nebula4.cat secondpassage.log secondpassage/
+
+# Compare plots:
+
+open firstpassage/lenstractor_progress-04_optimizing_Nebula4.png \
+    secondpassage/lenstractor_progress-00_initial_Nebula4.png
+
+# Its true, initial positions of second passage do not match final positions of first passage.
+# Check positions after read in. 
+
+# =============================================================================
 FINISH:
