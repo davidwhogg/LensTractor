@@ -1077,13 +1077,13 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 
 # Try Adri's test:
 
-python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 \
+mkdir -p firstpassage; cd firstpassage
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
   > firstpassage.log
-mkdir -p firstpassage; mv *png lenstractor_Nebula4.cat firstpassage.log firstpassage/
 
-python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 \
-  --manual firstpassage/lenstractor_Nebula4.cat > secondpassage.log
-mkdir -p secondpassage; mv *png lenstractor_Nebula4.cat secondpassage.log secondpassage/
+mkdir -p secondpassage; cd secondpassage
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  --manual ../firstpassage/lenstractor_Nebula4.cat > secondpassage.log
 
 # Compare plots:
 
@@ -1091,7 +1091,94 @@ open firstpassage/lenstractor_progress-04_optimizing_Nebula4.png \
     secondpassage/lenstractor_progress-00_initial_Nebula4.png
 
 # Its true, initial positions of second passage do not match final positions of first passage.
-# Check positions after read in. 
+# Check positions after read in from init file, in secondpassage.log:
+
+# Initializing Nebula4 model from catalog...
+# DevGalaxy at RaDecPos: RA, Dec = (213.94277, 11.49539) with Mags: r=15.2946, z=15.5652 and Galaxy Shape: re=1.00, ab=0.80, phi=0.0
+# PointSource at RaDecPos: RA, Dec = (213.94284, 11.49558) with Mags: r=15.2946, z=15.5652
+# PointSource at RaDecPos: RA, Dec = (213.94292, 11.49583) with Mags: r=15.2946, z=15.5652
+# PointSource at RaDecPos: RA, Dec = (213.94253, 11.49558) with Mags: r=15.2946, z=15.5652
+# PointSource at RaDecPos: RA, Dec = (213.94275, 11.49570) with Mags: r=15.2946, z=15.5652
+
+# Compare with catalog written out in firstpassage/
+
+cols lenstractor_Nebula4.cat
+#  1        catalog.source0.pos.ra  2.139427701665881614e+02
+#  2       catalog.source0.pos.dec  1.149538848865398499e+01
+#  8        catalog.source1.pos.ra  2.139428380379461885e+02
+#  9       catalog.source1.pos.dec  1.149558016251176973e+01
+# 12        catalog.source2.pos.ra  2.139429153818444718e+02
+# 13       catalog.source2.pos.dec  1.149582740543879567e+01
+# 16        catalog.source3.pos.ra  2.139425325887738154e+02
+# 17       catalog.source3.pos.dec  1.149558187566380774e+01
+# 20        catalog.source4.pos.ra  2.139427521044458729e+02
+# 21       catalog.source4.pos.dec  1.149569738880204994e+01
+
+# Looks right. secondpassage initial plot looks way off though! Why?
+# Double check numbers - put positions from secondpassage.log into a region
+# file...
+
+cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage.reg
+
+# and edit...
+# OK, secondpassage.log regions agree with initial plot in second passage 
+# These are the same as the positions written out to catalog at the end
+# of firstpassage - so that all checks out. 
+
+# Try re-running above test but without the PSF optimization...
+# Looks like the positions are better before the PSF was tweaked.
+
+mkdir -p firstpassage_frozenpsf; cd firstpassage_frozenpsf
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage_frozenpsf.log
+
+# Literally commented out parts of driver.optimize that fit PSF.
+# Resulting positions, from log file:
+
+# DevGalaxy at RaDecPos: RA, Dec = (213.94275, 11.49556) with Mags: r=13.0641, z=13.5599 and Galaxy Shape: re=1.19, ab=0.98, phi=106.9
+# PointSource at RaDecPos: RA, Dec = (213.94250, 11.49556) with Mags: r=15.1032, z=15.1036
+# PointSource at RaDecPos: RA, Dec = (213.94289, 11.49536) with Mags: r=14.7832, z=15.1418
+# PointSource at RaDecPos: RA, Dec = (213.94307, 11.49544) with Mags: r=17.1714, z=17.9673
+# PointSource at RaDecPos: RA, Dec = (213.94267, 11.49534) with Mags: r=14.5346, z=14.7401
+ 
+# Made regions file...
+cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage_frozenpsf.reg
+
+# 4 objects *are* in the right place, but galaxy is taking place of one
+# point source. Then 4th point source is 1.1" out West, with low flux (17.2mag)...
+# Not sure how to avoid this, but it shows that we cannot take point sources
+# too seriously, just like we cannot take nebula galaxy too seriously...
+
+# OK, ds9 regions are really useful. As would be model overlay on plots...
+
+# Maybe DevGalaxy is the problem? Try making it an Exp?
+
+mkdir -p firstpassage_expgalaxy; cd firstpassage_expgalaxy
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage_expgalaxy.log
+
+# ExpGalaxy at RaDecPos:   RA, Dec = (213.94270, 11.49542) with Mags: r=13.0127, z=13.4163 and Galaxy Shape: re=0.74, ab=0.75, phi=64.4
+# PointSource at RaDecPos: RA, Dec = (213.94304, 11.49577) with Mags: r=17.5757, z=17.9351
+# PointSource at RaDecPos: RA, Dec = (213.94252, 11.49560) with Mags: r=15.7069, z=15.7013
+# PointSource at RaDecPos: RA, Dec = (213.94278, 11.49568) with Mags: r=15.522, z=15.8459
+# PointSource at RaDecPos: RA, Dec = (213.94291, 11.49542) with Mags: r=15.4142, z=15.6781
+
+# Try *these* in a regions file...
+
+cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage_expgalaxy.reg
+
+# OK, same problem - one point source gets dimmed, while the galaxy is used
+# to fit the data. No good! 
+
+# In situations where the quasar images are the brightest things, 
+# we may want to fit an "asterism" model first. Then spawn a nebula from
+# th easterism, just by adding a galaxy. Try this in an asterism branch?
+
+# Meanwhile, add points to plots to avoid ds9 shenanigans. 
+# Just positions to start with - done.
+
+
+
 
 # =============================================================================
 FINISH:
