@@ -1,0 +1,12 @@
+# LensTractor output parameter catalog
+# 
+# Model: Nebula2
+# Notes:
+# * First source is always the galaxy, point sources follow
+# * images.image0 = ../../SQLSmorph/0951+2635/J0951+2635_10x10arcsec_99999.90000_g
+# * images.image1 = ../../SQLSmorph/0951+2635/J0951+2635_10x10arcsec_99999.90000_z
+# * images.image2 = ../../SQLSmorph/0951+2635/J0951+2635_10x10arcsec_99999.90000_i
+# * images.image3 = ../../SQLSmorph/0951+2635/J0951+2635_10x10arcsec_99999.90000_r
+# 
+#  catalog.source0.pos.ra  catalog.source0.pos.dec  catalog.source0.brightness.g  catalog.source0.brightness.i  catalog.source0.brightness.r  catalog.source0.brightness.z  catalog.source0.shape.re  catalog.source0.shape.ab  catalog.source0.shape.phi  catalog.source1.pos.ra  catalog.source1.pos.dec  catalog.source1.brightness.g  catalog.source1.brightness.i  catalog.source1.brightness.r  catalog.source1.brightness.z  catalog.source2.pos.ra  catalog.source2.pos.dec  catalog.source2.brightness.g  catalog.source2.brightness.i  catalog.source2.brightness.r  catalog.source2.brightness.z  
+1.478439404201832588e+02 2.658705247398611604e+01 1.866958657294047086e+01 1.808829422347610105e+01 1.815290769876356691e+01 1.811580892842784607e+01 1.560611276769940381e-01 9.001491152836385012e-01 -6.563332282149518448e+01 1.478440289740520370e+02 2.658710426030350860e+01 1.937279035640004921e+01 1.876018289774390979e+01 1.890716230649540464e+01 1.870434765390858445e+01 1.478439354921218865e+02 2.658704969196440970e+01 1.830681888858043749e+01 1.791973004339604003e+01 1.796371518085165775e+01 1.792630353159987067e+01

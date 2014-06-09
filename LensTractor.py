@@ -207,8 +207,8 @@ def main():
       
    # Workflow:
    if args.lens:
-      modelnames = ['Nebula2','Lens']
-     # modelnames = ['Nebula4','Lens']
+     # modelnames = ['Nebula2','Lens']
+      modelnames = ['Nebula4','Lens']
    elif args.K > 0:
       modelnames = ['Nebula'+str(args.K)]
    else:
