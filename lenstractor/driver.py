@@ -556,7 +556,7 @@ class LensTractor():
           plt.imshow(-model, **ima)
           self.tidyup_plot()
           # Overlay cartoon of model:
-          self.model.plot(image.wcs)
+          self.model.plot(image.wcs,image.photocal.bandname)
           plt.title('Predicted image')
           # Overlay name of model in lower left corner
           plt.text(1,1,self.model.name)

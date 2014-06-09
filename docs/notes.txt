@@ -1175,7 +1175,7 @@ cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage_expgalaxy
 # th easterism, just by adding a galaxy. Try this in an asterism branch?
 
 # Meanwhile, add points to plots to avoid ds9 shenanigans. 
-# Just positions to start with - done.
+# Positions and magnitudes (=sizes).
 
 
 

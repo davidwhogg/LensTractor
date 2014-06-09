@@ -619,18 +619,18 @@ class Model():
         
 # ----------------------------------------------------------------------------
     
-    def plot(self,wcs):
+    def plot(self,wcs,band):
     
         if self.flavor == 'Nebula':
-            self.plot_Nebula(wcs)
+            self.plot_Nebula(wcs,band)
         else:
-            self.plot_Lens(wcs)
+            self.plot_Lens(wcs,band)
         
         return
     
 # ----------------------------------------------------------------------------
     
-    def plot_Nebula(self,wcs):
+    def plot_Nebula(self,wcs,band):
     
         galaxy = self.srcs[0]
         stars = self.srcs[1:]
@@ -638,19 +638,23 @@ class Model():
         # Plot galaxy as orange circle:
         radec = galaxy.getPosition()
         x,y = wcs.positionToPixel(radec)
-        plt.scatter(x,y,color='orange',alpha=0.3)
+        SED = galaxy.getBrightness()
+        plotmag = (20.0 - SED.getMag(band))*50 # MAGIC 20,50
+        plt.scatter(x,y,color='orange',s=plotmag,alpha=0.3)
         
         # Plot point sources as cyan circles:
         for star in stars: 
             radec = star.getPosition()
             x,y = wcs.positionToPixel(radec)
-            plt.scatter(x,y,color='cyan',alpha=0.3)
+            SED = star.getBrightness()
+            plotmag = (20.0 - SED.getMag(band))*50 # MAGIC 20,50
+            plt.scatter(x,y,color='cyan',s=plotmag,alpha=0.3)
         
         return
     
 # ----------------------------------------------------------------------------
     
-    def plot_Lens(self,wcs):
+    def plot_Lens(self,wcs,band):
     
         return
     
