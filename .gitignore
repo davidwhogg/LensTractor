@@ -8,3 +8,4 @@
 *.log
 attic
 *.cookie
+.DS_Store
