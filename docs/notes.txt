@@ -1177,8 +1177,58 @@ cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage_expgalaxy
 # Meanwhile, add points to plots to avoid ds9 shenanigans. 
 # Positions and magnitudes (=sizes).
 
+# Pulled in Adri's changes, try first and second passage again...Keep exp 
+# galaxy!
 
+mkdir -p firstpassage; cd firstpassage
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage.log &
 
+# Point sources are all over the shop, galaxy used to fit south-east image
+
+mkdir -p secondpassage; cd secondpassage
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  --manual ../firstpassage/lenstractor_Nebula4.cat > secondpassage.log &
+
+# Compare plots:
+
+open  \
+firstpassage/lenstractor_progress-06_optimizing_Nebula4.png \
+secondpassage/lenstractor_progress-00_initial_Nebula4.png 
+
+# Models are consistent - just bad. Back to cunning and guile!
+
+# Adri asks, what about sqls 1242? 
+# init files not checked in, no sign of 1242. Try 0841, first with no init:
+
+python LensTractor.py -n 4 -z -v --survey SDSS \
+         examples/sdss/0814+5828/*sci.fits
+
+# Hmm. Positions different in different images...
+
+# Nebula4 results: chisq, K, N, BIC = 20805.430077 33 40804 21155.775745
+# ExpGalaxy at RaDecPos: RA, Dec = (123.58479, 58.42518) with Mags: g=21.6415, i=63.2621, r=824.333, z=20.2959 and Galaxy Shape: re=0.86, ab=0.61, phi=66.4
+# PointSource at RaDecPos: RA, Dec = (123.58486, 58.42496) with Mags: g=276.833, i=198.214, r=23.4595, z=18.7786
+# PointSource at RaDecPos: RA, Dec = (123.58452, 58.42499) with Mags: g=18.7194, i=350.129, r=150.339, z=8.93371e+06
+# PointSource at RaDecPos: RA, Dec = (123.58499, 58.42509) with Mags: g=152.715, i=79.2947, r=22.723, z=20.731
+# PointSource at RaDecPos: RA, Dec = (123.58443, 58.42471) with Mags: g=21.8116, i=133365, r=98.3197, z=22.3167
+
+# Compare with regions file/ init cat:
+
+$LENSTRACTOR_DIR/utils/ds9regions2initcat.csh -f 4 ds9.reg
+# Processing 1 ds9 region files...
+#        6 ds9.cat
+mv ds9.cat SDSSJ0814+5828_init.txt
+
+# point(123.52327,58.478021) # point=cross
+# point(123.52365,58.478245) # point=cross
+# point(123.52292,58.477789) # point=cross
+
+# Huh - central object according to ds9 is (0.06,0.06) away from 
+# where LT fitted it. Yes: LT headers are screwed up. 
+
+# Suspect this problem will only go away when we use teh tractor routines for
+# getting the SDSS images. 
 
 # =============================================================================
 FINISH:
