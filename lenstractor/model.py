@@ -133,9 +133,9 @@ class Model():
         re = resetre    # in arcsec, probably appropriate for the SQLS examples?
         q = 0.8     # axis ratio
         theta = 0.0 # degrees
-        galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
+        galshape = tractor.sdss.GalaxyShape(re,q,theta)
         # Package up:
-        nebulousgalaxy = tractor.sdss_galaxy.ExpGalaxy(galpos,galSED,galshape)
+        nebulousgalaxy = tractor.sdss.ExpGalaxy(galpos,galSED,galshape)
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
@@ -217,7 +217,7 @@ class Model():
         re = resetre  # arcsec
         q = 0.8   # axis ratio
         theta = -phi # Note how mass/light misalignment is enabled.
-        galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
+        galshape = tractor.sdss.GalaxyShape(re,q,theta)
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
         if self.vb: print lensgalaxy
 
