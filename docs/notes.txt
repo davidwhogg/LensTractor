@@ -1570,9 +1570,45 @@ python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 #     raise IOError('Header missing END card.')
 # IOError: Header missing END card.
 
-# Missing END card?! Send to Dustin.
+# Missing END card?! Send to Dustin. His response:
+# 
+#    Huh, must be the frame*.bz2 file (compressed).  In my notes I have that
+#    pyfits can read bz2 files.
+# 
+#    What do you get if you do:
+
+python -c "import pyfits; pyfits.open('frame-u-005038-3-0145.fits.bz2')"
+# Header missing END card
+
+bunzip2 frame-u-005038-3-0145.fits.bz2
+python -c "import pyfits; pyfits.open('frame-u-005038-3-0145.fits')"
+
+# Works OK. Need to subprocess a bunzip2 call?
+# Try updating to pyfits 3.2.4
+
+pip install pyfits --upgrade
+
+# Nope, that wasn't it.
+
+# Have a look at astrometry/sdss/dr8.py line 267: try commenting out that
+# block:
+# 
+#         # if not fitsio:
+#         #    # pyfits can read .bz2
+#         #    return None,True
+# 
+# and see if that works.
+
+# =============================================================================
+# 2014-06-11 (Wednesday) 15:29 PDT
+
+# Spawn lens problem from Adri:
+# ISSUE orientation errors in model.spawn_lens()? #47
+# https://github.com/davidwhogg/LensTractor/issues/47
+
+
+
 
 
 # =============================================================================
-
 FINISH:
