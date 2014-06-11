@@ -1000,7 +1000,8 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 
 # Here's the test command. Note that the -o option shows where the 
 # FITS files are to be downloaded to. Run, camcol, field (frame?) come from
-# 0951 example fits files. We'll have to look up all of these numbers for the sample...
+# 0951 example fits files. We'll have to look up all of these numbers for 
+# the sample... Execute this example in th e0951 directory.
 
 set rcf = "5038,153,3,147.844080,26.587220,10.0"
 set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
@@ -1051,6 +1052,128 @@ sudo ln -s /usr/local/lib/python2.7/site-packages/numpy/core/include/numpy .
 
 # Is this a result of not having run configure, in checkout.sh? Advice please.
 
+# ----------------------------------------------------------------------------
+# 2014-06-11 (Wednesday) 13:40 PDT
+
+# Fixing various astrometry build errors.
+
+brew install pkg-config
+
+# Then svn up in astrometry, then try building again using stripped down
+# script. In $TRACTOR_DIR:
+
+./build_astrometry.sh > & build_astrometry_2014-06-11.log &
+
+# Then re-try example:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Still not building pyspherematch?
+
+# Here's the build record, by hand:
+
+    cd astrometry/
+    make pyutil
+        make -C qfits-an
+        make[1]: Nothing to be done for `all'.
+        make -C gsl-an
+        make[1]: Nothing to be done for `all'.
+        make -C util pyutil
+        LDFLAGS="-Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline" LDLIBS="          -lm        -lm" SLIB="../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a  ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a " \
+                INC="-I../util -I../libkd -I../util  -I../qfits-an -I../util -I../gsl-an  -I../util  -I../qfits-an -I../util -I../gsl-an " CFLAGS="  " \
+                python setup-util.py build_ext -v --inplace --build-temp .
+        link: ['-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-g', '-Wall', '-ffinite-math-only', '-pthread', '-march=native', '-O3', '-fomit-frame-pointer', '-DNDEBUG', '-fpic', '-Winline', '-lm', '-lm']
+        objs: ['../util/libanfiles.a', '../libkd/libkd.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a']
+        inc: ['../util', '../libkd', '../util', '../qfits-an', '../util', '../gsl-an', '../util', '../qfits-an', '../util', '../gsl-an']
+        cflags: []
+        running build_ext
+        building '_util' extension
+        swigging util.i to util_wrap.c
+        C compiler: clang -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes
+
+        compile options: '-I/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include -I../util -I../libkd -I../util -I../qfits-an -I../util -I../gsl-an -I../util -I../qfits-an -I../util -I../gsl-an -I. -I/usr/local/Cellar/python/2.7.2/include/python2.7 -c'
+        clang: util_wrap.c
+        In file included from util_wrap.c:112:
+        In file included from /usr/local/Cellar/python/2.7.2/include/python2.7/Python.h:126:
+        /usr/local/Cellar/python/2.7.2/include/python2.7/modsupport.h:27:65: warning: 'format' attribute argument not supported: PyArg_ParseTuple
+        PyAPI_FUNC(int) PyArg_ParseTuple(PyObject *, const char *, ...) Py_FORMAT_PARSETUPLE(PyArg_ParseTuple, 2, 3);
+                                                                        ^
+        In file included from util_wrap.c:112:
+        In file included from /usr/local/Cellar/python/2.7.2/include/python2.7/Python.h:58:
+        /usr/local/Cellar/python/2.7.2/include/python2.7/pyport.h:871:57: note: instantiated from:
+        #define Py_FORMAT_PARSETUPLE(func,p1,p2) __attribute__((format(func,p1,p2)))
+                                                                ^
+        util_wrap.c:853:38: warning: format string is not a string literal (potentially insecure) [-Wformat-security]
+            PyErr_Format(PyExc_RuntimeError, mesg);
+                                             ^~~~
+        In file included from util_wrap.c:2531:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/arrayobject.h:4:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/ndarrayobject.h:17:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/ndarraytypes.h:1761:
+        /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/npy_1_7_deprecated_api.h:15:2: warning: #warning "Using deprecated NumPy API, disable it by "          "#defining NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION" [-W#warnings]
+        #warning "Using deprecated NumPy API, disable it by " \
+         ^
+        3 warnings generated.
+        /usr/bin/gcc-4.2 -bundle -undefined dynamic_lookup -L/usr/local/Cellar/readline/6.2.2/lib -Wall -undefined dynamic_lookup -Wall -undefined dynamic_lookup -g -Wall -ffinite-math-only -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline ./util_wrap.o ../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a ../qfits-an/libqfits.a ../util/libanbase.a ../gsl-an/libgsl-an.a ../util/libanutils.a ../qfits-an/libqfits.a ../util/libanbase.a ../gsl-an/libgsl-an.a -o /Users/pjm/work/tractor/astrometry/util/_util.so -Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -lm -lm
+        LDFLAGS="-Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline" LDLIBS="          -lm        -lm" SLIB="../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a  ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a " \
+                INC="-I../util -I../libkd -I../util  -I../qfits-an -I../util -I../gsl-an  -I../util  -I../qfits-an -I../util -I../gsl-an " CFLAGS="  " \
+                python setup-util.py build_ext -v --inplace --build-temp .
+        link: ['-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-g', '-Wall', '-ffinite-math-only', '-pthread', '-march=native', '-O3', '-fomit-frame-pointer', '-DNDEBUG', '-fpic', '-Winline', '-lm', '-lm']
+        objs: ['../util/libanfiles.a', '../libkd/libkd.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a']
+        inc: ['../util', '../libkd', '../util', '../qfits-an', '../util', '../gsl-an', '../util', '../qfits-an', '../util', '../gsl-an']
+        cflags: []
+        running build_ext
+    cd libkd/
+    make pyspherematch
+        pyspherematch
+    cd ../sdss/
+    make
+        make lib
+        make[1]: Nothing to be done for `lib'.
+    cd ../../
+    make
+        make -C tractor mix
+        make[1]: Nothing to be done for `mix'.
+        make -C tractor emfit
+        make[1]: Nothing to be done for `emfit'.
+
+# Seems to have all built correctly...
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
+
+# Same error.
+
+# OK, try a clean build. 
+
+mv tractor tractor-variability
+tractor-variability/checkout.sh >& checkout_2014-06-11.log &
+ 
+# Ok, looks good!
+mv checkout_2014-06-11.log tractor/.
+ 
+# Ran the example again, same error. Here it is:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
+
+#     Traceback (most recent call last):
+#       File "LensTractor.py", line 25, in <module>
+#         import lenstractor
+#       File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/__init__.py", line 4, in <module>
+#         from sdss import *
+#       File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/sdss.py", line 22, in <module>
+#         from tractor import sdss as st
+#       File "/Users/pjm/work/tractor/tractor/sdss.py", line 31, in <module>
+#         from astrometry.libkd.spherematch import match_radec
+#       File "/Users/pjm/work/astrometry/astrometry/libkd/spherematch.py", line 409, in <module>
+#         tree_permute = spherematch_c.kdtree_permute
+#     AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+ 
 # ============================================================================
 # 2014-06-02 (Monday) 14:10 PDT
 
@@ -1300,7 +1423,7 @@ mv ds9.cat SDSSJ0814+5828_init.txt
 # Huh - central object according to ds9 is (0.06,0.06) away from 
 # where LT fitted it. Yes: LT headers are screwed up. 
 
-# Suspect this problem will only go away when we use teh tractor routines for
+# Suspect this problem will only go away when we use the tractor routines for
 # getting the SDSS images. 
 
 # =============================================================================
