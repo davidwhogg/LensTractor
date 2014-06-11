@@ -546,7 +546,7 @@ class LensTractor():
           self.tidyup_plot()
           plt.title('Observed image')
           # Overlay image filter in lower left corner
-          plt.text(1,1,image.photocal.bandname)
+          plt.text(1,1,image.photocal.bandname+'-band')
           # Figure out how to get this in bottom right hand corner instead
 
           # 2) Predicted image
@@ -555,12 +555,12 @@ class LensTractor():
           model = self.chug.getModelImages()[i]
           plt.imshow(-model, **ima)
           self.tidyup_plot()
+          # Overlay cartoon of model:
+          self.model.plot(image.wcs,image.photocal.bandname)
           plt.title('Predicted image')
           # Overlay name of model in lower left corner
           plt.text(1,1,self.model.name)
           # Figure out how to get this in top left hand corner instead
-          # Overlay cartoon of model...
-          # TBI!
 
           # 3) Normalised residual
           counter += 1

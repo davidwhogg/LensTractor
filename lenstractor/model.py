@@ -14,6 +14,7 @@ To-do
 '''
 
 import numpy as np
+import pylab as plt
 
 import tractor
 import lenstractor
@@ -120,7 +121,7 @@ class Model():
     
     def create_Nebula(self,position,SED):
                 
-        # Start with an De Vaucouleurs galaxy at the object centroid:
+        # Start with a galaxy at the object centroid:
         if self.manual:
             galpos = position[0]
         else:
@@ -134,7 +135,7 @@ class Model():
         theta = 0.0 # degrees
         galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
         # Package up:
-        nebulousgalaxy = tractor.sdss_galaxy.DevGalaxy(galpos,galSED,galshape)
+        nebulousgalaxy = tractor.sdss_galaxy.ExpGalaxy(galpos,galSED,galshape)
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
@@ -161,7 +162,7 @@ class Model():
         
         self.srcs = []
         
-        # Inherit the De Vaucouleurs galaxy from the parent:
+        # Inherit the galaxy from the parent:
         nebulousgalaxy = parent.srcs[0]
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
@@ -232,7 +233,7 @@ class Model():
         
         self.srcs = []
         
-        # Inherit the De Vaucouleurs lens galaxy from the parent Nebula:
+        # Inherit the lens galaxy from the parent Nebula:
         galaxy = parent.srcs[0]
         # Now inherit a point source, based on the Nebula's point sources!
         stars = parent.srcs[1:]
@@ -610,6 +611,47 @@ class Model():
 
         return positions
         
+# ----------------------------------------------------------------------------
+    
+    def plot(self,wcs,band):
+    
+        if self.flavor == 'Nebula':
+            self.plot_Nebula(wcs,band)
+        else:
+            self.plot_Lens(wcs,band)
+        
+        return
+    
+# ----------------------------------------------------------------------------
+    
+    def plot_Nebula(self,wcs,band):
+    
+        galaxy = self.srcs[0]
+        stars = self.srcs[1:]
+        
+        # Plot galaxy as orange circle:
+        radec = galaxy.getPosition()
+        x,y = wcs.positionToPixel(radec)
+        SED = galaxy.getBrightness()
+        plotmag = (20.0 - SED.getMag(band))*50 # MAGIC 20,50
+        plt.scatter(x,y,color='orange',s=plotmag,alpha=0.3)
+        
+        # Plot point sources as cyan circles:
+        for star in stars: 
+            radec = star.getPosition()
+            x,y = wcs.positionToPixel(radec)
+            SED = star.getBrightness()
+            plotmag = (20.0 - SED.getMag(band))*50 # MAGIC 20,50
+            plt.scatter(x,y,color='cyan',s=plotmag,alpha=0.3)
+        
+        return
+    
+# ----------------------------------------------------------------------------
+    
+    def plot_Lens(self,wcs,band):
+    
+        return
+    
 # ============================================================================
 
 if __name__ == '__main__':
