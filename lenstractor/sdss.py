@@ -211,6 +211,7 @@ def getSDSSdata(rcf,roi,datadir,vb=False):
     run,camcol,field,ra,dec = rcf[0],rcf[1],rcf[2],rcf[3],rcf[4]
     roipix = int(roi/0.396)
     geometry = (ra, dec, 0.5*roipix)
+    bands = ['u','g','r','i','z']
     
     if vb:
         print "Querying SDSS skyserver for data at ra,dec = ",ra,dec
@@ -221,14 +222,16 @@ def getSDSSdata(rcf,roi,datadir,vb=False):
     #   rcf = radec_to_sdss_rcf(ra,dec,radius=math.hypot(fieldradius,13./2.),tablefn="dr9fields.fits")
     # but, we do not have this table. So need an rcf passed in as an argument.
 
-    for band in ['u','g','r','i','z']:
+    for band in bands:
     
-        bands.append(band)
-
+        if vb:
+            print " "
+            print "--------"+band+"-band--------"
+        
         # Get SDSS image:
         image,info = st.get_tractor_image_dr9(run, camcol, field, band, roiradecsize=geometry)
         images.append(image)
-        if vb: print info
+        if vb: print "info = ",info
 
         # Compute flux centroid for this image (dummy for now):
         centroid = tractor.RaDecPos(ra,dec)

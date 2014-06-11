@@ -1226,8 +1226,6 @@ python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
 grep sdss_galaxy *.py lenstractor/*py
 
 
-
-
 # ============================================================================
 # 2014-06-02 (Monday) 14:10 PDT
 
@@ -1481,4 +1479,100 @@ mv ds9.cat SDSSJ0814+5828_init.txt
 # getting the SDSS images. 
 
 # =============================================================================
+# 2014-06-11 (Wednesday) 15:05 PDT
+
+# Still trying to download SDSS data:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Querying SDSS skyserver for data at ra,dec =  147.84408 26.58722
+#   in run, camcol, field =  [5038, 153, 3]
+# Looking to make cutouts that are  10.0  arcsec ( 25  pixels) across
+# Checking for file psField-005038-153-0003.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit
+# Command failed: command wget --continue -nv -O psField-005038-153-0003.fit.tmp 'http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit'
+# Output: 
+# Error: http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit:
+# 2014-06-11 15:03:42 ERROR 404: Not Found.
+
+# Check run, camcol, field at skyserver...
+# Huh - I was nowehere near. Header not right?
+
+set rcf = "5038,3,145,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Querying SDSS skyserver for data at ra,dec =  147.84408 26.58722
+#   in run, camcol, field =  [5038, 3, 145]
+# Looking to make cutouts that are  10.0  arcsec ( 25  pixels) across
+#  
+# --------u-band--------
+# Checking for file psField-005038-3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/fpM-005038-u3-0145.fit.gz
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photoObj/frames/301/5038/3/frame-u-005038-3-0145.fits.bz2
+# First get_tractor_image_dr8() failed -- trying to re-retrieve data
+# Traceback (most recent call last):
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 845, in get_tractor_image_dr8
+#     return _get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 929, in _get_tractor_image_dr8
+#     frame = sdss.readFrame(run, camcol, field, bandname, filename=fn)
+#   File "/Users/pjm/work/tractor/astrometry/sdss/dr8.py", line 443, in readFrame
+#     p = pyfits.open(fn)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/util.py", line 206, in _with_extensions_wrapper
+#     return func(*args, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 103, in fitsopen
+#     return HDUList.fromfile(name, mode, memmap, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 251, in fromfile
+#     hdu = _BaseHDU.readfrom(ffo, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/base.py", line 282, in readfrom
+#     raise IOError('Header missing END card.')
+# IOError: Header missing END card.
+# None
+# 
+# Checking for file psField-005038-3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/fpM-005038-u3-0145.fit.gz
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photoObj/frames/301/5038/3/frame-u-005038-3-0145.fits.bz2
+# Checking for file psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Traceback (most recent call last):
+#   File "LensTractor.py", line 388, in <module>
+#     main()
+#   File "LensTractor.py", line 249, in main
+#     images,centroids,total_mags,bands = lenstractor.getSDSSdata(rcf,roi,datadir,vb=vb)
+#   File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/sdss.py", line 232, in getSDSSdata
+#     image,info = st.get_tractor_image_dr9(run, camcol, field, band, roiradecsize=geometry)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 1093, in get_tractor_image_dr9
+#     return get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 862, in get_tractor_image_dr8
+#     return _get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 929, in _get_tractor_image_dr8
+#     frame = sdss.readFrame(run, camcol, field, bandname, filename=fn)
+#   File "/Users/pjm/work/tractor/astrometry/sdss/dr8.py", line 443, in readFrame
+#     p = pyfits.open(fn)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/util.py", line 206, in _with_extensions_wrapper
+#     return func(*args, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 103, in fitsopen
+#     return HDUList.fromfile(name, mode, memmap, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 251, in fromfile
+#     hdu = _BaseHDU.readfrom(ffo, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/base.py", line 282, in readfrom
+#     raise IOError('Header missing END card.')
+# IOError: Header missing END card.
+
+# Missing END card?! Send to Dustin.
+
+
+# =============================================================================
+
 FINISH:
