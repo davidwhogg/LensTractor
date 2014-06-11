@@ -356,8 +356,8 @@ class Model():
                 irec=1
                 while irec<NrectE:
                     tE = (B1 -gamma1*A12 -A13*gamma2)/A11
-                    gamma1 = (B2-A21*tE)/A22
-                    gamma2 = (B3 - A31*tE)/A33
+                    gamma1 = (B2 -A21*tE)/A22
+                    gamma2 = (B3 -A31*tE)/A33
                     irec += 1    
                 #-- compute gamma, phi, xs1, ys1, update xs
                 shreg = 0.0001
@@ -367,7 +367,7 @@ class Model():
                 # PJM: I suspect a problem with angle definitions. 
                 #      I tried using arctan2 instaed of arctan, this often helps - but its not this.
                 #      You need to check the solve that is going on here carefully for errors.
-                #      Modularising will hel pyou do this: there's a lot of repeated code,
+                #      Modularising will help you do this: there's a lot of repeated code,
                 #      which makes bugs twice as common, and half as easy to find and fix...
                 
                 xs1 = ys1 = 0.0
@@ -395,7 +395,7 @@ class Model():
                     print "Galaxy may be fictitious, repositioning."
                 #-- reposition galaxy using magnitudes in the first card, reset axis ratio and p.a.
                 galpx, galpy, weight = 0.0, 0.0, 0.0
-#                pippo0 = stars[0].getBrightness()[0]
+                pippo0 = stars[0].getBrightness()[0]
                 for star in stars:
 #                    pippo1 = 10.0**(-0.4*star.getBrightness()[0]+0.4*pippo0)
                     pippo1 = 1.
@@ -446,8 +446,8 @@ class Model():
                 tE = tE/len(stars)
                 A11 = len(stars) -(Ax**2)/len(stars) -(Ay**2)/len(stars)
                 A12 = sum1 - Ax*xs0 +Ay*ys0
-                A13 = 2.0*sum4 -Ax*ys0 - Ay*xs0
-                B1 = sum0 - Ax*xs0 - Ay*ys0
+                A13 = 2.0*sum4 -Ax*ys0 -Ay*xs0
+                B1 = sum0 -Ax*xs0 -Ay*ys0
                 A21 = (ys0*Ay-xs0*Ax+sum1)/len(stars) # xs0, ys0 are in arcseconds
                 A22 = sum2/len(stars) - xs0**2 - ys0**2
                 B2 = ys0**2 - xs0**2 -sum3/len(stars)
@@ -464,9 +464,9 @@ class Model():
                     tE = (B1 -gamma1*A12 -A13*gamma2)/A11
                     irec += 1    
                 #-- compute gamma, phi, update source
-                # shreg = 0.0001
-                # gamma = (gamma1**2+gamma2**2)**0.5
-                # phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+                shreg = 0.0001
+                gamma = (gamma1**2+gamma2**2)**0.5
+                phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
                 # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
                 xs1 = ys1 = 0.0
                 mu = 0.0 # for the SIS+XS total magnification
@@ -478,8 +478,6 @@ class Model():
                     dys = (stradec.dec-xd.dec)*3600.0
                     thetai = treg + (dxs**2 +dys**2)**0.5
 #                    thetai = treg + stradec.distanceFrom(xd)*3600.0
-                    dxs = (stradec.ra-xd.ra)*deccorr*3600.0
-                    dys = (stradec.dec-xd.dec)*3600.0
                     xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
                     ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation                    
                     muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
@@ -497,7 +495,7 @@ class Model():
                 d11 = d12 = 0.0
                 d21 = d22 = 0.0
                 dchi2xd = dchi2yd = 0.0
-                squares = 0.0 # used for source-plane chi2, i.e. variance in pred.source positions in units of tE^2
+                squares = 0.0 # used for source-plane chi2, i.e. variance in pred.source positions
                 for star in stars:
                     stradec = star.getPosition()
                     dxs = (stradec.ra-xd.ra)*deccorr
@@ -506,13 +504,13 @@ class Model():
                     thetai = treg + (dxs**2 + dys**2)**0.5
 #                    thetai = stradec.distanceFrom(xd) # in degrees
 #                    thetai = treg+ thetai*3600.0 #in arcseconds
-                    d11 = -1.0 + gamma1 + tE*(dys**2)/(thetai**3)
-                    d12 = gamma2 - tE*dys*dxs/(thetai**3)
+                    d11 = -1.0 +gamma1 +tE*(dys**2)/(thetai**3)
+                    d12 = gamma2 -tE*dys*dxs/(thetai**3)
                     d21 = d12
-                    d22 = -1.0 -gamma1 + tE*(dxs**2)/(thetai**3)
-                    xsi = dxs*(1.0 -tE/thetai -gamma1) - gamma2*dys # in arcseconds
-                    ysi = dys*(1.0 -tE/thetai +gamma1) - gamma2*dxs # in arcseconds
-                    dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 -(xs1*3600.0)*d11 -(ys1*3600.0)*d12) # in arcseconds
+                    d22 = -1.0 -gamma1 +tE*(dxs**2)/(thetai**3)
+                    xsi = dxs*(1.0 -tE/thetai -gamma1) -gamma2*dys # in arcseconds
+                    ysi = dys*(1.0 -tE/thetai +gamma1) -gamma2*dxs # in arcseconds
+                    dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 -(xs1*3600.0)*d11 -(ys1*3600.0)*d12) # in arcseconds, xs1 ans ys1 are in degrees
                     dchi2yd += (2./len(stars))*(xsi*d21 +ysi*d22 -(xs1*3600.0)*d21 -(ys1*3600.0)*d22) # in arcseconds
                     # squares += (1./len(stars))*(xsi**2 + ysi**2)
                 dispx = dchi2xd/deccorr #in arcseconds
@@ -531,8 +529,8 @@ class Model():
             shreg = 0.0001
             gamma = (gamma1**2+gamma2**2)**0.5
             # instantiate ExternalShear object
-            # phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-            phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+            phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+            # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
             # PJM: again, tried arctan2. This code needs checking carefully against analytic results. 
             # mu = 2.0*len(stars)*tE/ts
 
