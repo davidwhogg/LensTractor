@@ -1220,7 +1220,7 @@ python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
 # OK, now try again: success. Well, python errors, but they are my own.
 
 # Need to git pull tractor, there are some updates: sdss_galaxy no longer 
-# exists, DevGalaxy etc are now in tractor/sdss.py
+# exists, DevGalaxy etc are now in tractor/galaxy.py
 # Here's the check:
 
 grep sdss_galaxy *.py lenstractor/*py
