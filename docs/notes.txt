@@ -1173,7 +1173,61 @@ python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 #         tree_permute = spherematch_c.kdtree_permute
 #     AttributeError: 'module' object has no attribute 'kdtree_permute'
 
+
+# Dustin says:
+
+#    Ok, this is progress.
+# 
+#    What do you get with:
+# 
+#    python -c "import astometry.libkd.spherematch as sp; print sp.__file__"
+#    python -c "import astometry.libkd.spherematch_c as spc; print spc.__file__"
+#    python -c "import astometry.libkd.spherematch_c as spc; print dir(spc)"
+# 
+#    I'm guessing it's loading some other (older?) version of the
+#    astrometry.net code.
+# 
+#    This has nothing to do with the tractor or lenstractor, it's something
+#    about the astrometry.net install.
  
+python -c "import astrometry.libkd.spherematch as sp; print sp.__file__"
+#    AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+python -c "import astrometry.libkd.spherematch_c as spc; print spc.__file__"
+#    /Users/pjm/work/astrometry/astrometry/libkd/spherematch_c.so
+
+python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
+#    ['__doc__', '__file__', '__name__', '__package__', 'kdtree_build',
+# 'kdtree_close', 'kdtree_free', 'kdtree_open', 'kdtree_write', 'match',
+# 'nearest']
+
+# OK, looks like we need to remove old astrometry directory from the 
+# PYTHONPATH. Indeed, let's just trash the whole thing.
+
+python -c "import astrometry.libkd.spherematch as sp; print sp.__file__"
+#    /Users/pjm/work/tractor/astrometry/libkd/spherematch.py
+
+python -c "import astrometry.libkd.spherematch_c as spc; print spc.__file__"
+#    /Users/pjm/work/tractor/astrometry/libkd/spherematch_c.so
+
+python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
+#   ['__doc__', '__file__', '__name__', '__package__', 'kdtree_bbox',
+# 'kdtree_build', 'kdtree_close', 'kdtree_free', 'kdtree_get_positions',
+# 'kdtree_n', 'kdtree_open', 'kdtree_permute', 'kdtree_print',
+# 'kdtree_rangesearch', 'kdtree_write', 'match', 'match2', 'nearest',
+# 'nearest2']
+
+# OK, now try again: success. Well, python errors, but they are my own.
+
+# Need to git pull tractor, there are some updates: sdss_galaxy no longer 
+# exists, DevGalaxy etc are now in tractor/sdss.py
+# Here's the check:
+
+grep sdss_galaxy *.py lenstractor/*py
+
+
+
+
 # ============================================================================
 # 2014-06-02 (Monday) 14:10 PDT
 
