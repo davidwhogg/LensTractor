@@ -1598,6 +1598,32 @@ pip install pyfits --upgrade
 #         #    return None,True
 # 
 # and see if that works.
+# Yes! Success :-)
+
+# Well, code runs, at least - but doesn't seem to get anywhere...
+# OK, code eventually finished: all 4 quasars attached to one
+# point source, the galaxy used for the other one! Why did t take so long?
+# Its only working on 25x25x5 pixels!!
+
+# Next test: try initializing.
+
+# Notes:
+# - FITS files downloaded are full frame. Hopefully tractor wget does not
+#   re-download! Looks like it does...
+# - Best to run the code in the examples directory...
+# - Could still run on local SDSS cutouts, with --survey SDSS
+
+# Test code with Nebula2:
+
+cd $LENSTRACTOR_DIR/examples/sdss/0951+2635/
+
+set rcf = "5038,3,145,147.844080,26.587220,10.0"
+set stem = SDSSJ0951+2635_10x10arcsec
+
+LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem 
+
+# OK, similar issue - galaxy takes one QSO image, both point sources 
+# take the other. Oh well - check in!
 
 # =============================================================================
 # 2014-06-11 (Wednesday) 15:29 PDT

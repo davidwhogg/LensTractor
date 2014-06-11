@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# ============================================================================
 '''
 This file is part of the lenstractor project.
 Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
@@ -231,15 +233,18 @@ def main():
    # SDSS skyserver:
    if args.rcfstring != 'None': 
        survey = 'SDSS'
+       source = 'skyserver'
        data = [float(x) for x in args.rcfstring.split(',')]
        rcf = data[0:5]
        rcf[0:3] = [int(x) for x in rcf[0:3]]
        roi = data[5]
        assert len(rcf) == 5
+   else:
+       source = 'local'
        
    # -------------------------------------------------------------------------
 
-   if survey == 'SDSS':
+   if survey == 'SDSS' and source == 'skyserver':
    
        # Download images from SDSS skyserver (using IO functions in sdss.py)
        

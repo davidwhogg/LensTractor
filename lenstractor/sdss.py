@@ -234,7 +234,6 @@ def getSDSSdata(rcf,roi,datadir,vb=False):
         
         # Get SDSS image:
         image,info = st.get_tractor_image_dr9(run, camcol, field, band, roiradecsize=geometry)
-        if vb: print "info = ",info
 
         bands.append(band)
         images.append(image)
@@ -252,6 +251,7 @@ def getSDSSdata(rcf,roi,datadir,vb=False):
         
         if vb: 
             print "Got pixel data in the "+band+" band"
+            print "Image size: ",image.data.shape,"pixels"
             print "Total brighness of image (mags): ",total_mag
 
 
