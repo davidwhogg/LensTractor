@@ -979,6 +979,254 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Email back to Adri, to check equations. Galaxy brightness looks suspiciously high...
 
 # =============================================================================
+# 2014-05-29 (Thursday) 18:56 PDT
+
+# Dustin recommends getting SDSS data with his sdss_getimage tractor code.
+# This would (I think) grab a suitably sized cutout, including weight image, 
+# given Ra and Dec. Give LensTractor the option, if --survey SDSS, of 
+# --radec alpha delta (in degrees), and the go and pull the data down into 
+# a suitably named directory before Riffling and Dealing it.
+
+# Look up Ra, Dec for SDSSJ0951.
+# At http://www-utap.phys.s.u-tokyo.ac.jp/~sdss/sqls/lens.html
+# there is a link to the skyserver at
+# http://cas.sdss.org/astro/en/tools/explore/obj.asp?ra=147.844080&dec=+26.587220
+
+# Degrees:
+# 147.844080 +26.587220
+
+# Hexagesimal:
+# 09:51:22.57 +26:35:13.96
+
+# Here's the test command. Note that the -o option shows where the 
+# FITS files are to be downloaded to. Run, camcol, field (frame?) come from
+# 0951 example fits files. We'll have to look up all of these numbers for 
+# the sample... Execute this example in th e0951 directory.
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# OK, close. The call to get_tractor_image fails because the astrometry code has not built:
+
+# File "/Users/pjm/work/astrometry/astrometry/libkd/spherematch.py", line 409, in <module>
+#     tree_permute = spherematch_c.kdtree_permute
+# AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+# In the tractor/astrometry directory, I followed the steps in checkout.sh and got:
+
+cd $TRACTOR_dir/astrometry/libkd
+make pyspherematch
+
+# clang -arch x86_64 -g -Wall   -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE   -I../qfits-an -I../util -I../util  -I../qfits-an -I../util -I../gsl-an  -I/usr/local/Cellar/python/2.7.2/include/python2.7 -MM -MP  pyspherematch.c > pyspherematch.dep.tmp && mv pyspherematch.dep.tmp pyspherematch.dep
+# pyspherematch.c:24:10: fatal error: 'numpy/arrayobject.h' file not found
+# #include "numpy/arrayobject.h"
+
+# Emailed dstn.
+
+# OK, looks like you have to fix some links in the distribution directory, 
+# at least according to https://groups.google.com/forum/#!topic/cython-users/_PyzG5F4LoA
+
+# Here's where my arrayobject.h file lives: /usr/local/lib/python2.7/site-packages/numpy/core/include/numpy
+# Advice is to link this (and other header files?) into the directory where python.h lives.
+# This is /usr/local/include/python2.7 (although NB, th efile is actually Python.h)
+
+cd /usr/local/include/python2.7
+sudo ln -s /usr/local/lib/python2.7/site-packages/numpy/core/include/numpy .
+
+# OK, make pyspherematch gets a bit further along. Now I get this:
+
+# clang -arch x86_64 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE   -I../qfits-an -I../util -I../util  -I../qfits-an -I../util -I../gsl-an  -I/usr/local/Cellar/python/2.7.2/include/python2.7 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -I.   -c -o sys/infnan.o sys/infnan.c
+# clang: warning: argument unused during compilation: '-march=native'
+# clang: warning: argument unused during compilation: '-O3'
+# sys/infnan.c:98:3: error: #error "cannot define gsl_finite without
+#       HAVE_DECL_FINITE or HAVE_IEEE_COMPARISONS"
+# # error "cannot define gsl_finite without HAVE_DECL_FINITE or ...
+#   ^
+# sys/infnan.c:115:3: error: #error "cannot define gsl_isnan without
+#       HAVE_DECL_ISNAN or HAVE_IEEE_COMPARISONS"
+# # error "cannot define gsl_isnan without HAVE_DECL_ISNAN or ...
+#   ^
+# 2 errors generated.
+
+# Is this a result of not having run configure, in checkout.sh? Advice please.
+
+# ----------------------------------------------------------------------------
+# 2014-06-11 (Wednesday) 13:40 PDT
+
+# Fixing various astrometry build errors.
+
+brew install pkg-config
+
+# Then svn up in astrometry, then try building again using stripped down
+# script. In $TRACTOR_DIR:
+
+./build_astrometry.sh > & build_astrometry_2014-06-11.log &
+
+# Then re-try example:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Still not building pyspherematch?
+
+# Here's the build record, by hand:
+
+    cd astrometry/
+    make pyutil
+        make -C qfits-an
+        make[1]: Nothing to be done for `all'.
+        make -C gsl-an
+        make[1]: Nothing to be done for `all'.
+        make -C util pyutil
+        LDFLAGS="-Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline" LDLIBS="          -lm        -lm" SLIB="../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a  ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a " \
+                INC="-I../util -I../libkd -I../util  -I../qfits-an -I../util -I../gsl-an  -I../util  -I../qfits-an -I../util -I../gsl-an " CFLAGS="  " \
+                python setup-util.py build_ext -v --inplace --build-temp .
+        link: ['-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-g', '-Wall', '-ffinite-math-only', '-pthread', '-march=native', '-O3', '-fomit-frame-pointer', '-DNDEBUG', '-fpic', '-Winline', '-lm', '-lm']
+        objs: ['../util/libanfiles.a', '../libkd/libkd.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a']
+        inc: ['../util', '../libkd', '../util', '../qfits-an', '../util', '../gsl-an', '../util', '../qfits-an', '../util', '../gsl-an']
+        cflags: []
+        running build_ext
+        building '_util' extension
+        swigging util.i to util_wrap.c
+        C compiler: clang -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes
+
+        compile options: '-I/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include -I../util -I../libkd -I../util -I../qfits-an -I../util -I../gsl-an -I../util -I../qfits-an -I../util -I../gsl-an -I. -I/usr/local/Cellar/python/2.7.2/include/python2.7 -c'
+        clang: util_wrap.c
+        In file included from util_wrap.c:112:
+        In file included from /usr/local/Cellar/python/2.7.2/include/python2.7/Python.h:126:
+        /usr/local/Cellar/python/2.7.2/include/python2.7/modsupport.h:27:65: warning: 'format' attribute argument not supported: PyArg_ParseTuple
+        PyAPI_FUNC(int) PyArg_ParseTuple(PyObject *, const char *, ...) Py_FORMAT_PARSETUPLE(PyArg_ParseTuple, 2, 3);
+                                                                        ^
+        In file included from util_wrap.c:112:
+        In file included from /usr/local/Cellar/python/2.7.2/include/python2.7/Python.h:58:
+        /usr/local/Cellar/python/2.7.2/include/python2.7/pyport.h:871:57: note: instantiated from:
+        #define Py_FORMAT_PARSETUPLE(func,p1,p2) __attribute__((format(func,p1,p2)))
+                                                                ^
+        util_wrap.c:853:38: warning: format string is not a string literal (potentially insecure) [-Wformat-security]
+            PyErr_Format(PyExc_RuntimeError, mesg);
+                                             ^~~~
+        In file included from util_wrap.c:2531:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/arrayobject.h:4:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/ndarrayobject.h:17:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/ndarraytypes.h:1761:
+        /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/npy_1_7_deprecated_api.h:15:2: warning: #warning "Using deprecated NumPy API, disable it by "          "#defining NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION" [-W#warnings]
+        #warning "Using deprecated NumPy API, disable it by " \
+         ^
+        3 warnings generated.
+        /usr/bin/gcc-4.2 -bundle -undefined dynamic_lookup -L/usr/local/Cellar/readline/6.2.2/lib -Wall -undefined dynamic_lookup -Wall -undefined dynamic_lookup -g -Wall -ffinite-math-only -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline ./util_wrap.o ../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a ../qfits-an/libqfits.a ../util/libanbase.a ../gsl-an/libgsl-an.a ../util/libanutils.a ../qfits-an/libqfits.a ../util/libanbase.a ../gsl-an/libgsl-an.a -o /Users/pjm/work/tractor/astrometry/util/_util.so -Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -lm -lm
+        LDFLAGS="-Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline" LDLIBS="          -lm        -lm" SLIB="../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a  ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a " \
+                INC="-I../util -I../libkd -I../util  -I../qfits-an -I../util -I../gsl-an  -I../util  -I../qfits-an -I../util -I../gsl-an " CFLAGS="  " \
+                python setup-util.py build_ext -v --inplace --build-temp .
+        link: ['-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-g', '-Wall', '-ffinite-math-only', '-pthread', '-march=native', '-O3', '-fomit-frame-pointer', '-DNDEBUG', '-fpic', '-Winline', '-lm', '-lm']
+        objs: ['../util/libanfiles.a', '../libkd/libkd.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a']
+        inc: ['../util', '../libkd', '../util', '../qfits-an', '../util', '../gsl-an', '../util', '../qfits-an', '../util', '../gsl-an']
+        cflags: []
+        running build_ext
+    cd libkd/
+    make pyspherematch
+        pyspherematch
+    cd ../sdss/
+    make
+        make lib
+        make[1]: Nothing to be done for `lib'.
+    cd ../../
+    make
+        make -C tractor mix
+        make[1]: Nothing to be done for `mix'.
+        make -C tractor emfit
+        make[1]: Nothing to be done for `emfit'.
+
+# Seems to have all built correctly...
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
+
+# Same error.
+
+# OK, try a clean build. 
+
+mv tractor tractor-variability
+tractor-variability/checkout.sh >& checkout_2014-06-11.log &
+ 
+# Ok, looks good!
+mv checkout_2014-06-11.log tractor/.
+ 
+# Ran the example again, same error. Here it is:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
+
+#     Traceback (most recent call last):
+#       File "LensTractor.py", line 25, in <module>
+#         import lenstractor
+#       File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/__init__.py", line 4, in <module>
+#         from sdss import *
+#       File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/sdss.py", line 22, in <module>
+#         from tractor import sdss as st
+#       File "/Users/pjm/work/tractor/tractor/sdss.py", line 31, in <module>
+#         from astrometry.libkd.spherematch import match_radec
+#       File "/Users/pjm/work/astrometry/astrometry/libkd/spherematch.py", line 409, in <module>
+#         tree_permute = spherematch_c.kdtree_permute
+#     AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+
+# Dustin says:
+
+#    Ok, this is progress.
+# 
+#    What do you get with:
+# 
+#    python -c "import astometry.libkd.spherematch as sp; print sp.__file__"
+#    python -c "import astometry.libkd.spherematch_c as spc; print spc.__file__"
+#    python -c "import astometry.libkd.spherematch_c as spc; print dir(spc)"
+# 
+#    I'm guessing it's loading some other (older?) version of the
+#    astrometry.net code.
+# 
+#    This has nothing to do with the tractor or lenstractor, it's something
+#    about the astrometry.net install.
+ 
+python -c "import astrometry.libkd.spherematch as sp; print sp.__file__"
+#    AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+python -c "import astrometry.libkd.spherematch_c as spc; print spc.__file__"
+#    /Users/pjm/work/astrometry/astrometry/libkd/spherematch_c.so
+
+python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
+#    ['__doc__', '__file__', '__name__', '__package__', 'kdtree_build',
+# 'kdtree_close', 'kdtree_free', 'kdtree_open', 'kdtree_write', 'match',
+# 'nearest']
+
+# OK, looks like we need to remove old astrometry directory from the 
+# PYTHONPATH. Indeed, let's just trash the whole thing.
+
+python -c "import astrometry.libkd.spherematch as sp; print sp.__file__"
+#    /Users/pjm/work/tractor/astrometry/libkd/spherematch.py
+
+python -c "import astrometry.libkd.spherematch_c as spc; print spc.__file__"
+#    /Users/pjm/work/tractor/astrometry/libkd/spherematch_c.so
+
+python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
+#   ['__doc__', '__file__', '__name__', '__package__', 'kdtree_bbox',
+# 'kdtree_build', 'kdtree_close', 'kdtree_free', 'kdtree_get_positions',
+# 'kdtree_n', 'kdtree_open', 'kdtree_permute', 'kdtree_print',
+# 'kdtree_rangesearch', 'kdtree_write', 'match', 'match2', 'nearest',
+# 'nearest2']
+
+# OK, now try again: success. Well, python errors, but they are my own.
+
+# Need to git pull tractor, there are some updates: sdss_galaxy no longer 
+# exists, DevGalaxy etc are now in tractor/galaxy.py
+# Here's the check:
+
+grep sdss_galaxy *.py lenstractor/*py
+
+
+# ============================================================================
 # 2014-06-02 (Monday) 14:10 PDT
 
 # The collected woes of Adriano Agnello:
@@ -1227,8 +1475,166 @@ mv ds9.cat SDSSJ0814+5828_init.txt
 # Huh - central object according to ds9 is (0.06,0.06) away from 
 # where LT fitted it. Yes: LT headers are screwed up. 
 
-# Suspect this problem will only go away when we use teh tractor routines for
+# Suspect this problem will only go away when we use the tractor routines for
 # getting the SDSS images. 
+
+# =============================================================================
+# 2014-06-11 (Wednesday) 15:05 PDT
+
+# Still trying to download SDSS data:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Querying SDSS skyserver for data at ra,dec =  147.84408 26.58722
+#   in run, camcol, field =  [5038, 153, 3]
+# Looking to make cutouts that are  10.0  arcsec ( 25  pixels) across
+# Checking for file psField-005038-153-0003.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit
+# Command failed: command wget --continue -nv -O psField-005038-153-0003.fit.tmp 'http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit'
+# Output: 
+# Error: http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit:
+# 2014-06-11 15:03:42 ERROR 404: Not Found.
+
+# Check run, camcol, field at skyserver...
+# Huh - I was nowehere near. Header not right?
+
+set rcf = "5038,3,145,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Querying SDSS skyserver for data at ra,dec =  147.84408 26.58722
+#   in run, camcol, field =  [5038, 3, 145]
+# Looking to make cutouts that are  10.0  arcsec ( 25  pixels) across
+#  
+# --------u-band--------
+# Checking for file psField-005038-3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/fpM-005038-u3-0145.fit.gz
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photoObj/frames/301/5038/3/frame-u-005038-3-0145.fits.bz2
+# First get_tractor_image_dr8() failed -- trying to re-retrieve data
+# Traceback (most recent call last):
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 845, in get_tractor_image_dr8
+#     return _get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 929, in _get_tractor_image_dr8
+#     frame = sdss.readFrame(run, camcol, field, bandname, filename=fn)
+#   File "/Users/pjm/work/tractor/astrometry/sdss/dr8.py", line 443, in readFrame
+#     p = pyfits.open(fn)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/util.py", line 206, in _with_extensions_wrapper
+#     return func(*args, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 103, in fitsopen
+#     return HDUList.fromfile(name, mode, memmap, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 251, in fromfile
+#     hdu = _BaseHDU.readfrom(ffo, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/base.py", line 282, in readfrom
+#     raise IOError('Header missing END card.')
+# IOError: Header missing END card.
+# None
+# 
+# Checking for file psField-005038-3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/fpM-005038-u3-0145.fit.gz
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photoObj/frames/301/5038/3/frame-u-005038-3-0145.fits.bz2
+# Checking for file psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Traceback (most recent call last):
+#   File "LensTractor.py", line 388, in <module>
+#     main()
+#   File "LensTractor.py", line 249, in main
+#     images,centroids,total_mags,bands = lenstractor.getSDSSdata(rcf,roi,datadir,vb=vb)
+#   File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/sdss.py", line 232, in getSDSSdata
+#     image,info = st.get_tractor_image_dr9(run, camcol, field, band, roiradecsize=geometry)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 1093, in get_tractor_image_dr9
+#     return get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 862, in get_tractor_image_dr8
+#     return _get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 929, in _get_tractor_image_dr8
+#     frame = sdss.readFrame(run, camcol, field, bandname, filename=fn)
+#   File "/Users/pjm/work/tractor/astrometry/sdss/dr8.py", line 443, in readFrame
+#     p = pyfits.open(fn)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/util.py", line 206, in _with_extensions_wrapper
+#     return func(*args, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 103, in fitsopen
+#     return HDUList.fromfile(name, mode, memmap, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 251, in fromfile
+#     hdu = _BaseHDU.readfrom(ffo, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/base.py", line 282, in readfrom
+#     raise IOError('Header missing END card.')
+# IOError: Header missing END card.
+
+# Missing END card?! Send to Dustin. His response:
+# 
+#    Huh, must be the frame*.bz2 file (compressed).  In my notes I have that
+#    pyfits can read bz2 files.
+# 
+#    What do you get if you do:
+
+python -c "import pyfits; pyfits.open('frame-u-005038-3-0145.fits.bz2')"
+# Header missing END card
+
+bunzip2 frame-u-005038-3-0145.fits.bz2
+python -c "import pyfits; pyfits.open('frame-u-005038-3-0145.fits')"
+
+# Works OK. Need to subprocess a bunzip2 call?
+# Try updating to pyfits 3.2.4
+
+pip install pyfits --upgrade
+
+# Nope, that wasn't it.
+
+# Have a look at astrometry/sdss/dr8.py line 267: try commenting out that
+# block:
+# 
+#         # if not fitsio:
+#         #    # pyfits can read .bz2
+#         #    return None,True
+# 
+# and see if that works.
+# Yes! Success :-)
+
+# Well, code runs, at least - but doesn't seem to get anywhere...
+# OK, code eventually finished: all 4 quasars attached to one
+# point source, the galaxy used for the other one! Why did t take so long?
+# Its only working on 25x25x5 pixels!!
+
+# Next test: try initializing.
+
+# Notes:
+# - FITS files downloaded are full frame. Hopefully tractor wget does not
+#   re-download! Looks like it does...
+# - Best to run the code in the examples directory...
+# - Could still run on local SDSS cutouts, with --survey SDSS
+
+# Test code with Nebula2:
+
+cd $LENSTRACTOR_DIR/examples/sdss/0951+2635/
+
+set rcf = "5038,3,145,147.844080,26.587220,10.0"
+set stem = SDSSJ0951+2635_10x10arcsec
+
+LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem 
+
+# OK, similar issue - galaxy takes one QSO image, both point sources 
+# take the other. Oh well - check in!
+
+# =============================================================================
+# 2014-06-11 (Wednesday) 15:29 PDT
+
+# Spawn lens problem from Adri:
+# ISSUE orientation errors in model.spawn_lens()? #47
+# https://github.com/davidwhogg/LensTractor/issues/47
+
+
+
+
 
 # =============================================================================
 FINISH:
