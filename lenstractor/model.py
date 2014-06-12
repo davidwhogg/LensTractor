@@ -587,20 +587,48 @@ class Model():
         # Need to change that for other surveys!
         x = np.loadtxt(catalog)
         
-        if len(x) == 23:
-            Npos = 4
-            self.K = Npos
-#        elif len(x) == 15: # PS1 case (two bands)
-        elif len(x) == 21: # SQLS case (four bands)
-            Npos = 2
-            self.K = Npos
-        else:
-            print "ERROR: unrecognised Nebula model in catalog, with ",len(x)," parameters"
+        # Init catalogs are always for Nebulae models.
+        # Parameters are something like:
+        #
+        #  1        catalog.source0.pos.ra   1.478442646221303107e+02
+        #  2       catalog.source0.pos.dec   2.658710567091902277e+01
+        #  3  catalog.source0.brightness.g   1.838935729060930768e+01
+        #  4  catalog.source0.brightness.i   1.781994514057002377e+01
+        #  5  catalog.source0.brightness.r   1.791359861295001821e+01
+        #  6  catalog.source0.brightness.u   1.861519625801571465e+01
+        #  7  catalog.source0.brightness.z   1.790694668268868384e+01
+        #  8      catalog.source0.shape.re   2.356612496948709001e-01
+        #  9      catalog.source0.shape.ab   2.286815004837887244e+00
+        # 10     catalog.source0.shape.phi  -4.142924582249651877e+01
+        # 11        catalog.source1.pos.ra   1.478440593629958073e+02
+        # 12       catalog.source1.pos.dec   2.658722018688290234e+01
+        # 13  catalog.source1.brightness.g   1.889259658866843949e+01
+        # 14  catalog.source1.brightness.i   1.835678754819763014e+01
+        # 15  catalog.source1.brightness.r   1.844249717329058669e+01
+        # 16  catalog.source1.brightness.u   1.896585704168741060e+01
+        # 17  catalog.source1.brightness.z   1.838253660524710398e+01
+        # 18        catalog.source2.pos.ra   1.478440533891872235e+02
+        # 19       catalog.source2.pos.dec   2.658722428423748241e+01
+        # 20  catalog.source2.brightness.g   1.885674019434759785e+01
+        # 21  catalog.source2.brightness.i   1.835242649962165373e+01
+        # 22  catalog.source2.brightness.r   1.844604212419161726e+01
+        # 23  catalog.source2.brightness.u   1.893952465584669653e+01
+        # 24  catalog.source2.brightness.z   1.829995958971434789e+01        
+        
+        # ie Npars = (5 + Nbands) + K*(2 + Nbands)
+        # where K is the no. of point sources in the Nebula.
+
+        numerator = (len(x) - (5 + Nbands))
+        denominator = (2 + Nbands)        
+        assert numerator%denominator == 0
+        Npos = numerator/denominator
+        if (Npos < 1 or Npos > 4):
+            print "ERROR: unrecognised Nebula model in catalog. K = ",Npos
             assert False
         
-        # Catalog must match this model!
-        assert Npos == self.K #overridden by self.K initialisation above
-        
+        # Set up Nebula model:
+        self.K = Npos
+                
         # Create position objects:
         j = 0
         positions.append(tractor.RaDecPos(x[j],x[j+1]))
@@ -608,6 +636,7 @@ class Model():
         for i in range(Npos):
             j += 2 + Nbands
             positions.append(tractor.RaDecPos(x[j],x[j+1]))
+        assert len(positions) == (self.K+1)
 
         return positions
         

@@ -20,7 +20,7 @@
 #   -f --filters K    No. of filters in dataset [1] 
 #
 # OUTPUTS:
-#   catalog           regfile:r.cat           
+#   catalog           regfile:r.txt           
 #
 # EXAMPLES:
 #
@@ -46,6 +46,11 @@ while ( $#argv > 0 )
       breaksw
    case --help:
       set help = 1
+      shift argv
+      breaksw
+   case -n:
+      shift argv
+      set Nbands = $argv[1]
       shift argv
       breaksw
    case -f:
@@ -95,7 +100,7 @@ foreach regfile ( $regfiles )
 
     # Start catalog:
     set date = `date`
-    set catalog = $regfile:r.cat
+    set catalog = $regfile:r.txt
     echo "# Dummy LensTractor-format catalog containing Nebula positions" > $catalog
     echo "# Data source: $regfile" >> $catalog
     echo "# Written by $0:t on $date" >> $catalog

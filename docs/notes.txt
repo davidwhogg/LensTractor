@@ -1625,6 +1625,17 @@ LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem
 # OK, similar issue - galaxy takes one QSO image, both point sources 
 # take the other. Oh well - check in!
 
+# Back to init testing. Made my own init file!
+
+../../../utils/ds9regions2initcat.csh -f 5 SDSSJ0951+2635_10x10arcsec_init.reg
+
+LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem \
+  --manual SDSSJ0951+2635_10x10arcsec_init.txt
+
+# OK, fixed model.py to read init catalog correctly, code runs. Check in.
+
+
+
 # =============================================================================
 # 2014-06-11 (Wednesday) 15:29 PDT
 
