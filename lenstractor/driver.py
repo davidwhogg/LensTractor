@@ -546,7 +546,7 @@ class LensTractor():
           self.tidyup_plot()
           plt.title('Observed image')
           # Overlay image filter in lower left corner
-          plt.text(1,1,image.photocal.bandname+'-band')
+          plt.text(1,1,image.photocal.band+'-band')
           # Figure out how to get this in bottom right hand corner instead
 
           # 2) Predicted image
@@ -556,7 +556,7 @@ class LensTractor():
           plt.imshow(-model, **ima)
           self.tidyup_plot()
           # Overlay cartoon of model:
-          self.model.plot(image.wcs,image.photocal.bandname)
+          self.model.plot(image.wcs,image.photocal.band)
           plt.title('Predicted image')
           # Overlay name of model in lower left corner
           plt.text(1,1,self.model.name)

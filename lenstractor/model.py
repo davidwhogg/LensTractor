@@ -128,7 +128,11 @@ class Model():
             galpos = position
         # Give it its fair share of the flux, and start faint:
         fudge = 0.2
-        galSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
+
+        # ASSUME linear flux units (NanoMaggies)
+        galSED = SED.copy()
+        galSED.setAllParams(np.array(galSED.getAllParams()) * fudge / (self.K+1))
+
         # Some standard shape and size parameters:
         re = resetre    # in arcsec, probably appropriate for the SQLS examples?
         q = 0.8     # axis ratio
@@ -148,7 +152,10 @@ class Model():
                 e = 0.01 # arcsec, MAGIC
                 dx,dy = e*np.random.randn(2)/3600.0
                 starpos = position.copy() + tractor.RaDecPos(dx,dy)
-            starSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
+            # ASSUME linear brightness units
+            starSED = SED.copy()
+            starSED.setAllParams(np.array(starSED.getAllParams()) * fudge / (self.K+1))
+
             # Package up:
             star = tractor.PointSource(starpos,starSED)
             if self.vb: print star

@@ -215,7 +215,7 @@ def getSDSSdata(rcf,roi,datadir,vb=False):
     bands = []
     images = []
     centroids = []
-    total_mags = []
+    total_fluxes = []
     
     if vb:
         print "Querying SDSS skyserver for data at ra,dec = ",ra,dec
@@ -233,8 +233,9 @@ def getSDSSdata(rcf,roi,datadir,vb=False):
             print "--------"+band+"-band--------"
         
         # Get SDSS image:
-        image,info = st.get_tractor_image_dr9(run, camcol, field, band, roiradecsize=geometry)
-
+        image,info = st.get_tractor_image_dr9(run, camcol, field, band,
+                                              roiradecsize=geometry,
+                                              nanomaggies=True)
         bands.append(band)
         images.append(image)
 
@@ -242,19 +243,20 @@ def getSDSSdata(rcf,roi,datadir,vb=False):
         centroid = tractor.RaDecPos(ra,dec)
         centroids.append(centroid)
 
-        # Compute total magnitude for this image:
-        background = np.median(image.data)
-        diffimage = image.data - background
-        total_flux = np.sum(diffimage)
-        total_mag = image.photocal.countsToMag(total_flux)
-        total_mags.append(total_mag)
+        # Compute total flux for this image.
+        # ASSUME:
+        # SDSS DR8+ images are sky-subtracted and in units of nanomaggies.
+        # Therefore no background subtraction or scaling from "counts" to
+        # Nanomaggies units.
+        total_flux = image.getImage().sum()
+        total_fluxes.append(tractor.NanoMaggies(**{band: total_flux}))
         
         if vb: 
             print "Got pixel data in the "+band+" band"
             print "Image size: ",image.data.shape,"pixels"
-            print "Total brighness of image (mags): ",total_mag
+            print "Total flux of image: ",total_flux
 
 
-    return images,centroids,np.array(total_mags),np.array(bands)
+    return images,centroids,total_fluxes,np.array(bands)
 
 # ============================================================================

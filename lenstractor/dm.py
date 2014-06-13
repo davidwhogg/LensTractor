@@ -165,9 +165,6 @@ def Deal(scifiles,varfiles,SURVEY='PS1',vb=False):
       # Set up sky to be varied:
       median = np.median(sci[invvar > 0])
       sky = tractor.ConstantSky(median)
-      delta = 0.1*np.sqrt(1.0/np.sum(invvar))
-      assert delta > 0
-      sky.stepsize = delta
       if vb: print sky
 
       # Get WCS from FITS header:
@@ -327,7 +324,7 @@ def Initial_PSF(FWHM,double=False):
 # ============================================================================
 # Compute suitable mean centroid and magnitudes in each band:
 
-def Turnover(allbands,allmagnitudes,allcentroids,vb=False):
+def Turnover(allbands,allfluxes,allcentroids,vb=False):
 
     # Models need good initial fluxes to avoid wasting time getting these 
     # right. Take a quick look at the data to do this:
@@ -349,8 +346,10 @@ def Turnover(allbands,allmagnitudes,allcentroids,vb=False):
     magnitudes = np.zeros(len(bandnames))
     for i,bandname in enumerate(bandnames):
         index = np.where(allbands == bandname)
-        magnitudes[i] = np.median(allmagnitudes[index])
-    SED = tractor.Mags(order=bandnames, **dict(zip(bandnames,magnitudes)))
+        magnitudes[i] = np.median([allfluxes[i].getFlux(bandname)
+                                   for i in index])
+    SED = tractor.NanoMaggies(order=bandnames,
+                              **dict(zip(bandnames,magnitudes)))
     if vb: print "Mean SED: ",SED
 
     return centroid,SED

@@ -251,7 +251,7 @@ def main():
        datadir = string.join(args.outstem.split('/')[0:-1],'/')
        if len(datadir) == 0: datadir = '.'
        
-       images,centroids,total_mags,bands = lenstractor.getSDSSdata(rcf,roi,datadir,vb=vb)
+       images,centroids,total_flux,bands = lenstractor.getSDSSdata(rcf,roi,datadir,vb=vb)
    
    else:
    
@@ -261,14 +261,18 @@ def main():
        scifiles,varfiles = lenstractor.Riffle(args.inputfiles,vb=vb)
 
        # Read into Tractor Image objects, and see what filters we have:   
-       images,centroids,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
+
+       # DSTN has not fixed the total_flux stuff for lenstractor.Deal
+       assert(False)
+       images,centroids,total_flux,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
    
    assert len(images) > 0
    
    # -------------------------------------------------------------------------
 
    # Estimate object centroid and SED:
-   position,SED = lenstractor.Turnover(bands,total_mags,centroids,vb=vb)
+   position,SED = lenstractor.Turnover(bands,total_flux,centroids,vb=vb)
+   print 'SED:', SED
    
    # Package up:
    dataset = list(images)
