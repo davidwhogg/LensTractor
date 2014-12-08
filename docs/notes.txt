@@ -1634,7 +1634,24 @@ LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem \
 
 # OK, fixed model.py to read init catalog correctly, code runs. Check in.
 
+# Quick check - do the catalog positions match the input init positions?
 
+cols SDSSJ0951+2635_10x10arcsec_Nebula2.cat | \
+  grep pos | awk '{printf "%20s  %.6f\n", $2,$3}'
+# catalog.source0.pos.ra  147.844265
+# catalog.source0.pos.dec  26.587106
+# catalog.source1.pos.ra  147.844059
+# catalog.source1.pos.dec  26.587220
+# catalog.source2.pos.ra  147.844053
+# catalog.source2.pos.dec  26.587224
+
+cat SDSSJ0951+2635_10x10arcsec_init.reg | grep point
+# point(147.84422,26.587121) # point=cross
+# point(147.84433,26.587049) # point=cross
+# point(147.84404,26.587196) # point=cross
+
+# Movement is by about 1e-4, or 0.4" - not very much. So the slowness to
+# optimize is something else. Maybe the starting flux?
 
 # =============================================================================
 # 2014-06-11 (Wednesday) 15:29 PDT
@@ -1643,8 +1660,27 @@ LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem \
 # ISSUE orientation errors in model.spawn_lens()? #47
 # https://github.com/davidwhogg/LensTractor/issues/47
 
+# =============================================================================
+# 2014-12-08 (Monday) 11:57 PST
 
+# Adri visiting, pair coding spawn lens edits to make it work.
+# Test on H1413, making N4 first and then lens:
 
+mkdirf spawntest
+
+python ../LensTractor.py -n 4 -z -v --survey PS1 \
+  --manual ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o H1413+117_10x10arcsec \
+     ../examples/ps1/H1413+117_10x10arcsec_*.fits >& \
+     H1413+117_10x10arcsec_Nebula4_spawntest.log & ; \
+tail -f H1413+117_10x10arcsec_Nebula4_spawntest.log
+
+python ../LensTractor.py -l -z -v --survey PS1 \
+  --manual ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o H1413+117_10x10arcsec \
+     ../examples/ps1/H1413+117_10x10arcsec_*.fits >& \
+     H1413+117_10x10arcsec_Lens_spawntest.log & ; \
+tail -f H1413+117_10x10arcsec_Lens_spawntest.log
 
 
 # =============================================================================

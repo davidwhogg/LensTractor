@@ -107,6 +107,7 @@ def main():
      --optimization-steps-psf     Np   Number of steps per round spent
                                         optimizing PSF catalog [2]
      -o --output             outstem   Stem of output catalog filename       
+     --survey                  name    Name of survey (for io formats)
 
    OUTPUTS
      stdout                       Useful information
@@ -240,6 +241,7 @@ def main():
        roi = data[5]
        assert len(rcf) == 5
    else:
+       survey = args.survey
        source = 'local'
        
    # -------------------------------------------------------------------------

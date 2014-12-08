@@ -105,7 +105,7 @@ class LensGalaxy(galaxy.DevGalaxy):
             # Define a "trivial" coordinate system, centred on the lens, that
             # has 1 arcsec "pixels":
             lenswcs = lenstractor.LensPlaneWCS(self.pos) # Trivial tangent plane wcs, 1" pixels, N up
-            lenspixelpos = (0.0,0.0)                    # in Lens Plane WCS
+            lenspixelpos = (0.0,0.0)                     # ... in Lens Plane WCS
             
             # Unpack the source and convert position into trivial 
             # tangent-plane coordinates:
