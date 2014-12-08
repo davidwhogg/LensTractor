@@ -381,6 +381,7 @@ class Model():
                 # self.deccorr = 1.0
                 self.xs0 = (ra - xd.ra)*self.deccorr*3600.0
                 self.ys0 = (dec - xd.dec)*3600.0
+                self.xs0 *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
                 # First guess at source position is just the image centroid.        
                 xs = centroid
 
@@ -398,6 +399,7 @@ class Model():
                 
                 if self.vb:
                     print "tE (arcsec) = ", tE
+                    print "total magnification = ", mu
                 
                 # Now we adjust the lens mass center:
                 xd = self.solve_for_initial_lens_position(stars,xd,tE,gamma1,gamma2)
@@ -472,6 +474,7 @@ class Model():
             thetai = treg + stradec.distanceFrom(xd)*3600.0
             xi = (stradec.ra-xd.ra)*self.deccorr*3600.0
             yi = (stradec.dec-xd.dec)*3600.0
+            xi *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
             Ax += xi/thetai # Units should be the same above and below
             Ay += yi/thetai # And here too
             sum0 += thetai
@@ -513,6 +516,7 @@ class Model():
             thetai = treg + stradec.distanceFrom(xd)*3600.0
             dxs = (stradec.ra-xd.ra)*self.deccorr*3600.0
             dys = (stradec.dec-xd.dec)*3600.0
+            dxs *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
             self.xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
             self.ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
             muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
@@ -520,8 +524,9 @@ class Model():
             muinv = 1.0/muinv
             mu += 1.0/muinv
         self.xs1, self.ys1 = self.xs1/len(stars), self.ys1/len(stars) # Nb. in arcsec
-        self.xs1, self.ys1 = self.xs1/3600, self.ys1/3600 # Nb. in degrees
-        xs = tractor.RaDecPos(xd.ra + self.xs1/self.deccorr, xd.dec + self.ys1) 
+        ras1, decs1 = -self.xs1/(self.deccorr*3600.0), self.ys1/3600.0 # Nb. in degrees, on sky
+        
+        xs = tractor.RaDecPos(xd.ra + ras1, xd.dec + decs1) 
 
         return xs,tE,gamma1,gamma2,mu
 
@@ -537,23 +542,24 @@ class Model():
         treg = 0.00001 # just not to have zero denominator in blabla/thetai
         for star in stars:
             stradec = star.getPosition()
-            dxs = (stradec.ra-xd.ra)*self.deccorr
-            dys = (stradec.dec-xd.dec)
-            dxs, dys = dxs*3600.0, dys*3600.0
+            dxs = (stradec.ra-xd.ra)*self.deccorr*3600.0 
+            dys = (stradec.dec-xd.dec)*3600.0
+            dxs *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
             thetai = treg + (dxs**2 + dys**2)**0.5
             # thetai = stradec.distanceFrom(xd) # in degrees
-            # thetai = treg+ thetai*3600.0 #in arcseconds
+            # thetai = treg+ thetai*3600.0 # in arcseconds
             d11 = -1.0 +gamma1 +tE*(dys**2)/(thetai**3)
             d12 = gamma2 -tE*dys*dxs/(thetai**3)
             d21 = d12
             d22 = -1.0 -gamma1 +tE*(dxs**2)/(thetai**3)
-            xsi = dxs*(1.0 -tE/thetai -gamma1) -gamma2*dys # in arcseconds
-            ysi = dys*(1.0 -tE/thetai +gamma1) -gamma2*dxs # in arcseconds
-            dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 -(self.xs1*3600.0)*d11 -(self.ys1*3600.0)*d12) # in arcseconds, self.xs1 ans self.ys1 are in degrees
-            dchi2yd += (2./len(stars))*(xsi*d21 +ysi*d22 -(self.xs1*3600.0)*d21 -(self.ys1*3600.0)*d22) # in arcseconds
+            xsi = dxs*(1.0 -tE/thetai -gamma1) -gamma2*dys # in arcseconds. Note gamma sign convention...
+            ysi = dys*(1.0 -tE/thetai +gamma1) -gamma2*dxs # in arcseconds. Note gamma sign convention...
+            dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 - self.xs1*d11 - self.ys1*d12) # in arcseconds, self.xs1 ans self.ys1 are in degrees
+            dchi2yd += (2./len(stars))*(xsi*d21 +ysi*d22 - self.xs1*d21 - self.ys1*d22) # in arcseconds
             # squares += (1./len(stars))*(xsi**2 + ysi**2)
         dispx = dchi2xd/self.deccorr # in arcseconds
         dispy = dchi2yd # in arcseconds
+        dispx *= -1.0 # To make RA increase to the E, in a LH coord system, as in lens.py.
         displamp = (dispx**2 + dispy**2)**0.5 # in arcseconds
         displamp = displamp/tE # pure number
         if self.vb:
