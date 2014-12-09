@@ -2,7 +2,6 @@
 *.pyc
 *.aux
 *.log
-*.png
 *.pdf
 *.cat
 *.log
