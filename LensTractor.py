@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# ============================================================================
 '''
 This file is part of the lenstractor project.
 Copyright 2012 David W. Hogg (NYU) and Phil Marshall (Oxford).
@@ -16,6 +18,7 @@ import logging
 import numpy as np
 import pyfits
 import time
+import string
 
 
 from astrometry.util import util
@@ -104,6 +107,7 @@ def main():
      --optimization-steps-psf     Np   Number of steps per round spent
                                         optimizing PSF catalog [2]
      -o --output             outstem   Stem of output catalog filename       
+     --survey                  name    Name of survey (for io formats)
 
    OUTPUTS
      stdout                       Useful information
@@ -168,7 +172,7 @@ def main():
    # Set available options:
    parser = ArgumentParser()
    # List of files:
-   parser.add_argument('inputfiles', metavar='N', nargs='+')
+   parser.add_argument('inputfiles', metavar='filename', nargs='*') # '*' means there must be 0 or more
    # Verbosity:
    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False, help='Make more verbose')
    # Optimizing only:
@@ -185,26 +189,23 @@ def main():
    parser.add_argument('-o', '--output', dest='outstem', type=str, default='lenstractor.cat', help='Output catalog filename stem')
    # Survey we are working on (affects data read-in):
    parser.add_argument('--survey', dest='survey', type=str, default="PS1", help="Survey (SDSS, PS1 or KIDS)")
+   # Use SDSS sky server to get data:
+   parser.add_argument('--SDSS', dest='rcfstring', type=str, default="None", help="Use SDSS skyserver to return cutouts, supply run,camcol,field,ra,dec,roi")
    # Manual input of model initialization:
    parser.add_argument('--manual', dest='catalog', type=str, default="None", help="Catalog of Nebula model parameters, for initializing positions")
 
+
    # Read in options and arguments - note only sci and wht images are supplied:
    args = parser.parse_args()
-   
       
-   if (len(args.inputfiles) < 1):
+      
+   if (args.rcfstring == 'None' and len(args.inputfiles) < 1):
       # parser.print_help()
       print main.__doc__  # Whoah! What does this do?! Some sort of magic.
       sys.exit(-1)
-   
+      
    vb = args.verbose
    
-   # Manual initialization:
-   if args.catalog != 'None':
-      manual = True
-   else:
-      manual = False
-      
    # Workflow:
    if args.lens:
      # modelnames = ['Nebula2','Lens']
@@ -218,22 +219,56 @@ def main():
    # BIC = dict(zip(modelnames,np.zeros(len(modelnames))))
    BIC = dict()
 
-
    if vb: 
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
       print "                               LensTractor "
       print "    Fitting",modelnames," models to a deck of FITS postcards"
       print "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *"
  
+   # Manual initialization:
+   if args.catalog != 'None':
+      manual = True
+   else:
+      manual = False
+   
+   # SDSS skyserver:
+   if args.rcfstring != 'None': 
+       survey = 'SDSS'
+       source = 'skyserver'
+       data = [float(x) for x in args.rcfstring.split(',')]
+       rcf = data[0:5]
+       rcf[0:3] = [int(x) for x in rcf[0:3]]
+       roi = data[5]
+       assert len(rcf) == 5
+   else:
+       survey = args.survey
+       source = 'local'
+       
    # -------------------------------------------------------------------------
-   # Read in images (using IO functions in dm.py)
+
+   if survey == 'SDSS' and source == 'skyserver':
    
-   # Organise the deck of inputfiles into scifiles and varfiles:
-   scifiles,varfiles = lenstractor.Riffle(args.inputfiles,vb=vb)
+       # Download images from SDSS skyserver (using IO functions in sdss.py)
+       
+       datadir = string.join(args.outstem.split('/')[0:-1],'/')
+       if len(datadir) == 0: datadir = '.'
+       
+       images,centroids,total_mags,bands = lenstractor.getSDSSdata(rcf,roi,datadir,vb=vb)
    
-   # Read into Tractor Image objects, and see what filters we have:   
-   images,centroids,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
+   else:
    
+       # Read in images (using IO functions in dm.py)
+
+       # Organise the deck of inputfiles into scifiles and varfiles:
+       scifiles,varfiles = lenstractor.Riffle(args.inputfiles,vb=vb)
+
+       # Read into Tractor Image objects, and see what filters we have:   
+       images,centroids,total_mags,bands = lenstractor.Deal(scifiles,varfiles,SURVEY=args.survey,vb=vb)
+   
+   assert len(images) > 0
+   
+   # -------------------------------------------------------------------------
+
    # Estimate object centroid and SED:
    position,SED = lenstractor.Turnover(bands,total_mags,centroids,vb=vb)
    

@@ -133,9 +133,9 @@ class Model():
         re = resetre    # in arcsec, probably appropriate for the SQLS examples?
         q = 0.8     # axis ratio
         theta = 0.0 # degrees
-        galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
+        galshape = tractor.galaxy.GalaxyShape(re,q,theta)
         # Package up:
-        nebulousgalaxy = tractor.sdss_galaxy.ExpGalaxy(galpos,galSED,galshape)
+        nebulousgalaxy = tractor.galaxy.ExpGalaxy(galpos,galSED,galshape)
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
@@ -217,7 +217,7 @@ class Model():
         re = resetre  # arcsec
         q = 0.8   # axis ratio
         theta = -phi # Note how mass/light misalignment is enabled.
-        galshape = tractor.sdss_galaxy.GalaxyShape(re,q,theta)
+        galshape = tractor.galaxy.GalaxyShape(re,q,theta)
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
         if self.vb: print lensgalaxy
 
@@ -245,8 +245,12 @@ class Model():
         if self.vb:
             print "Galaxy's brightness = ",md[0]
         
+        # NB this will fail if Nebula does not fit a galaxy well...
+        
+        
         # Now need thetaE (from image positions) and external shear. 
-        # Compute the image system centroid and, from that, the Einstein radius:
+        
+        # First compute the image system centroid, unweighted:
         ra, dec = 0.0, 0.0
         for star in stars: 
             radec = star.getPosition()
@@ -255,52 +259,61 @@ class Model():
         ra, dec = ra/len(stars), dec/len(stars)
         centroid = tractor.RaDecPos(ra,dec)
 
-        # For the new stuff: we need the centroid position *relative to the galaxy*
+        # Now we need the source centroid position *relative to the galaxy*:
         if self.vb:
             print "Solving for source position, shear etc..."
-        deccorr = np.cos(xd.dec*deg2rad)
-#        deccorr = 1.0
-        xs0 = (ra - xd.ra)*deccorr*3600.0
-        ys0 = (dec - xd.dec)*3600.0
+        self.deccorr = np.cos(xd.dec*deg2rad)
+        # self.deccorr = 1.0
+        self.xs0 = (ra - xd.ra)*self.deccorr*3600.0
+        self.ys0 = (dec - xd.dec)*3600.0
         # First guess at source position is just the image centroid.        
         xs = centroid
         if self.vb:
-            print "Zeroth-order source displacement (arcsec) = ",xs0,", ",ys0
+            print "Zeroth-order source displacement (arcsec) = ",self.xs0,", ",self.ys0
 
-        # Rough initial estimate of Einstein radius:
+        # Make a rough initial estimate of Einstein radius:
         tE = 0.0
         for star in stars: 
             tE += radec.distanceFrom(centroid)
         tE = tE*3600.0/len(stars)
 
+        
+        # - - - - - - - - - - - - - - - - - - - - - - - - -
+        
         # Update source position according to Adri's math.
         # Remember to add back in xd ra and dec, and take care of dec!
-        # (xs1, ys1) --> xs = tractor.RaDecPos(xd.ra + xs1/deccorr, xd.dec + ys1)                 
+        # (self.xs1, self.ys1) --> xs = tractor.RaDecPos(xd.ra + self.xs1/self.deccorr, xd.dec + self.ys1)                 
+        
+        # Set some parameters:
         
         ts = xd.distanceFrom(xs)*3600.0 # in arcsec
         magicdist=0.75*tE
         toodist=5*tE
         numb=len(stars)
-        # NrectE-1 = recursions in determining tE, gamma1, gamma2
-        NrectE = 1000
-        Nreccen = 1000
+        
         # PJM: Better would be to recurse until the system has converged. 
         #      If it doesn't converge, there's a problem with the code that
         #      has to be fixed - so the code should *fail* in this 
         #      eventuality.
+        
         if self.vb:
             print "Number of images = ", numb
             print "Offset in Einstein radii = ",ts/tE
             print "Estimated Einstein Radius (arcsec) = ",tE
         
-        if numb==2: # spawn double
+        # Do some basic checks to avoid obvious problems:
+        
+        if numb==2: 
+            # The system is a double:
             if ts >= toodist:
                 print "Not a lens, the galaxy is way too far from the quasars!"
                 assert False
+                
             elif ts >= magicdist:
                 if self.vb:
-                    print "Galaxy may be fictitious, repositioning."
-                 #-- reposition galaxy, reset axis ratio and p.a.
+                    print "Galaxy may just be fitting noise, repositioning."
+                
+                # Reposition galaxy, reset axis ratio and p.a.:
                 galpx, galpy, weight = 0.0, 0.0, 0.0
                 pippo0 = stars[0].getBrightness()[0]
                 for star in stars:
@@ -310,94 +323,47 @@ class Model():
                     weight += 1./pippo1
                 galpx, galpy = galpx/weight, galpy/weight
                 xd.ra, xd.dec = galpx, galpy
-                # LT tries to reabsorb defects in the Nebula fit by playing around with very elongated or localised galaxy component
+                
+                # LT tries to reabsorb defects in the Nebula fit by playing
+                # around with very elongated or localised galaxy components.
+                # Reset these to ensure lens galaxy is roundish.
                 galshape.ab = 0.8  # MAGIC reset axis ratio to be reasonably round...
                 galshape.phi = 0.0 # MAGIC reset orientation to avoid mimicking the QSO residuals
-                galshape.re = tE # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation        
-                #-- set zero shear, phi = p.a.
+                galshape.re = tE   # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation        
+                
+                # Set zero shear, phi = p.a. of lens galaxy:
                 gamma = 0.0
                 gamma1, gamma2 = 0.0, 0.0
                 phi = galshape.phi
-                #-- leave xs as it is
-                mu = 2.0*tE/ts # SIS total magnification
-            else:
-                #-- compute Ax etc
-                Ax = Ay = sum0 = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
-                #-- optimize for shear
-                treg = 0.00001 # just not to have zero denominator in blabla/thetai
-                for star in stars:
-                    # deccorr = 1.0
-                    stradec = star.getPosition()
-                    thetai = treg + stradec.distanceFrom(xd)*3600.0
-                    xi = (stradec.ra-xd.ra)*deccorr*3600.0
-                    yi = (stradec.dec-xd.dec)*3600.0
-                    Ax += xi/thetai # Units should be the same above and below
-                    Ay += yi/thetai # And here too
-                    sum0 += thetai
-                    sum1 += (xi**2 - yi**2)/thetai
-                    sum2 += thetai**2
-                    sum3 += yi**2 - xi**2
-                    sum4 += xi*yi/thetai
-                    sum5 += xi*yi
-                #-- params of tE as a function of gamma
-                A11 = len(stars) -(Ax**2)/len(stars) -(Ay**2)/len(stars)
-                A12 = sum1 - Ax*xs0 +Ay*ys0
-                A13 = 2.0*sum4 -Ax*ys0 - Ay*xs0
-                B1 = sum0 - Ax*xs0 - Ay*ys0
-                A21 = (ys0*Ay-xs0*Ax+sum1)/len(stars) # xs0, ys0 are in arcseconds
-                A22 = sum2/len(stars) - xs0**2 - ys0**2
-                B2 = ys0**2 - xs0**2 -sum3/len(stars)
-                gamma1 = (B2-A21*tE)/A22
-                A31 = -(Ax*ys0+Ay*xs0-2*sum4)/len(stars)
-                A33 = A22
-                B3 = +2.0*sum5/len(stars) -2.0*xs0*ys0/len(stars)
-                gamma2 = (B3 - A31*tE)/A33
-                #-- solve recursively in tE, gamma1, gamma2
-                irec=1
-                while irec<NrectE:
-                    tE = (B1 -gamma1*A12 -A13*gamma2)/A11
-                    gamma1 = (B2 -A21*tE)/A22
-                    gamma2 = (B3 -A31*tE)/A33
-                    irec += 1    
-                #-- compute gamma, phi, xs1, ys1, update xs
-                shreg = 0.0001
-                gamma = (gamma1**2+gamma2**2)**0.5
-                # phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-                phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-                # PJM: I suspect a problem with angle definitions. 
-                #      I tried using arctan2 instaed of arctan, this often helps - but its not this.
-                #      You need to check the solve that is going on here carefully for errors.
-                #      Modularising will help you do this: there's a lot of repeated code,
-                #      which makes bugs twice as common, and half as easy to find and fix...
-                
-                xs1 = ys1 = 0.0
-                mu = 0.0 # for the SIS+XS total magnification
-                mureg = 0.001 # to cope with possibly infinite magnification (although vey unlikely)
-                for star in stars:
-                    # deccorr = 1.0
-                    stradec = star.getPosition()
-                    thetai = treg + stradec.distanceFrom(xd)*3600.0
-                    dxs = (stradec.ra-xd.ra)*deccorr*3600.0
-                    dys = (stradec.dec-xd.dec)*3600.0
-                    xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
-                    ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
-                    muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
-                    muinv = np.abs(muinv)+mureg
-                    muinv = 1.0/muinv
-                    mu += 1.0/muinv
-                xs1, ys1 = xs1/len(stars), ys1/len(stars) # Nb. in arcsec
-                xs1, ys1 = xs1/3600, ys1/3600 # Nb. in degrees
-                xs = tractor.RaDecPos(xd.ra + xs1/deccorr, xd.dec + ys1) 
+                # Source position has already been set (xs)
+                # Compute SIS total magnification for initial flux estimates
+                mu = 2.0*tE/ts 
 
-        elif numb==4: # spawn quad, practically same as above
-            if ts >= magicdist:
+            else:
+                # Lens galaxy looks sensible, and has a well defined position - 
+                # so the shear cannot be zero. We have to solve for both the
+                # shear and the Einstein radius, and in the process we get the 
+                # refined source position.
+                
+                xs,tE,gamma1,gamma2,mu = self.solve_for_initial_lens_mass_and_source_position(stars,xd,tE)
+
+
+        elif numb==4: 
+            # The system is a quad - so we can solve for xd as well.
+            
+            if ts >= toodist:
+                print "Not a lens, the galaxy is way too far from the quasars!"
+                assert False
+                
+            elif ts >= magicdist:
                 if self.vb:
-                    print "Galaxy may be fictitious, repositioning."
-                #-- reposition galaxy using magnitudes in the first card, reset axis ratio and p.a.
+                    print "Galaxy may just be fitting noise, repositioning."
+                
+                # Reposition galaxy using magnitudes in the first card, reset axis ratio and p.a.
                 galpx, galpy, weight = 0.0, 0.0, 0.0
                 pippo0 = stars[0].getBrightness()[0]
                 for star in stars:
-#                    pippo1 = 10.0**(-0.4*star.getBrightness()[0]+0.4*pippo0)
+                    # pippo1 = 10.0**(-0.4*star.getBrightness()[0]+0.4*pippo0)
                     pippo1 = 1.
                     galpx += star.getPosition().ra/pippo1
                     galpy += star.getPosition().dec/pippo1
@@ -406,135 +372,54 @@ class Model():
                 xd.ra, xd.dec = galpx, galpy
                 galshape.ab = 0.8 # magic reset to axis ratio
                 galshape.phi = 0.0   
-#                galshape.re = resetre
-                #-- We need the centroid position *relative to the galaxy*, so we need to re-do this when resetting
+                # galshape.re = resetre
+                
+                # We need the centroid position *relative to the galaxy*, so we need to re-do this when resetting
                 if self.vb:
                     print "Solving for source position, shear etc..."
-                deccorr = np.cos(xd.dec*deg2rad)
-                # deccorr = 1.0
-                xs0 = (ra - xd.ra)*deccorr*3600.0
-                ys0 = (dec - xd.dec)*3600.0
+                self.deccorr = np.cos(xd.dec*deg2rad)
+                # self.deccorr = 1.0
+                self.xs0 = (ra - xd.ra)*self.deccorr*3600.0
+                self.ys0 = (dec - xd.dec)*3600.0
+                self.xs0 *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
                 # First guess at source position is just the image centroid.        
                 xs = centroid
-#                     
-            #-- else: do nothing; then, recursively optimize
+
+            
+            # Now, recursively optimize the centre of mass of the lens:
+            
             ireccen=1
+            Nreccen = 1000 # No. of recursion steps for optimizing lens pos
             while ireccen<Nreccen:
                 if self.vb:
                     print "Galaxy position = ", xd.ra,", ", xd.dec                
-                deccorr = np.cos(xd.dec*deg2rad)
-                #-- now compute Ax etc
-                tE = Ax = Ay = sum0 = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
-                #-- optimize for shear
-                treg = 0.001 # just not to have zero denominator in blabla/thetai
-                for star in stars:
-                    stradec = star.getPosition()
-                    xi = (stradec.ra-xd.ra)*deccorr*3600.0
-                    yi = (stradec.dec-xd.dec)*3600.0
-#                    thetai = treg + stradec.distanceFrom(xd)*3600.0
-                    thetai = treg+ (xi**2 +yi**2)**0.5
-                    Ax += xi/thetai # units should be the same above and below
-                    Ay += yi/thetai # same here
-                    sum0 += thetai
-                    sum1 += (xi**2 - yi**2)/thetai
-                    sum2 += thetai**2
-                    sum3 += yi**2 - xi**2
-                    sum4 += xi*yi/thetai
-                    sum5 += xi*yi
-                    tE += thetai
-#
-                tE = tE/len(stars)
-                A11 = len(stars) -(Ax**2)/len(stars) -(Ay**2)/len(stars)
-                A12 = sum1 - Ax*xs0 +Ay*ys0
-                A13 = 2.0*sum4 -Ax*ys0 -Ay*xs0
-                B1 = sum0 -Ax*xs0 -Ay*ys0
-                A21 = (ys0*Ay-xs0*Ax+sum1)/len(stars) # xs0, ys0 are in arcseconds
-                A22 = sum2/len(stars) - xs0**2 - ys0**2
-                B2 = ys0**2 - xs0**2 -sum3/len(stars)
-#                gamma1 = (B2-A21*tE)/A22
-                A31 = -(Ax*ys0+Ay*xs0-2.0*sum4)/len(stars)
-                A33 = A22
-                B3 = +2.0*sum5/len(stars) -2.0*xs0*ys0/len(stars)
-#                gamma2 = (B3 - A31*tE)/A33
-                #-- solve recursively in tE, gamma1, gamma2
-                irec=1
-                while irec<NrectE:
-                    gamma1 = (B2 -A21*tE)/A22
-                    gamma2 = (B3 -A31*tE)/A33
-                    tE = (B1 -gamma1*A12 -A13*gamma2)/A11
-                    irec += 1    
-                #-- compute gamma, phi, update source
-                shreg = 0.0001
-                gamma = (gamma1**2+gamma2**2)**0.5
-                phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-                # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-                xs1 = ys1 = 0.0
-                mu = 0.0 # for the SIS+XS total magnification
-                mureg = 0.001 #see above
-                for star in stars:
-                    # deccorr = 1
-                    stradec = star.getPosition()
-                    dxs = (stradec.ra-xd.ra)*deccorr*3600.0
-                    dys = (stradec.dec-xd.dec)*3600.0
-                    thetai = treg + (dxs**2 +dys**2)**0.5
-#                    thetai = treg + stradec.distanceFrom(xd)*3600.0
-                    xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
-                    ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation                    
-                    muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
-                    muinv = np.abs(muinv)+mureg
-                    muinv = 1.0/muinv
-                    mu += 1.0/muinv
-                xs1, ys1 = xs1/len(stars), ys1/len(stars)
-                xs1, ys1 = xs1/3600, ys1/3600
-                xs = tractor.RaDecPos(xd.ra + xs1/deccorr,xd.dec + ys1)
+                self.deccorr = np.cos(xd.dec*deg2rad)
+                
+                xs,tE,gamma1,gamma2,mu = self.solve_for_initial_lens_mass_and_source_position(stars,xd,tE)
+                
                 if self.vb:
                     print "tE (arcsec) = ", tE
-                #-- adjust center
-                #-- learnrate = learning rate
-                learnrate = 0.001
-                d11 = d12 = 0.0
-                d21 = d22 = 0.0
-                dchi2xd = dchi2yd = 0.0
-                squares = 0.0 # used for source-plane chi2, i.e. variance in pred.source positions
-                for star in stars:
-                    stradec = star.getPosition()
-                    dxs = (stradec.ra-xd.ra)*deccorr
-                    dys = (stradec.dec-xd.dec)
-                    dxs, dys = dxs*3600.0, dys*3600.0
-                    thetai = treg + (dxs**2 + dys**2)**0.5
-#                    thetai = stradec.distanceFrom(xd) # in degrees
-#                    thetai = treg+ thetai*3600.0 #in arcseconds
-                    d11 = -1.0 +gamma1 +tE*(dys**2)/(thetai**3)
-                    d12 = gamma2 -tE*dys*dxs/(thetai**3)
-                    d21 = d12
-                    d22 = -1.0 -gamma1 +tE*(dxs**2)/(thetai**3)
-                    xsi = dxs*(1.0 -tE/thetai -gamma1) -gamma2*dys # in arcseconds
-                    ysi = dys*(1.0 -tE/thetai +gamma1) -gamma2*dxs # in arcseconds
-                    dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 -(xs1*3600.0)*d11 -(ys1*3600.0)*d12) # in arcseconds, xs1 ans ys1 are in degrees
-                    dchi2yd += (2./len(stars))*(xsi*d21 +ysi*d22 -(xs1*3600.0)*d21 -(ys1*3600.0)*d22) # in arcseconds
-                    # squares += (1./len(stars))*(xsi**2 + ysi**2)
-                dispx = dchi2xd/deccorr #in arcseconds
-                dispy = dchi2yd # in arcseconds
-                displamp = (dispx**2 + dispy**2)**0.5 #in arcseconds
-                displamp = displamp/tE # pure number
-                if self.vb:
-                    # print "source-plane chi2  = ",squares - (xs1**2 +ys1**2)
-                    print "tE (arcsec) = ", tE
-                    print "displacement/tE = ", displamp
-                    print "deflector's adjustments (units of tE) = ",dispx*learnrate/((learnrate+displamp)*tE),dispy*learnrate/((learnrate+displamp)*tE)
-                xd.ra, xd.dec = xd.ra -(dispx/3600.0)*learnrate/(learnrate+displamp), xd.dec -(dispy/3600.0)*learnrate/(learnrate+displamp) # in degrees
+                    print "total magnification = ", mu
+                
+                # Now we adjust the lens mass center:
+                xd = self.solve_for_initial_lens_position(stars,xd,tE,gamma1,gamma2)
 
                 ireccen += 1
 
-            shreg = 0.0001
-            gamma = (gamma1**2+gamma2**2)**0.5
-            # instantiate ExternalShear object
-            phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-            # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-            # PJM: again, tried arctan2. This code needs checking carefully against analytic results. 
-            # mu = 2.0*len(stars)*tE/ts
+        # Now we have everything we need to instantiate our Lens and Source models.
 
-        # Instantiate ExternalShear object
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+        # Instantiate ExternalShear object:
+       
+        gamma = (gamma1**2+gamma2**2)**0.5
+        shreg = 0.0001
+        phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+        # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+        # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
+        # PJM: tried arctan2. This code needs checking carefully against 
+        #      analytic results. 
         phi = np.rad2deg(phi)
         xshear = lenstractor.ExternalShear(gamma,phi)
         # PJM: this is also potentially a source of error - a mismatch between your
@@ -548,7 +433,7 @@ class Model():
         # Start with just one point source's flux:
         pointsource = tractor.PointSource(xs,ms)
         # The Tractor likes starting with smaller fluxes...
-        mu = 10.0*mu
+        # mu = 10.0*mu
         # Add the other images' flux:
         for star in stars[1:]: 
             pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
@@ -576,6 +461,115 @@ class Model():
         return
         
 # ----------------------------------------------------------------------------
+
+    def solve_for_initial_lens_mass_and_source_position(self,stars,xd,tE):
+        
+        #-- compute Ax etc
+        Ax = Ay = sum0 = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
+        #-- optimize for shear
+        treg = 0.00001 # just not to have zero denominator in blabla/thetai
+        for star in stars:
+            # self.deccorr = 1.0
+            stradec = star.getPosition()
+            thetai = treg + stradec.distanceFrom(xd)*3600.0
+            xi = (stradec.ra-xd.ra)*self.deccorr*3600.0
+            yi = (stradec.dec-xd.dec)*3600.0
+            xi *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
+            Ax += xi/thetai # Units should be the same above and below
+            Ay += yi/thetai # And here too
+            sum0 += thetai
+            sum1 += (xi**2 - yi**2)/thetai
+            sum2 += thetai**2
+            sum3 += yi**2 - xi**2
+            sum4 += xi*yi/thetai
+            sum5 += xi*yi
+        #-- params of tE as a function of gamma
+        A11 = len(stars) -(Ax**2)/len(stars) -(Ay**2)/len(stars)
+        A12 = sum1 - Ax*self.xs0 +Ay*self.ys0
+        A13 = 2.0*sum4 -Ax*self.ys0 - Ay*self.xs0
+        B1 = sum0 - Ax*self.xs0 - Ay*self.ys0
+        A21 = (self.ys0*Ay-self.xs0*Ax+sum1)/len(stars) # self.xs0, self.ys0 are in arcseconds
+        A22 = sum2/len(stars) - self.xs0**2 - self.ys0**2
+        B2 = self.ys0**2 - self.xs0**2 -sum3/len(stars)
+        gamma1 = (B2-A21*tE)/A22
+        A31 = -(Ax*self.ys0+Ay*self.xs0-2*sum4)/len(stars)
+        A33 = A22
+        B3 = +2.0*sum5/len(stars) -2.0*self.xs0*self.ys0/len(stars)
+        gamma2 = (B3 - A31*tE)/A33
+        #-- solve recursively in tE, gamma1, gamma2
+        irec = 1
+        NrectE = 1000  # No. of recursion steps for optimizing thetaE
+        while irec<NrectE:
+            tE = (B1 -gamma1*A12 -A13*gamma2)/A11
+            gamma1 = (B2 -A21*tE)/A22
+            gamma2 = (B3 -A31*tE)/A33
+            irec += 1    
+        
+        # Now compute the source position, and magnification:
+        
+        self.xs1 = self.ys1 = 0.0
+        mu = 0.0 # for the SIS+XS total magnification
+        muinvreg = 0.001 # to cope with possibly infinite magnification (although vey unlikely)
+        for star in stars:
+            # self.deccorr = 1.0
+            stradec = star.getPosition()
+            thetai = treg + stradec.distanceFrom(xd)*3600.0
+            dxs = (stradec.ra-xd.ra)*self.deccorr*3600.0
+            dys = (stradec.dec-xd.dec)*3600.0
+            dxs *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
+            self.xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
+            self.ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
+            muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
+            mu += 1.0/(np.abs(muinv) + muinvreg)
+        self.xs1, self.ys1 = self.xs1/len(stars), self.ys1/len(stars) # Nb. in arcsec
+        ras1, decs1 = -self.xs1/(self.deccorr*3600.0), self.ys1/3600.0 # Nb. in degrees, on sky
+        
+        xs = tractor.RaDecPos(xd.ra + ras1, xd.dec + decs1) 
+
+        return xs,tE,gamma1,gamma2,mu
+
+# ----------------------------------------------------------------------------
+
+    def solve_for_initial_lens_position(self,stars,xd,tE,gamma1,gamma2):
+        
+        learnrate = 0.001
+        d11 = d12 = 0.0
+        d21 = d22 = 0.0
+        dchi2xd = dchi2yd = 0.0
+        squares = 0.0 # used for source-plane chi2, i.e. variance in pred.source positions
+        treg = 0.00001 # just not to have zero denominator in blabla/thetai
+        for star in stars:
+            stradec = star.getPosition()
+            dxs = (stradec.ra-xd.ra)*self.deccorr*3600.0 
+            dys = (stradec.dec-xd.dec)*3600.0
+            dxs *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
+            thetai = treg + (dxs**2 + dys**2)**0.5
+            # thetai = stradec.distanceFrom(xd) # in degrees
+            # thetai = treg+ thetai*3600.0 # in arcseconds
+            d11 = -1.0 +gamma1 +tE*(dys**2)/(thetai**3)
+            d12 = gamma2 -tE*dys*dxs/(thetai**3)
+            d21 = d12
+            d22 = -1.0 -gamma1 +tE*(dxs**2)/(thetai**3)
+            xsi = dxs*(1.0 -tE/thetai -gamma1) -gamma2*dys # in arcseconds. Note gamma sign convention...
+            ysi = dys*(1.0 -tE/thetai +gamma1) -gamma2*dxs # in arcseconds. Note gamma sign convention...
+            dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 - self.xs1*d11 - self.ys1*d12) # in arcseconds, self.xs1 ans self.ys1 are in degrees
+            dchi2yd += (2./len(stars))*(xsi*d21 +ysi*d22 - self.xs1*d21 - self.ys1*d22) # in arcseconds
+            # squares += (1./len(stars))*(xsi**2 + ysi**2)
+        dispx = dchi2xd/self.deccorr # in arcseconds
+        dispy = dchi2yd # in arcseconds
+        dispx *= -1.0 # To make RA increase to the E, in a LH coord system, as in lens.py.
+        displamp = (dispx**2 + dispy**2)**0.5 # in arcseconds
+        displamp = displamp/tE # pure number
+        if self.vb:
+            # print "source-plane chi2  = ",squares - (self.xs1**2 +self.ys1**2)
+            print "tE (arcsec) = ", tE
+            print "displacement/tE = ", displamp
+            print "deflector's adjustments (units of tE) = ",dispx*learnrate/((learnrate+displamp)*tE),dispy*learnrate/((learnrate+displamp)*tE)
+        xd.ra, xd.dec = xd.ra -(dispx/3600.0)*learnrate/(learnrate+displamp), xd.dec -(dispy/3600.0)*learnrate/(learnrate+displamp) # in degrees
+
+        return xd
+
+# ----------------------------------------------------------------------------
     
     def get_positions_from(self,catalog,SED):
     
@@ -587,20 +581,48 @@ class Model():
         # Need to change that for other surveys!
         x = np.loadtxt(catalog)
         
-        if len(x) == 23:
-            Npos = 4
-            self.K = Npos
-#        elif len(x) == 15: # PS1 case (two bands)
-        elif len(x) == 21: # SQLS case (four bands)
-            Npos = 2
-            self.K = Npos
-        else:
-            print "ERROR: unrecognised Nebula model in catalog, with ",len(x)," parameters"
+        # Init catalogs are always for Nebulae models.
+        # Parameters are something like:
+        #
+        #  1        catalog.source0.pos.ra   1.478442646221303107e+02
+        #  2       catalog.source0.pos.dec   2.658710567091902277e+01
+        #  3  catalog.source0.brightness.g   1.838935729060930768e+01
+        #  4  catalog.source0.brightness.i   1.781994514057002377e+01
+        #  5  catalog.source0.brightness.r   1.791359861295001821e+01
+        #  6  catalog.source0.brightness.u   1.861519625801571465e+01
+        #  7  catalog.source0.brightness.z   1.790694668268868384e+01
+        #  8      catalog.source0.shape.re   2.356612496948709001e-01
+        #  9      catalog.source0.shape.ab   2.286815004837887244e+00
+        # 10     catalog.source0.shape.phi  -4.142924582249651877e+01
+        # 11        catalog.source1.pos.ra   1.478440593629958073e+02
+        # 12       catalog.source1.pos.dec   2.658722018688290234e+01
+        # 13  catalog.source1.brightness.g   1.889259658866843949e+01
+        # 14  catalog.source1.brightness.i   1.835678754819763014e+01
+        # 15  catalog.source1.brightness.r   1.844249717329058669e+01
+        # 16  catalog.source1.brightness.u   1.896585704168741060e+01
+        # 17  catalog.source1.brightness.z   1.838253660524710398e+01
+        # 18        catalog.source2.pos.ra   1.478440533891872235e+02
+        # 19       catalog.source2.pos.dec   2.658722428423748241e+01
+        # 20  catalog.source2.brightness.g   1.885674019434759785e+01
+        # 21  catalog.source2.brightness.i   1.835242649962165373e+01
+        # 22  catalog.source2.brightness.r   1.844604212419161726e+01
+        # 23  catalog.source2.brightness.u   1.893952465584669653e+01
+        # 24  catalog.source2.brightness.z   1.829995958971434789e+01        
+        
+        # ie Npars = (5 + Nbands) + K*(2 + Nbands)
+        # where K is the no. of point sources in the Nebula.
+
+        numerator = (len(x) - (5 + Nbands))
+        denominator = (2 + Nbands)        
+        assert numerator%denominator == 0
+        Npos = numerator/denominator
+        if (Npos < 1 or Npos > 4):
+            print "ERROR: unrecognised Nebula model in catalog. K = ",Npos
             assert False
         
-        # Catalog must match this model!
-        assert Npos == self.K #overridden by self.K initialisation above
-        
+        # Set up Nebula model:
+        self.K = Npos
+                
         # Create position objects:
         j = 0
         positions.append(tractor.RaDecPos(x[j],x[j+1]))
@@ -608,6 +630,7 @@ class Model():
         for i in range(Npos):
             j += 2 + Nbands
             positions.append(tractor.RaDecPos(x[j],x[j+1]))
+        assert len(positions) == (self.K+1)
 
         return positions
         

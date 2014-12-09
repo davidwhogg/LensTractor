@@ -19,6 +19,7 @@ import os,glob,string
 
 from astrometry.util import util
 import tractor
+from tractor import sdss as st
 import lenstractor
 
 vb = True
@@ -189,3 +190,71 @@ def SDSS_imshow_settings(image, chi):
  
     return (ima, chia, psfa)
 
+# ============================================================================
+# Get SDSS data, dstndstn style!
+
+def getSDSSdata(rcf,roi,datadir,vb=False):
+    '''
+    INPUTS
+        rcf          A list of number, specifying the SDSS run, camcol and field ids, ra and dec
+        roi          Width of region of interest (in arcsec)
+        datadir      Name of directory where fits images will be written to (for posterity)
+        vb           Verbose operation?
+
+    OUTPUTS
+        images       A list of tractor image objects, one per image
+        centroids    List of flux centroids, one per image
+        total_mags   List of total magnitudes, one per image
+        bands        List of filter names, one per image
+    '''
+    
+    run,camcol,field,ra,dec = rcf[0],rcf[1],rcf[2],rcf[3],rcf[4]
+    roipix = int(roi/0.396)
+    geometry = (ra, dec, 0.5*roipix)
+    SDSSbands = ['u','g','r','i','z']
+    bands = []
+    images = []
+    centroids = []
+    total_mags = []
+    
+    if vb:
+        print "Querying SDSS skyserver for data at ra,dec = ",ra,dec
+        print "  in run, camcol, field = ",[run,camcol,field]
+        print "Looking to make cutouts that are ",roi," arcsec (",roipix," pixels) across"
+    
+    # Ideally we would have first grabbed SDSS run, camcol and field id:
+    #   rcf = radec_to_sdss_rcf(ra,dec,radius=math.hypot(fieldradius,13./2.),tablefn="dr9fields.fits")
+    # but, we do not have this table. So need an rcf passed in as an argument.
+
+    for band in SDSSbands:
+    
+        if vb:
+            print " "
+            print "--------"+band+"-band--------"
+        
+        # Get SDSS image:
+        image,info = st.get_tractor_image_dr9(run, camcol, field, band, roiradecsize=geometry)
+
+        bands.append(band)
+        images.append(image)
+
+        # Compute flux centroid for this image (dummy for now):
+        centroid = tractor.RaDecPos(ra,dec)
+        centroids.append(centroid)
+
+        # Compute total magnitude for this image:
+        background = np.median(image.data)
+        diffimage = image.data - background
+        total_flux = np.sum(diffimage)
+        total_mag = image.photocal.countsToMag(total_flux)
+        total_mags.append(total_mag)
+        
+        if vb: 
+            print "Got pixel data in the "+band+" band"
+            print "Image size: ",image.data.shape,"pixels"
+            print "Total brighness of image (mags): ",total_mag
+
+
+    return images,centroids,np.array(total_mags),np.array(bands)
+
+# ============================================================================

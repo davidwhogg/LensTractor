@@ -21,7 +21,7 @@ import numpy as np
 from astrometry.util import util
 
 import tractor
-from tractor import sdss_galaxy
+from tractor import galaxy
 
 import lenstractor
 
@@ -65,7 +65,7 @@ class ExternalShear(tractor.ParamList):
 #  - deV galaxy
 #  - SIS + shear mass distribution to act as a gravitational lens
 
-class LensGalaxy(sdss_galaxy.DevGalaxy):
+class LensGalaxy(galaxy.DevGalaxy):
       '''
       A LensGalaxy has mass, and emits light. Initialise with a position,
       brightness and shape for the Galaxy (which is assumed to have a De 
@@ -105,7 +105,7 @@ class LensGalaxy(sdss_galaxy.DevGalaxy):
             # Define a "trivial" coordinate system, centred on the lens, that
             # has 1 arcsec "pixels":
             lenswcs = lenstractor.LensPlaneWCS(self.pos) # Trivial tangent plane wcs, 1" pixels, N up
-            lenspixelpos = (0.0,0.0)                    # in Lens Plane WCS
+            lenspixelpos = (0.0,0.0)                     # ... in Lens Plane WCS
             
             # Unpack the source and convert position into trivial 
             # tangent-plane coordinates:
