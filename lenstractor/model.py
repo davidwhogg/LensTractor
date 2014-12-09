@@ -672,7 +672,19 @@ class Model():
 # ----------------------------------------------------------------------------
     
     def plot_Lens(self,wcs,band):
-    
+       
+        # Plot lens galaxy as orange circle:
+        # lensgalaxy = self.srcs[0]
+        # source = self.srcs[1:]
+        
+        # Get image positions:
+        # FUNCTIONCALL
+        
+        # Plot point images as cyan circles:
+        # for ptimg in ptimgs: 
+   
+   
+   
         return
     
 # ============================================================================
