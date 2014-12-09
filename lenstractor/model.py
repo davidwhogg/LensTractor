@@ -433,7 +433,7 @@ class Model():
         # Start with just one point source's flux:
         pointsource = tractor.PointSource(xs,ms)
         # The Tractor likes starting with smaller fluxes...
-        mu = 10.0*mu
+        # mu = 10.0*mu
         # Add the other images' flux:
         for star in stars[1:]: 
             pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
@@ -509,7 +509,7 @@ class Model():
         
         self.xs1 = self.ys1 = 0.0
         mu = 0.0 # for the SIS+XS total magnification
-        mureg = 0.001 # to cope with possibly infinite magnification (although vey unlikely)
+        muinvreg = 0.001 # to cope with possibly infinite magnification (although vey unlikely)
         for star in stars:
             # self.deccorr = 1.0
             stradec = star.getPosition()
@@ -520,9 +520,7 @@ class Model():
             self.xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
             self.ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
             muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
-            muinv = np.abs(muinv)+mureg
-            muinv = 1.0/muinv
-            mu += 1.0/muinv
+            mu += 1.0/(np.abs(muinv) + muinvreg)
         self.xs1, self.ys1 = self.xs1/len(stars), self.ys1/len(stars) # Nb. in arcsec
         ras1, decs1 = -self.xs1/(self.deccorr*3600.0), self.ys1/3600.0 # Nb. in degrees, on sky
         
