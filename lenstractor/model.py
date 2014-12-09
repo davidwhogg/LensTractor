@@ -491,18 +491,18 @@ class Model():
         A21 = (self.ys0*Ay-self.xs0*Ax+sum1)/len(stars) # self.xs0, self.ys0 are in arcseconds
         A22 = sum2/len(stars) - self.xs0**2 - self.ys0**2
         B2 = self.ys0**2 - self.xs0**2 -sum3/len(stars)
-        gamma1 = (B2-A21*tE)/A22
+        gamma1 = -(B2-A21*tE)/A22
         A31 = -(Ax*self.ys0+Ay*self.xs0-2*sum4)/len(stars)
         A33 = A22
         B3 = +2.0*sum5/len(stars) -2.0*self.xs0*self.ys0/len(stars)
-        gamma2 = (B3 - A31*tE)/A33
+        gamma2 = -(B3 - A31*tE)/A33
         #-- solve recursively in tE, gamma1, gamma2
         irec = 1
         NrectE = 1000  # No. of recursion steps for optimizing thetaE
         while irec<NrectE:
-            tE = (B1 -gamma1*A12 -A13*gamma2)/A11
-            gamma1 = (B2 -A21*tE)/A22
-            gamma2 = (B3 -A31*tE)/A33
+            tE = (B1 + gamma1*A12 + A13*gamma2)/A11
+            gamma1 = -(B2 - A21*tE)/A22
+            gamma2 = -(B3 - A31*tE)/A33
             irec += 1    
         
         # Now compute the source position, and magnification:
@@ -517,9 +517,9 @@ class Model():
             dxs = (stradec.ra-xd.ra)*self.deccorr*3600.0
             dys = (stradec.dec-xd.dec)*3600.0
             dxs *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
-            self.xs1 += dxs*(1.0-tE/thetai-gamma1) - gamma2*dys # lens equation
-            self.ys1 += dys*(1.0-tE/thetai+gamma1) - gamma2*dxs # lens equation
-            muinv = 1.0 -gamma1**2 -gamma2**2 +(tE/thetai)*(-1.0 +gamma1*(dxs**2 +dys**2)/thetai +2.0*gamma2*dxs*dys/thetai**2)
+            self.xs1 += dxs*(1.0 - tE/thetai + gamma1) + gamma2*dys # lens equation
+            self.ys1 += dys*(1.0 - tE/thetai - gamma1) + gamma2*dxs # lens equation
+            muinv = 1.0 - gamma1**2 - gamma2**2 +(tE/thetai)*(-1.0 - gamma1*(dxs**2+dys**2)/thetai - 2.0*gamma2*dxs*dys/thetai**2)
             mu += 1.0/(np.abs(muinv) + muinvreg)
         self.xs1, self.ys1 = self.xs1/len(stars), self.ys1/len(stars) # Nb. in arcsec
         ras1, decs1 = -self.xs1/(self.deccorr*3600.0), self.ys1/3600.0 # Nb. in degrees, on sky
@@ -546,12 +546,12 @@ class Model():
             thetai = treg + (dxs**2 + dys**2)**0.5
             # thetai = stradec.distanceFrom(xd) # in degrees
             # thetai = treg+ thetai*3600.0 # in arcseconds
-            d11 = -1.0 +gamma1 +tE*(dys**2)/(thetai**3)
-            d12 = gamma2 -tE*dys*dxs/(thetai**3)
+            d11 = -1.0 - gamma1 + tE*(dys**2)/(thetai**3)
+            d12 = -gamma2 - tE*dys*dxs/(thetai**3)
             d21 = d12
-            d22 = -1.0 -gamma1 +tE*(dxs**2)/(thetai**3)
-            xsi = dxs*(1.0 -tE/thetai -gamma1) -gamma2*dys # in arcseconds. Note gamma sign convention...
-            ysi = dys*(1.0 -tE/thetai +gamma1) -gamma2*dxs # in arcseconds. Note gamma sign convention...
+            d22 = -1.0 + gamma1 + tE*(dxs**2)/(thetai**3)
+            xsi = dxs*(1.0 -tE/thetai + gamma1) + gamma2*dys # in arcseconds. Note gamma sign convention...
+            ysi = dys*(1.0 -tE/thetai - gamma1) + gamma2*dxs # in arcseconds. Note gamma sign convention...
             dchi2xd += (2./len(stars))*(xsi*d11 +ysi*d12 - self.xs1*d11 - self.ys1*d12) # in arcseconds, self.xs1 ans self.ys1 are in degrees
             dchi2yd += (2./len(stars))*(xsi*d21 +ysi*d22 - self.xs1*d21 - self.ys1*d22) # in arcseconds
             # squares += (1./len(stars))*(xsi**2 + ysi**2)
