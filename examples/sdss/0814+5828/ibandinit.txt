@@ -1,0 +1,6 @@
+# Dummy LensTractor-format catalog containing Nebula positions
+# Data source: ds9.reg
+# Written by ds9regions2initcat.csh on Tue May 6 16:55:50 PDT 2014
+# Model: Nebula4
+# 
+123.52327 58.478005 99 99 99 99 99 99 99 123.5234 58.478059 99 99 99 99 123.52307 58.478023 99 99 99 99

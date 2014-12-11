@@ -135,7 +135,8 @@ class Model():
         theta = 0.0 # degrees
         galshape = tractor.galaxy.GalaxyShape(re,q,theta)
         # Package up:
-        nebulousgalaxy = tractor.galaxy.ExpGalaxy(galpos,galSED,galshape)
+#        nebulousgalaxy = tractor.galaxy.ExpGalaxy(galpos,galSED,galshape)
+        nebulousgalaxy = tractor.galaxy.DevGalaxy(galpos,galSED,galshape)
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
@@ -145,7 +146,7 @@ class Model():
                 starpos = position[i+1]
             else:
                 # Small random offsets from nebula centre:
-                e = 0.01 # arcsec, MAGIC
+                e = 0.2 # arcsec, MAGIC
                 dx,dy = e*np.random.randn(2)/3600.0
                 starpos = position.copy() + tractor.RaDecPos(dx,dy)
             starSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
@@ -289,6 +290,7 @@ class Model():
         ts = xd.distanceFrom(xs)*3600.0 # in arcsec
         magicdist=0.75*tE
         toodist=5*tE
+        magicflat=0.3
         numb=len(stars)
         
         # PJM: Better would be to recurse until the system has converged. 
@@ -309,7 +311,7 @@ class Model():
                 print "Not a lens, the galaxy is way too far from the quasars!"
                 assert False
                 
-            elif ts >= magicdist:
+            elif (ts >= magicdist or galshape.ab < magicflat or galshape.ab > 1./magicflat):
                 if self.vb:
                     print "Galaxy may just be fitting noise, repositioning."
                 
@@ -355,7 +357,7 @@ class Model():
                 print "Not a lens, the galaxy is way too far from the quasars!"
                 assert False
                 
-            elif ts >= magicdist:
+            elif (ts >= magicdist or galshape.ab < magicflat or galshape.ab > 1./magicflat):
                 if self.vb:
                     print "Galaxy may just be fitting noise, repositioning."
                 
@@ -389,7 +391,7 @@ class Model():
             # Now, recursively optimize the centre of mass of the lens:
             
             ireccen=1
-            Nreccen = 1000 # No. of recursion steps for optimizing lens pos
+            Nreccen = 100 # No. of recursion steps for optimizing lens pos
             while ireccen<Nreccen:
                 if self.vb:
                     print "Galaxy position = ", xd.ra,", ", xd.dec                
@@ -498,7 +500,7 @@ class Model():
         gamma2 = (B3 - A31*tE)/A33
         #-- solve recursively in tE, gamma1, gamma2
         irec = 1
-        NrectE = 1000  # No. of recursion steps for optimizing thetaE
+        NrectE = 200  # No. of recursion steps for optimizing thetaE
         while irec<NrectE:
             tE = (B1 -gamma1*A12 -A13*gamma2)/A11
             gamma1 = (B2 -A21*tE)/A22
@@ -532,7 +534,7 @@ class Model():
 
     def solve_for_initial_lens_position(self,stars,xd,tE,gamma1,gamma2):
         
-        learnrate = 0.001
+        learnrate = 0.01
         d11 = d12 = 0.0
         d21 = d22 = 0.0
         dchi2xd = dchi2yd = 0.0
