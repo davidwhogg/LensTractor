@@ -43,7 +43,7 @@ class EinsteinRadius(tractor.ScalarParam):
 class ExternalShear(tractor.ParamList):
       def __init__(self, gamma, phi):
             super(ExternalShear, self).__init__(gamma, phi)
-            self.stepsizes = [0.01, 5.]
+            self.stepsizes = [0.005, 5.]
       def getName(self):
             return 'External shear'
       def getNamedParams(self):

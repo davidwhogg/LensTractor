@@ -138,7 +138,7 @@ class LensTractor():
                 # PSF is already optimized, during Nebula run.
                 # Just do the lens part:
                 
-                self.settings['Nrounds'] = 20
+                self.settings['Nrounds'] = 2
                 self.settings['Nsteps_optimizing_catalog'] = 10000
                 self.settings['Nsteps_optimizing_PSFs'] = 0
                 self.optimize()

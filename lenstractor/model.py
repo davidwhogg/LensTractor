@@ -318,18 +318,22 @@ class Model():
                 # Reposition galaxy, reset axis ratio and p.a.:
                 galpx, galpy, weight = 0.0, 0.0, 0.0
                 pippo0 = stars[0].getBrightness()[0]
-                for star in stars:
+#                for star in stars:
+                istar = 1
+                while istar<len(stars):
+                    star = stars[istar]
                     pippo1 = 10.0**(-0.4*star.getBrightness()[0]+0.4*pippo0)
                     galpx += star.getPosition().ra/pippo1
                     galpy += star.getPosition().dec/pippo1
                     weight += 1./pippo1
+                    istar += 1
                 galpx, galpy = galpx/weight, galpy/weight
                 xd.ra, xd.dec = galpx, galpy
                 
                 # LT tries to reabsorb defects in the Nebula fit by playing
                 # around with very elongated or localised galaxy components.
                 # Reset these to ensure lens galaxy is roundish.
-                galshape.ab = 0.8  # MAGIC reset axis ratio to be reasonably round...
+                galshape.ab = 1.1  # MAGIC reset axis ratio to be reasonably round...
                 galshape.phi = 0.0 # MAGIC reset orientation to avoid mimicking the QSO residuals
                 galshape.re = tE   # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation        
                 
@@ -374,7 +378,7 @@ class Model():
                 xd.ra, xd.dec = galpx, galpy
                 galshape.ab = 0.8 # magic reset to axis ratio
                 galshape.phi = 0.0   
-                # galshape.re = resetre
+                galshape.re = resetre
                 
                 # We need the centroid position *relative to the galaxy*, so we need to re-do this when resetting
                 if self.vb:
@@ -534,7 +538,7 @@ class Model():
 
     def solve_for_initial_lens_position(self,stars,xd,tE,gamma1,gamma2):
         
-        learnrate = 0.01
+        learnrate = 0.1
         d11 = d12 = 0.0
         d21 = d22 = 0.0
         dchi2xd = dchi2yd = 0.0
