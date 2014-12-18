@@ -8,7 +8,7 @@ morphological model.
 
 * Philip J. Marshall, KIPAC, SLAC
   <http://www.slac.stanford.edu/~pjm/>
-* Adriano Agnello, Physics Dept, UCSB
+* Adriano Agnello, Physics and Astronomy Department, UCLA
 * David W. Hogg, CCPP, New York University
   <http://cosmo.nyu.edu/hogg/>
 * Dustin Lang, Physics Dept, Carnegie Mellon University
@@ -16,7 +16,7 @@ morphological model.
 
 ### License:
 
-LensTractor is being developed by Phil Marshall (KIPAC), Adriano Agnello (UCSB), David W. Hogg (NYU) and Dustin Lang (CMU). We welcome collaborators: if you are interested in using and improving LensTractor, please get in touch with Phil at `pjm at slac.stanford.edu`. The code is distributed under the GPL v2 license, which means that you can copy and edit it however you like, as long as you also distribute the result under the GPL v2 license. In practice, we hope that you will fork the code on github (from where you can easily ingest the updates we make, and from where we can pull in the excellent changes you make!) and keep in touch, so we can make sure that everyone's work is properly accredited in the publications that arise from LensTractor's testing and application. 
+LensTractor is being developed by Phil Marshall (KIPAC), Adriano Agnello (UCLA), David W. Hogg (NYU) and Dustin Lang (CMU). We welcome collaborators: if you are interested in using and improving LensTractor, please get in touch with Phil at `pjm at slac.stanford.edu`. The code is distributed under the GPL v2 license, which means that you can copy and edit it however you like, as long as you also distribute the result under the GPL v2 license. In practice, we hope that you will fork the code on github (from where you can easily ingest the updates we make, and from where we can pull in the excellent changes you make!) and keep in touch, so we can make sure that everyone's work is properly accredited in the publications that arise from LensTractor's testing and application. 
 
 At the very least, we ask you to cite this website when either making use of the code, or the ideas and algorithms it contains.
 

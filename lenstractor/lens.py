@@ -36,11 +36,14 @@ class EinsteinRadius(tractor.ScalarParam):
             assert self.stepsize > 0.0
       def getName(self):
             return 'Einstein radius'
+      def getStepSize(self, *args, **kwargs):
+            return self.stepsize
+
 
 class ExternalShear(tractor.ParamList):
       def __init__(self, gamma, phi):
             super(ExternalShear, self).__init__(gamma, phi)
-            self.stepsizes = [0.0001, 1.]
+            self.stepsizes = [0.005, 5.]
       def getName(self):
             return 'External shear'
       def getNamedParams(self):
@@ -57,8 +60,8 @@ class ExternalShear(tractor.ParamList):
             return ExternalShear(*self.vals)
       def getParamNames(self):
             return ['gamma', 'phi']
-#       def getStepSizes(self, *args, **kwargs):
-#             return [ 0.1, 1.0 ]
+      def getStepSizes(self, *args, **kwargs):
+            return self.stepsizes
 
 # ============================================================================
 # Composite object, consisting of:
@@ -213,12 +216,13 @@ class PointSourceLens(tractor.MultiParams):
                patch0 = self.getModelPatch(img)
                # Step sizes (MAGIC 0.1):
                delta = 0.1*self.lensgalaxy.Rein.val/self.mu
-               print "Source position step size (arcsec) = ",delta
-               self.pointsource.pos.setStepSizes(delta/3600.0)
+               # print "Source position step size (arcsec) = ",delta
+               # self.pointsource.pos.setStepSizes(delta/3600.0)
                # Derivatives:
                derivs = []
+               # print 'Step size check, img =', img.name
                for i,(step,name) in enumerate(zip(self.getStepSizes(), self.getParamNames())):
-                       # print 'Img', img.name, 'deriv', i, name
+                       # print i, name, ', step size =', step
                        oldval = self.setParam(i, pars0[i] + step)
                        patchi = self.getModelPatch(img)
                        self.setParam(i, oldval)

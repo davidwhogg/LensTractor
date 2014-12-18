@@ -20,7 +20,6 @@ import pyfits
 import time
 import string
 
-
 from astrometry.util import util
 
 import tractor
