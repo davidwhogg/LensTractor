@@ -20,7 +20,7 @@ import tractor
 import lenstractor
 
 deg2rad = 0.017453292
-resetre = 0.5 # effective radius for the galaxy reset, 0.5 for PS1 and 1.0 for SQLS
+resetre = 0.5 # MAGIC: effective radius for the galaxy reset, 0.5 for PS1 and 1.0 for SQLS
 
 # ============================================================================
 
@@ -133,11 +133,15 @@ class Model():
         re = resetre    # in arcsec, probably appropriate for the SQLS examples?
         q = 0.8     # axis ratio
         theta = 0.0 # degrees
-        galshape = tractor.galaxy.GalaxyShape(re,q,theta)
+#        galshape = tractor.galaxy.GalaxyShape(re,q,theta)
+        galshape = tractor.ellipses.EllipseESoft.fromRAbPhi(re,q,theta)
+        # Shape parameters are now (logre, ee1, ee2)
+
         # Package up:
 #        nebulousgalaxy = tractor.galaxy.ExpGalaxy(galpos,galSED,galshape)
 #        nebulousgalaxy = tractor.galaxy.DevGalaxy(galpos,galSED,galshape)
         nebulousgalaxy = lenstractor.NebulousGalaxy(galpos,galSED,galshape)
+        nebulousgalaxy.setPriors()
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
@@ -219,7 +223,10 @@ class Model():
         re = resetre  # arcsec
         q = 0.8   # axis ratio
         theta = -phi # Note how mass/light misalignment is enabled.
-        galshape = tractor.galaxy.GalaxyShape(re,q,theta)
+#        galshape = tractor.galaxy.GalaxyShape(re,q,theta)
+        galshape = tractor.ellipses.EllipseESoft.fromRAbPhi(re,q,theta)
+        # Shape parameters are now (logre, ee1, ee2)
+
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
         if self.vb: print lensgalaxy
 
@@ -305,6 +312,7 @@ class Model():
             print "Estimated Einstein Radius (arcsec) = ",tE
 
         # Do some basic checks to avoid obvious problems:
+        ab = galshape.e/(2.0-galshape.e)
 
         if numb==2:
             # The system is a double:
@@ -312,7 +320,7 @@ class Model():
                 print "Not a lens, the galaxy is way too far from the quasars!"
                 assert False
 
-            elif (ts >= magicdist or galshape.ab < magicflat or galshape.ab > 1./magicflat):
+            elif (ts >= magicdist or ab < magicflat or ab > 1./magicflat):
                 if self.vb:
                     print "Galaxy may just be fitting noise, repositioning."
 
@@ -334,9 +342,12 @@ class Model():
                 # LT tries to reabsorb defects in the Nebula fit by playing
                 # around with very elongated or localised galaxy components.
                 # Reset these to ensure lens galaxy is roundish.
-                galshape.ab = 1.1  # MAGIC reset axis ratio to be reasonably round...
-                galshape.phi = 0.0 # MAGIC reset orientation to avoid mimicking the QSO residuals
-                galshape.re = tE   # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation
+                # galshape.ab = 1.1  # MAGIC reset axis ratio to be reasonably round...
+                # galshape.phi = 0.0 # MAGIC reset orientation to avoid mimicking the QSO residuals
+                                # galshape.re = tE   # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation
+                galshape.ee1 = 0.1 # MAGIC reset axis ratio to be reasonably round...
+                galshape.ee2 = 0.0 # MAGIC reset orientation to avoid mimicking the QSO
+                galshape.logre = np.log(tE)   # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation
 
                 # Set zero shear, phi = p.a. of lens galaxy:
                 gamma = 0.0
@@ -362,7 +373,7 @@ class Model():
                 print "Not a lens, the galaxy is way too far from the quasars!"
                 assert False
 
-            elif (ts >= magicdist or galshape.ab < magicflat or galshape.ab > 1./magicflat):
+            elif (ts >= magicdist or ab < magicflat or ab > 1./magicflat):
                 if self.vb:
                     print "Galaxy may just be fitting noise, repositioning."
 
@@ -377,9 +388,13 @@ class Model():
                     weight += 1./pippo1
                 galpx, galpy = galpx/weight, galpy/weight
                 xd.ra, xd.dec = galpx, galpy
-                galshape.ab = 0.8 # magic reset to axis ratio
-                galshape.phi = 0.0
-                galshape.re = resetre
+                # galshape.ab = 0.8 # magic reset to axis ratio
+                # galshape.phi = 0.0
+                # galshape.re = resetre
+                galshape.ee1 = 0.1 # MAGIC reset axis ratio to be reasonably round...
+                galshape.ee2 = 0.0 # MAGIC reset orientation to avoid mimicking the QSO
+                galshape.logre = np.log(resetre)   # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation
+
 
                 # We need the centroid position *relative to the galaxy*, so we need to re-do this when resetting
                 if self.vb:
