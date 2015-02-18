@@ -136,8 +136,8 @@ class Model():
         galshape = tractor.galaxy.GalaxyShape(re,q,theta)
         # Package up:
 #        nebulousgalaxy = tractor.galaxy.ExpGalaxy(galpos,galSED,galshape)
-#        nebulousgalaxy = tractor.galaxy.DevGalaxy(galpos,galSED,galshape)
-        nebulousgalaxy = lenstractor.NebulousGalaxy(galpos,galSED,galshape)
+        nebulousgalaxy = tractor.galaxy.DevGalaxy(galpos,galSED,galshape)
+#        nebulousgalaxy = lenstractor.NebulousGalaxy(galpos,galSED,galshape)
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
