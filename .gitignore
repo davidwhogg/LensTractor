@@ -8,3 +8,7 @@
 attic
 *.cookie
 .DS_Store
+
+examples/*/*png
+examples/*/*/*png
+examples/sdss/*/*fit*
