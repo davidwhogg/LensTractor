@@ -1,12 +1,12 @@
 goto START
 # ========================================================================================
 # 2012-04-05 (Thursday) 10:52 BST
-# 
+#
 # Feb/March NYU trip, finished lensed_quasar.py, such that images are
 # correctly found about 99.94% of the time (speed_test on 10000 systems, 6
 # failures). Guess this is good enough. Mode solve time is about 6ms, mean
 # is under 10ms. See plots and logs in tests/solving
-# 
+#
 # Now need to take predicted image positions and fluxes, and realise them
 # as images. This means calls to the tractor routines.
 
@@ -14,7 +14,7 @@ goto START
 # 2012-05-01 (Tuesday) 09:17 BST
 
 # Organising directories a bit better, into lensfinder module
-# Started data_management, onepoint modules to try and deal with 
+# Started data_management, onepoint modules to try and deal with
 # PS1 data, tractor style.
 
 # Fit 4 point sources, and the PSF, to one image:
@@ -35,7 +35,7 @@ python LensTractor.py -v \
 # ========================================================================================
 # 2012-07-07 (Saturday) 14:32 CEST
 
-# Got emcee sampling working on both lens and nebula! - StepSizes still 
+# Got emcee sampling working on both lens and nebula! - StepSizes still
 # needed for lens, to make sensible...
 
 python LensTractor.py -s examples/H1413+117_10x10arcsec_55*fits > & junk &
@@ -45,7 +45,7 @@ open *lens_progress*png
 # :-)
 
 # Current bugs list:
-# 
+#
 # Bugs
 # ----
 #  - PSF not being optimized correctly - missing derivatives?
@@ -75,7 +75,7 @@ python LensTractor.py -x examples/H1413+117_10x10arcsec_55*fits > examples/H1413
 # BIC =  {'lens': 19566.927970225803, 'nebula': 8619.7908182981228}
 # Fitting result: Bayes factor in favour of nebula is exp[ 5473.56857596 ]
 
-# So, for lens to be a competitive model, it needs a chisq that is less then 
+# So, for lens to be a competitive model, it needs a chisq that is less then
 # X greater than Nebula's, where X = (44-35)*log(7203) ~ 80 units
 # Fitting result: Bayes factor in favour of nebula is exp[ 5473.56857596 ]
 
@@ -83,7 +83,7 @@ time python LensTractor.py -x examples/H1413+117_10x10arcsec_55*fits > examples/
 
 # 73.442u 1.882s 1:17.67 96.9%    0+0k 275+121io 1pf+0w
 # Pretty slow - 1 min 20 secs.
-# Idea: do nebula first and check to see if it is lens consistent (ie > 1 resolved, 
+# Idea: do nebula first and check to see if it is lens consistent (ie > 1 resolved,
 #    detected point source? Then spend time saved on good systems.
 
 # Results and code saved in:
@@ -98,13 +98,13 @@ cp -r ../LensTractor.py ../lenstractor 2012-07-08_optimized-both/
 #   predictions are different enough so that the numerical errors aren't too
 #   big.  (You don't want to be subtracting (1-epsilon) from 1.)  But you want
 #   the step to be small enough that the linear approximation is ok."
-# 
+#
 #   "One thing you could look at is the update direction -- tractor.optimize()
 #   returns (delta-logprob, delta-params, alpha) -- (by the way, instead of just
 #   optimizing for N steps you could opt until the delta-logprob is small or
 #   zero). Look at the delta-params -- how does it want to change the model?  Is
 #   it trying to take a huge step in some crazy direction?  You can force only
-#   small steps by setting the damping parameter: eg, 
+#   small steps by setting the damping parameter: eg,
 #   tractor.optimize(damp=10.)  If you turn on verbose logging you should see it
 #   trying to step in the delta-params direction with different step sizes (by
 #   default, from 1e-3 to 1 in factors of sqrt(2), I think)."
@@ -114,7 +114,7 @@ cp -r ../LensTractor.py ../lenstractor 2012-07-08_optimized-both/
 # ========================================================================================
 # 2012-08-15 (Wednesday) 08:46 MST
 
-# At LSST AHM with Dstn. Try and implement source position step sizes 
+# At LSST AHM with Dstn. Try and implement source position step sizes
 # that depend on magnification.
 
 time python LensTractor.py -l examples/H1413+117_10x10arcsec_55377.34051_*.fits \
@@ -157,12 +157,12 @@ echo " " >> $logfile
 source $runfile
 # 64.250u 5.589s 1:19.79 87.5%    0+0k 212+220io 1726pf+0w
 # 80s for 30 opt steps, cf 60s for 20
-# 
+#
 # 80 = c + m*30
 # 55 = c + m*20
 # -------------
 # 25 =     m*10 -> 2.5s per step per 1 image; c = 5s
-# 
+#
 # At most we have 5 filters * 12 epochs = 60 images
 # If we take 30 steps, that's about 2.5*30*60 = 75 mins! Can this be right?
 # Still plotting every step!
@@ -277,7 +277,7 @@ grep BIC $logfile
 # lens results:    chisq, K, N, BIC = 6557.08384528 19 2401 6704.9730166
 
 # Lens still doesn't fit well - but stepsizes seem sensible.
-# alpha still heading to zero though. 
+# alpha still heading to zero though.
 
 goto FINISH
 
@@ -318,7 +318,7 @@ grep BIC $logfile
 # lens results:    chisq, K, N, BIC = 6557.08384528 19 2401 6704.9730166
 
 # Lens still doesn't fit well - but stepsizes seem sensible.
-# alpha still heading to zero though. 
+# alpha still heading to zero though.
 
 goto FINISH
 
@@ -326,7 +326,7 @@ goto FINISH
 # ========================================================================================
 # 2013-02-11 (Monday) 10:30 GMT
 
-# Eric visiting. 
+# Eric visiting.
 # Investigate random initialisation of lens model
 
 # Try ten positions, and 15 optimisation steps each. Fixed PSF.
@@ -403,7 +403,7 @@ more examples/sdss/0951+2635/0951+2635_Nebula1.log
 # shared_params: before, X len 12 with 2 non-zero entries
 # paramindexmap: len 19 range 0 18
 
-# As Adri says - empty images being read in? Check that dm.py is working, 
+# As Adri says - empty images being read in? Check that dm.py is working,
 # by running with -v (verbose) option...
 
 python LensTractor.py -x -v \
@@ -427,11 +427,11 @@ python LensTractor.py -x -v \
 # Total brightness of image (mag): -10.7516273423
 # ConstantSky: 0.00337219
 # FitsWcs: x0,y0 0.000,0.000, WCS Tan: crpix (46.0, 396.0), crval (147.886, 26.5999), cd (0.000104058, 0, 0, 3.56637e-05), image 101 x 101
-#  
+#
 # Read in 4 image datasets
 #   in 4 bands: ['g' 'i' 'r' 'z']
 #   at 4 epochs
-#  
+#
 # Generic initial position  101 101 (pixels)
 # Generic initial SED  {'i': -10.555657486015932, 'r': -10.75162734230053, 'z': -9.6667740112751801, 'g': -10.675768966702206}
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -440,7 +440,7 @@ python LensTractor.py -x -v \
 # PointSource at RaDecPos: RA, Dec = (147.88544, 26.58727) with Mags: g=-8.17577, i=-8.05566, r=-8.25163, z=-7.16677
 # Initialization complete.
 # Model = [ExpGalaxy(pos=RaDecPos[147.88543929624, 26.587269007113626], brightness=Mags[-8.175768966702206, -8.0556574860159316, -8.2516273423005302, -7.1667740112751801], re=0.5, ab=1.00, phi=0.0), PointSource(RaDecPos[147.88543726665017, 26.587274873129836], Mags[-8.175768966702206, -8.0556574860159316, -8.2516273423005302, -7.1667740112751801])]
-  
+
 #/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/_methods.py:55: RuntimeWarning: Mean of empty slice.
 
 
@@ -466,7 +466,7 @@ python LensTractor.py -x -v \
 
 # OK, setting zpt to 22.5 gives plausible mags, but problem remains in log
 # file:
-# 
+#
 # mx == 0: 71 of 71 non-zero derivatives, 0 of 71 non-zero weights; 0 non-zero products
 # Set Ncols= 12
 # LSQR: 12 cols (2 unique), 1 elements
@@ -485,14 +485,14 @@ python LensTractor.py -x -v \
 # IndexError: index 12 is out of bounds for size 12
 
 # Fixed by Dustin's suggestion:
-# 
+#
 #       self.chug.optimize(damp=3,shared_params=False)
-# 
+#
 #=============================================================================
 # 2014-04-23 (Wednesday) 10:59 PDT
 
 # Visited UCSB, worked with Agnello on refactoring to make experiments easier.
-# LensTractor as an object, that can initialize and drive itself... 
+# LensTractor as an object, that can initialize and drive itself...
 
 # Driving implemented: optimization and sampling.
 
@@ -527,15 +527,15 @@ python LensTractor.py -n 4 \
 #=============================================================================
 # 2014-04-27 (Sunday) 18:33 PDT
 
-# On train from Santa Barbara. Implemented spawn Nebula method, and also 
+# On train from Santa Barbara. Implemented spawn Nebula method, and also
 # experimented with default method of driving LensTractor
 # ("cunning_and_guile"). Seems promising - am getting good results on this
 # simple Nebula4 test:
 
-time python LensTractor.py -v -n 4 
+time python LensTractor.py -v -n 4
   -o examples/ps1/H1413+117_10x10arcsec_Nebula4.cat
      examples/ps1/H1413+117_10x10arcsec_*.fits >
-     examples/ps1/H1413+117_10x10arcsec_Nebula4.log 
+     examples/ps1/H1413+117_10x10arcsec_Nebula4.log
 # 25.577u 1.771s 0:27.38 99.8%    0+0k 0+56io 0pf+0w
 
 # Runtime is not great, but fit is getting there...
@@ -545,17 +545,17 @@ time python LensTractor.py -v -n 4
 
 # Here's the default run: N2->N4->Lens:
 
-time python LensTractor.py -v 
+time python LensTractor.py -v
   -o examples/ps1/H1413+117_10x10arcsec
      examples/ps1/H1413+117_10x10arcsec_*.fits >
-     examples/ps1/H1413+117_10x10arcsec.log 
-     
+     examples/ps1/H1413+117_10x10arcsec.log
+
 # Note the improved output catalog and png file names.
 # Code fails at Lens initialization, by design. Next job is to init the Lens.
 
 # One thing to note: currently, spawning Nebula4 from Nebula2 does not work
 # very well, I don't know why. Maybe the fluxes of the new point sources are
-# too large? A flux ratio of 0.2 works a little better - room for 
+# too large? A flux ratio of 0.2 works a little better - room for
 # improvement still.
 
 #=============================================================================
@@ -575,17 +575,17 @@ time python LensTractor.py -v
 #     small shear aligned with the galaxy (or at 90deg?)
 #    6- the source's flux is the total flux from the (2 or 4)
 #     Nebula images divided by mu.
-# 
+#
 #    This is a very rough initialisation, but it should be vague
 #     enough to offer a good initial guess in both cases (2 or 4 img's).
-# 
+#
 #    So the workflow for initialising Lens from Nebula would be:
 #    -- drive Nebula by optimizing, with Nr=10, Nc=1000
 #    -- get X (the parameter array)
 #    -- do points 1-6 above
 #    -- drive Lens by optimizing, with Nc and Nc from the dictionary
 #     (i.e. fed from command-line).
-# 
+#
 #    A *very* final hack would be some sort of simulated annealing:
 #    for iann in range(Nann)
 #       -- varaux = var/(1+Nann-iann)
@@ -595,7 +595,7 @@ time python LensTractor.py -v
 
 # SDSS example:
 
-\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log examples/sdss/0951+2635/*.cat 
+\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log examples/sdss/0951+2635/*.cat
 
 python LensTractor.py -v -l -z --survey SDSS \
    -o examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000_r \
@@ -613,28 +613,28 @@ python LensTractor.py -v -l -z --survey SDSS \
 # Experimenting with optimizing PSF too, after initial Nebula fit:
 
 # elif self.method == 'optimizing':
-# 
+#
 #      # First optimize to get the model about right, at fixed PSF:
 #      self.settings['Nrounds'] = 3
 #      self.settings['Nsteps_optimizing_catalog'] = 5
 #      self.settings['Nsteps_optimizing_PSFs'] = 0
 #      self.optimize()
-# 
+#
 #      # Now optimize PSF at fixed model:
 #      self.settings['Nrounds'] = 1
 #      self.settings['Nsteps_optimizing_catalog'] = 0
 #      self.settings['Nsteps_optimizing_PSFs'] = 5
 #      self.optimize()
-# 
+#
 #      # Refine model at best PSF:
 #      self.settings['Nrounds'] = 1
 #      self.settings['Nsteps_optimizing_catalog'] = 5
 #      self.settings['Nsteps_optimizing_PSFs'] = 0
 #      self.optimize()
- 
+
 # Test on 0951:
 
-\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log examples/sdss/0951+2635/*.cat 
+\rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log examples/sdss/0951+2635/*.cat
 
 time python LensTractor.py -v -l -z --survey SDSS \
    -o examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000 \
@@ -684,7 +684,7 @@ time python LensTractor.py -v -l -z --survey KIDS \
 
 # i band image has object masked out. Try running without this image:
 
-\rm examples/kids/*.png examples/kids/*.log examples/kids/*.cat examples/kids/*.cookie 
+\rm examples/kids/*.png examples/kids/*.log examples/kids/*.cat examples/kids/*.cookie
 
 set id = KIDS_SLID_10058881_SID_8668
 time python LensTractor.py -v -l -z --survey KIDS \
@@ -696,7 +696,7 @@ time python LensTractor.py -v -l -z --survey KIDS \
 
 # Lens wins BIC by exp(100) or so, getting a better fit. Why?
 #  1) Nebula2 did not converge?
-#  2) Lens only has one image, so the fit isnt messed up by the second point source. 
+#  2) Lens only has one image, so the fit isnt messed up by the second point source.
 # Example output:
 
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -754,13 +754,13 @@ time python LensTractor.py -v -n 1 -z --survey KIDS \
 # Now: test on 0951!
 
 \rm examples/sdss/0951+2635/*.png examples/sdss/0951+2635/*.log \
-    examples/sdss/0951+2635/*.cat examples/sdss/0951+2635/*.cookie 
+    examples/sdss/0951+2635/*.cat examples/sdss/0951+2635/*.cookie
 
 time python LensTractor.py -v -l -z --survey SDSS \
    -o examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000 \
       examples/sdss/0951+2635/J*_?_sci.fits > \
       examples/sdss/0951+2635/J0951n_30x30arcsec_99999.90000.log &
-      
+
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 # Nebula2 results: chisq, K, N, BIC = 92569.9986223 21 22500 92780.4453047
 # DevGalaxy at RaDecPos: RA, Dec = (147.84399, 26.58708) with Mags: g=18.7648, i=18.2156, r=18.2473, z=18.8377 and Galaxy Shape: re=0.30, ab=0.62, phi=-51.5
@@ -778,7 +778,7 @@ time python LensTractor.py -v -l -z --survey SDSS \
 
 # Hmm: Lens still returning lower chisq. Why is this?
 # Nebula seems to want to fit point sources with nebuluous galaxy. Lens has
-# to have 2 points, and so fits better. Do we need to return to Nebula 
+# to have 2 points, and so fits better. Do we need to return to Nebula
 # after fitting Lens, in order to ensure chisq(Nebula) is lower? Hmm...
 
 
@@ -792,9 +792,9 @@ time python LensTractor.py -v -z \
      examples/ps1/H1413+117_10x10arcsec.log &
 
 # First time running with PSF optimization?
-# 
+#
 # In this run, BIC(N4) < BIC(Lens) < BIC(N2) - but Lens loses big time.
-# Inspection of images shows that PSF screws up horribly, such that all fits 
+# Inspection of images shows that PSF screws up horribly, such that all fits
 # are kind of meaningless. Need to do N4 without PSF optimization, in this case.
 # Run time was about 95 secs.
 
@@ -809,7 +809,7 @@ time python LensTractor.py -v -l \
   -o examples/ps1/H1413+117_10x10arcsec \
      examples/ps1/H1413+117_10x10arcsec_*.fits > \
      examples/ps1/H1413+117_10x10arcsec.log &
-     
+
 # Helps a bit - but we really need Nebula4 to converge before optimizing the
 # PSFs, otherwise they go elliptical and cover up some of the bad fit...
 
@@ -823,7 +823,7 @@ time python LensTractor.py -v -z \
   -o examples/ps1/H1413+117_10x10arcsec \
      examples/ps1/H1413+117_10x10arcsec_*.fits > \
      examples/ps1/H1413+117_10x10arcsec.log &
-     
+
 # OK, looks good.
 # Next up:
 #  - overlay image name on data image, bottom lefthand corner
@@ -845,8 +845,8 @@ time python LensTractor.py -v -n 4 -z \
 
 cp examples/ps1/H1413+117_10x10arcsec_Nebula4.cat examples/ps1/n4.txt
 cp examples/ps1/H1413+117_10x10arcsec_progress-06_optimizing_Nebula4.png  examples/ps1/n4.PNG
-     
-# Save as "n4.txt" for initialization tests, also save plot for reference as 
+
+# Save as "n4.txt" for initialization tests, also save plot for reference as
 # "n4.PNG". Now run with manual optimization:
 
 \rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
@@ -868,11 +868,11 @@ more ds9.cat
 # # Data source: ds9.reg
 # # Written by ds9regions2initcat.csh on Tue May 6 16:52:08 PDT 2014
 # # Model: Nebula4
-# # 
+# #
 # 213.94271 11.495453 99 99 99 99 99 213.94267 11.49535 99 99 213.94252 11.49555 99 99 213.94276 11.495617 99 99 213.94288 11.495387 99 99
 
 # Now test, by copying this into n4.txt and rerunning...
-cp ds9.cat examples/ps1/n4.txt 
+cp ds9.cat examples/ps1/n4.txt
 
 # Works fine! Now ready for Adri to derive starting positions for SDSS examples.
 
@@ -907,7 +907,7 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Hypothesis test result: Bayes factor in favour of Lens is exp[ -3787.73160974 ]
 # BUT: Lens predicts only 1 image, so it's not a strong lens.
 
-# Hmm. Lens intialization is *terrible*! 
+# Hmm. Lens intialization is *terrible*!
 # Also note Nebula4 optimized to the exact same BIC as before, good.
 # Just need to work on Lens init from Nebula. AS USUAL
 
@@ -940,7 +940,7 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Estimated shear amplitude gamma =  0.435768108322
 # Estimated shear angle (degrees) =  10.438741833
 # PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225
-# Initialization complete: 
+# Initialization complete:
 # PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (213.94282, 11.49550) with Mags: r=14.1212, z=14.5674 and Galaxy Shape: re=0.53, ab=0.96, phi=-91.1 and EinsteinRadius: 0.770238 and External shear: gamma=0.4, phi=10.4 and a PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225 where 4 images are predicted
 
 # But images show ra separation is way too high. Need to multiply by cos(dec), probably.
@@ -953,7 +953,7 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 #    of code. We'd like to get to the next strides telecon with results! I'll refine the
 #    formulae in the meanwhile.
 
-# He doesn't mean pixel positions I think... th emodel is all in world coords. 
+# He doesn't mean pixel positions I think... th emodel is all in world coords.
 # But the separations do need to be correct...
 
 # Implemented declination correction, fixed indentation bug. Initial model still sucks!
@@ -972,7 +972,7 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Estimated shear amplitude gamma =  0.373090712788
 # Estimated shear angle (degrees) =  11.9688598778
 # PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225
-# Initialization complete: 
+# Initialization complete:
 # PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (213.94282, 11.49550) with Mags: r=14.1212, z=14.5674 and Galaxy Shape: re=0.53, ab=0.96, phi=-91.1 and EinsteinRadius: 0.770238 and External shear: gamma=0.4, phi=12.0 and a PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225 where 4 images are predicted
 
 
@@ -982,9 +982,9 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # 2014-05-29 (Thursday) 18:56 PDT
 
 # Dustin recommends getting SDSS data with his sdss_getimage tractor code.
-# This would (I think) grab a suitably sized cutout, including weight image, 
-# given Ra and Dec. Give LensTractor the option, if --survey SDSS, of 
-# --radec alpha delta (in degrees), and the go and pull the data down into 
+# This would (I think) grab a suitably sized cutout, including weight image,
+# given Ra and Dec. Give LensTractor the option, if --survey SDSS, of
+# --radec alpha delta (in degrees), and the go and pull the data down into
 # a suitably named directory before Riffling and Dealing it.
 
 # Look up Ra, Dec for SDSSJ0951.
@@ -998,15 +998,15 @@ tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 # Hexagesimal:
 # 09:51:22.57 +26:35:13.96
 
-# Here's the test command. Note that the -o option shows where the 
+# Here's the test command. Note that the -o option shows where the
 # FITS files are to be downloaded to. Run, camcol, field (frame?) come from
-# 0951 example fits files. We'll have to look up all of these numbers for 
+# 0951 example fits files. We'll have to look up all of these numbers for
 # the sample... Execute this example in th e0951 directory.
 
 set rcf = "5038,153,3,147.844080,26.587220,10.0"
 set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
 
-python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 
 # OK, close. The call to get_tractor_image fails because the astrometry code has not built:
 
@@ -1025,7 +1025,7 @@ make pyspherematch
 
 # Emailed dstn.
 
-# OK, looks like you have to fix some links in the distribution directory, 
+# OK, looks like you have to fix some links in the distribution directory,
 # at least according to https://groups.google.com/forum/#!topic/cython-users/_PyzG5F4LoA
 
 # Here's where my arrayobject.h file lives: /usr/local/lib/python2.7/site-packages/numpy/core/include/numpy
@@ -1069,7 +1069,7 @@ brew install pkg-config
 set rcf = "5038,153,3,147.844080,26.587220,10.0"
 set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
 
-python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 
 # Still not building pyspherematch?
 
@@ -1146,14 +1146,14 @@ python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 
 # Same error.
 
-# OK, try a clean build. 
+# OK, try a clean build.
 
 mv tractor tractor-variability
 tractor-variability/checkout.sh >& checkout_2014-06-11.log &
- 
+
 # Ok, looks good!
 mv checkout_2014-06-11.log tractor/.
- 
+
 # Ran the example again, same error. Here it is:
 
 set rcf = "5038,153,3,147.844080,26.587220,10.0"
@@ -1177,19 +1177,19 @@ python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 # Dustin says:
 
 #    Ok, this is progress.
-# 
+#
 #    What do you get with:
-# 
+#
 #    python -c "import astometry.libkd.spherematch as sp; print sp.__file__"
 #    python -c "import astometry.libkd.spherematch_c as spc; print spc.__file__"
 #    python -c "import astometry.libkd.spherematch_c as spc; print dir(spc)"
-# 
+#
 #    I'm guessing it's loading some other (older?) version of the
 #    astrometry.net code.
-# 
+#
 #    This has nothing to do with the tractor or lenstractor, it's something
 #    about the astrometry.net install.
- 
+
 python -c "import astrometry.libkd.spherematch as sp; print sp.__file__"
 #    AttributeError: 'module' object has no attribute 'kdtree_permute'
 
@@ -1201,7 +1201,7 @@ python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
 # 'kdtree_close', 'kdtree_free', 'kdtree_open', 'kdtree_write', 'match',
 # 'nearest']
 
-# OK, looks like we need to remove old astrometry directory from the 
+# OK, looks like we need to remove old astrometry directory from the
 # PYTHONPATH. Indeed, let's just trash the whole thing.
 
 python -c "import astrometry.libkd.spherematch as sp; print sp.__file__"
@@ -1219,7 +1219,7 @@ python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
 
 # OK, now try again: success. Well, python errors, but they are my own.
 
-# Need to git pull tractor, there are some updates: sdss_galaxy no longer 
+# Need to git pull tractor, there are some updates: sdss_galaxy no longer
 # exists, DevGalaxy etc are now in tractor/galaxy.py
 # Here's the check:
 
@@ -1230,35 +1230,35 @@ grep sdss_galaxy *.py lenstractor/*py
 # 2014-06-02 (Monday) 14:10 PDT
 
 # The collected woes of Adriano Agnello:
-# 
+#
 # 1) May 30: Manual init catalogs not being interpreted properly?
-# 
+#
 # From Adri:
-# 
+#
 # It seems that the initialization does something strange when reading in from
 # .cat files; if you do
-# 
+#
 #     python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1
-# 
+#
 # and then
-# 
+#
 #     python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 --manual lenstractor_Nebula4.cat
-# 
+#
 # you'll see that the last snapshot of the first passage does *not* correspond
 # to the zeroth snapshot of the second passage! When reading from the
 # catalogue, the point-sources are somehow scrambled and I don't understand
 # why. Do you know what's happening?!
-# 
-# 
+#
+#
 # 2) May 31: Fitting Nebula and Lens equally
-# 
+#
 # From Adri:
-# 
+#
 # I'd like chug to know how to optimize based on the model, so
 # I'd actually add another argument to the driver. The idea is:
-# 
+#
 # if we ask for Lens from command line, it should
-# 
+#
 #     optimize nebula sources
 #     optimize psf
 #     re-optimize nebula sources
@@ -1266,45 +1266,45 @@ grep sdss_galaxy *.py lenstractor/*py
 #     optimize lens sources
 #     optimize psf
 #     re-optimize lens sources
-# 
+#
 # else, if we ask for Nebula from command line, it should
-# 
+#
 #     [ optimize nebula sources
 #     optimize psf
 #     re-optimize nebula sources ] *twice*
-# 
+#
 # I guess we should either write two very similar optimizer classes,
 # i.e. opt_lens and opt_neb, to be called from the main LensTractor
 # script, or introduce the modelname variable inside the
 # existing optimizer. This however is what I'm not able to do
 # without making a major mess. Do you think you'd be able to
 # make this refactor?
-# 
-# 
+#
+#
 # 3) June 1: Manual init catalogs not being interpreted properly?
-# 
+#
 # From Adri:
-# 
+#
 # I've tried running LT on the 0951 example, with manual initalisation
 # otherwise it does stupid stuff, but there are *serious* problems with
 # properly initialising the sources from the input catalog. I'm sending it
 # attached, I've done it simply by drag-and-click with ds9 but then
 # LensTractor puts the guys in completely wrong places! Try running and see...
-# 
+#
 #     python LensTractor.py -n 2 -z -v examples/... --survey SDSS --manual examples/.../init.txt
-# 
+#
 # I've emailed you the init.txt file.
-# 
+#
 # In model.py I have commented a line out (which was tuned on PS1) and
 # inserted the correct option for the SQLS examples. There's a double round of
 # optimization in drive.py, which I comment out when running Lens. Can you
 # figure out what's happening?
 
 
-# Converted these to two github issues. Do refactor first, then look at init 
+# Converted these to two github issues. Do refactor first, then look at init
 # problem.
 
-# Issue 2) refactor to model-specific optimization. 
+# Issue 2) refactor to model-specific optimization.
 
 # Test on lens model:
 
@@ -1316,8 +1316,8 @@ time python LensTractor.py -v -l -z \
      examples/ps1/H1413+117_10x10arcsec_Lens.log &
 tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
 
-# Optimization scheme seems like it could work. 
-# Code fails to initialize lens from nebula though: looks like a problem with 
+# Optimization scheme seems like it could work.
+# Code fails to initialize lens from nebula though: looks like a problem with
 # angles for Adri to solve.
 
 
@@ -1369,9 +1369,9 @@ cols lenstractor_Nebula4.cat
 cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage.reg
 
 # and edit...
-# OK, secondpassage.log regions agree with initial plot in second passage 
+# OK, secondpassage.log regions agree with initial plot in second passage
 # These are the same as the positions written out to catalog at the end
-# of firstpassage - so that all checks out. 
+# of firstpassage - so that all checks out.
 
 # Try re-running above test but without the PSF optimization...
 # Looks like the positions are better before the PSF was tweaked.
@@ -1388,7 +1388,7 @@ python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
 # PointSource at RaDecPos: RA, Dec = (213.94289, 11.49536) with Mags: r=14.7832, z=15.1418
 # PointSource at RaDecPos: RA, Dec = (213.94307, 11.49544) with Mags: r=17.1714, z=17.9673
 # PointSource at RaDecPos: RA, Dec = (213.94267, 11.49534) with Mags: r=14.5346, z=14.7401
- 
+
 # Made regions file...
 cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage_frozenpsf.reg
 
@@ -1416,16 +1416,16 @@ python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
 cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage_expgalaxy.reg
 
 # OK, same problem - one point source gets dimmed, while the galaxy is used
-# to fit the data. No good! 
+# to fit the data. No good!
 
-# In situations where the quasar images are the brightest things, 
+# In situations where the quasar images are the brightest things,
 # we may want to fit an "asterism" model first. Then spawn a nebula from
 # th easterism, just by adding a galaxy. Try this in an asterism branch?
 
-# Meanwhile, add points to plots to avoid ds9 shenanigans. 
+# Meanwhile, add points to plots to avoid ds9 shenanigans.
 # Positions and magnitudes (=sizes).
 
-# Pulled in Adri's changes, try first and second passage again...Keep exp 
+# Pulled in Adri's changes, try first and second passage again...Keep exp
 # galaxy!
 
 mkdir -p firstpassage; cd firstpassage
@@ -1442,11 +1442,11 @@ python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
 
 open  \
 firstpassage/lenstractor_progress-06_optimizing_Nebula4.png \
-secondpassage/lenstractor_progress-00_initial_Nebula4.png 
+secondpassage/lenstractor_progress-00_initial_Nebula4.png
 
 # Models are consistent - just bad. Back to cunning and guile!
 
-# Adri asks, what about sqls 1242? 
+# Adri asks, what about sqls 1242?
 # init files not checked in, no sign of 1242. Try 0841, first with no init:
 
 python LensTractor.py -n 4 -z -v --survey SDSS \
@@ -1472,11 +1472,11 @@ mv ds9.cat SDSSJ0814+5828_init.txt
 # point(123.52365,58.478245) # point=cross
 # point(123.52292,58.477789) # point=cross
 
-# Huh - central object according to ds9 is (0.06,0.06) away from 
-# where LT fitted it. Yes: LT headers are screwed up. 
+# Huh - central object according to ds9 is (0.06,0.06) away from
+# where LT fitted it. Yes: LT headers are screwed up.
 
 # Suspect this problem will only go away when we use the tractor routines for
-# getting the SDSS images. 
+# getting the SDSS images.
 
 # =============================================================================
 # 2014-06-11 (Wednesday) 15:05 PDT
@@ -1486,7 +1486,7 @@ mv ds9.cat SDSSJ0814+5828_init.txt
 set rcf = "5038,153,3,147.844080,26.587220,10.0"
 set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
 
-python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 
 # Querying SDSS skyserver for data at ra,dec =  147.84408 26.58722
 #   in run, camcol, field =  [5038, 153, 3]
@@ -1494,7 +1494,7 @@ python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 # Checking for file psField-005038-153-0003.fit
 # Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit
 # Command failed: command wget --continue -nv -O psField-005038-153-0003.fit.tmp 'http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit'
-# Output: 
+# Output:
 # Error: http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit:
 # 2014-06-11 15:03:42 ERROR 404: Not Found.
 
@@ -1504,12 +1504,12 @@ python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 set rcf = "5038,3,145,147.844080,26.587220,10.0"
 set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
 
-python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 
 # Querying SDSS skyserver for data at ra,dec =  147.84408 26.58722
 #   in run, camcol, field =  [5038, 3, 145]
 # Looking to make cutouts that are  10.0  arcsec ( 25  pixels) across
-#  
+#
 # --------u-band--------
 # Checking for file psField-005038-3-0145.fit
 # Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/psField-005038-3-0145.fit
@@ -1535,7 +1535,7 @@ python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 #     raise IOError('Header missing END card.')
 # IOError: Header missing END card.
 # None
-# 
+#
 # Checking for file psField-005038-3-0145.fit
 # Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/psField-005038-3-0145.fit
 # Checking for file fpM-005038-u3-0145.fit
@@ -1571,10 +1571,10 @@ python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
 # IOError: Header missing END card.
 
 # Missing END card?! Send to Dustin. His response:
-# 
+#
 #    Huh, must be the frame*.bz2 file (compressed).  In my notes I have that
 #    pyfits can read bz2 files.
-# 
+#
 #    What do you get if you do:
 
 python -c "import pyfits; pyfits.open('frame-u-005038-3-0145.fits.bz2')"
@@ -1592,11 +1592,11 @@ pip install pyfits --upgrade
 
 # Have a look at astrometry/sdss/dr8.py line 267: try commenting out that
 # block:
-# 
+#
 #         # if not fitsio:
 #         #    # pyfits can read .bz2
 #         #    return None,True
-# 
+#
 # and see if that works.
 # Yes! Success :-)
 
@@ -1620,9 +1620,9 @@ cd $LENSTRACTOR_DIR/examples/sdss/0951+2635/
 set rcf = "5038,3,145,147.844080,26.587220,10.0"
 set stem = SDSSJ0951+2635_10x10arcsec
 
-LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem 
+LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem
 
-# OK, similar issue - galaxy takes one QSO image, both point sources 
+# OK, similar issue - galaxy takes one QSO image, both point sources
 # take the other. Oh well - check in!
 
 # Back to init testing. Made my own init file!
@@ -1681,6 +1681,23 @@ python ../LensTractor.py -l -z -v --survey PS1 \
      ../examples/ps1/H1413+117_10x10arcsec_*.fits >& \
      H1413+117_10x10arcsec_Lens_spawntest.log & ; \
 tail -f H1413+117_10x10arcsec_Lens_spawntest.log
+
+
+# =============================================================================
+# 2015-02-18 (Wednesday) 14:10 PDT
+
+# Adding Gaussian priors to Nebula. First refactor to make a Nebulous Galaxy
+# Then add priors on shape etc as in issue #46:
+# https://github.com/davidwhogg/LensTractor/issues/46
+
+mkdirf priortest
+
+python ../LensTractor.py -n 4 -z -v --survey PS1 \
+  --manual ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o H1413+117_10x10arcsec \
+     ../examples/ps1/H1413+117_10x10arcsec_*.fits >& \
+     H1413+117_10x10arcsec_Nebula4_priortest.log & ; \
+tail -f H1413+117_10x10arcsec_Nebula4_priortest.log
 
 
 # =============================================================================

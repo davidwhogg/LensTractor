@@ -43,9 +43,9 @@ class Model():
       2014-04-17       Started Marshall & Agnello (UCSB)
     '''
 # ----------------------------------------------------------------------------
-    
+
     def __init__(self,name,srcs=None,vb=True):
-    
+
         self.name = name
         self.flavor = name[0:6]
         if self.flavor == 'Nebula':
@@ -53,16 +53,16 @@ class Model():
            self.K = int(name[6:7])
 #        else:
 #           self.K = 5
-        
+
         if srcs == None:
             self.srcs = []
-        
+
         self.vb = vb
-        
+
         return None
-        
+
 # ----------------------------------------------------------------------------
-    
+
     def __str__(self):
         return '%s' % (self.name)
 
@@ -73,19 +73,19 @@ class Model():
         return copy
 
 # ----------------------------------------------------------------------------
-    
+
     def initialize(self,template,position=None,SED=None):
-                
+
         if template == 'from_scratch':
-                        
+
             # Are we initializing positions from a catalog?
             if isinstance(position,basestring):
-                 
+
                 if self.vb: print "Initializing",self.name,"model from catalog..."
-            
+
                 self.manual = True
                 position = self.get_positions_from(position,SED)
-            
+
             else:
                 assert position is not None
                 assert SED is not None
@@ -99,28 +99,28 @@ class Model():
                 self.create_Lens(position,SED)
 
         else:
-            
+
             if self.vb: print "Initializing",self.name,"model from",template.name,"template..."
-            
+
             if self.flavor == 'Nebula' and template.flavor == 'Nebula':
                 assert self.K >= template.K
                 self.spawn_Nebula(template)
-            
+
             elif self.flavor == 'Lens' and template.flavor == 'Nebula':
                 self.spawn_Lens(template)
 
-        if self.vb: 
+        if self.vb:
             print "Initialization complete: "
             for component in self.srcs:
                 print component
             print " "
 
         return None
-            
+
 # ----------------------------------------------------------------------------
-    
+
     def create_Nebula(self,position,SED):
-                
+
         # Start with a galaxy at the object centroid:
         if self.manual:
             galpos = position[0]
@@ -136,7 +136,8 @@ class Model():
         galshape = tractor.galaxy.GalaxyShape(re,q,theta)
         # Package up:
 #        nebulousgalaxy = tractor.galaxy.ExpGalaxy(galpos,galSED,galshape)
-        nebulousgalaxy = tractor.galaxy.DevGalaxy(galpos,galSED,galshape)
+#        nebulousgalaxy = tractor.galaxy.DevGalaxy(galpos,galSED,galshape)
+        nebulousgalaxy = lenstractor.NebulousGalaxy(galpos,galSED,galshape)
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
@@ -154,22 +155,22 @@ class Model():
             star = tractor.PointSource(starpos,starSED)
             if self.vb: print star
             self.srcs.append(star)
-            
+
         return
 
 # ----------------------------------------------------------------------------
-    
+
     def spawn_Nebula(self,parent):
-        
+
         self.srcs = []
-        
+
         # Inherit the galaxy from the parent:
         nebulousgalaxy = parent.srcs[0]
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
         # Now inherit the point sources, and make more based on them, by
-        # splitting the parent stars in 2 and separating them by a small 
+        # splitting the parent stars in 2 and separating them by a small
         # amount. Binary fission!
         parentstars = parent.srcs[1:]
         stars = []
@@ -198,9 +199,9 @@ class Model():
         return
 
 # ----------------------------------------------------------------------------
-    
+
     def create_Lens(self,position,SED):
-                
+
         # Start with a source to be lensed:
         xs = position.copy()
         ms = SED.copy() + 2.5*np.log10(40.0)
@@ -225,35 +226,35 @@ class Model():
         self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
 
         return
-        
+
 # ----------------------------------------------------------------------------
-    
+
     def spawn_Lens(self,parent):
-        
+
         assert parent.flavor == 'Nebula'
-        
+
         self.srcs = []
-        
+
         # Inherit the lens galaxy from the parent Nebula:
         galaxy = parent.srcs[0]
         # Now inherit a point source, based on the Nebula's point sources!
         stars = parent.srcs[1:]
-        
+
         # First, the lens galaxy light:
         xd = galaxy.getPosition()
         md = galaxy.getBrightness()
         galshape = galaxy.getShape()
         if self.vb:
             print "Galaxy's brightness = ",md[0]
-        
+
         # NB this will fail if Nebula does not fit a galaxy well...
-        
-        
-        # Now need thetaE (from image positions) and external shear. 
-        
+
+
+        # Now need thetaE (from image positions) and external shear.
+
         # First compute the image system centroid, unweighted:
         ra, dec = 0.0, 0.0
-        for star in stars: 
+        for star in stars:
             radec = star.getPosition()
             ra += radec.ra
             dec += radec.dec
@@ -267,54 +268,54 @@ class Model():
         # self.deccorr = 1.0
         self.xs0 = (ra - xd.ra)*self.deccorr*3600.0
         self.ys0 = (dec - xd.dec)*3600.0
-        # First guess at source position is just the image centroid.        
+        # First guess at source position is just the image centroid.
         xs = centroid
         if self.vb:
             print "Zeroth-order source displacement (arcsec) = ",self.xs0,", ",self.ys0
 
         # Make a rough initial estimate of Einstein radius:
         tE = 0.0
-        for star in stars: 
+        for star in stars:
             tE += radec.distanceFrom(centroid)
         tE = tE*3600.0/len(stars)
 
-        
+
         # - - - - - - - - - - - - - - - - - - - - - - - - -
-        
+
         # Update source position according to Adri's math.
         # Remember to add back in xd ra and dec, and take care of dec!
-        # (self.xs1, self.ys1) --> xs = tractor.RaDecPos(xd.ra + self.xs1/self.deccorr, xd.dec + self.ys1)                 
-        
+        # (self.xs1, self.ys1) --> xs = tractor.RaDecPos(xd.ra + self.xs1/self.deccorr, xd.dec + self.ys1)
+
         # Set some parameters:
-        
+
         ts = xd.distanceFrom(xs)*3600.0 # in arcsec
         magicdist=0.75*tE
         toodist=5*tE
         magicflat=0.3
         numb=len(stars)
-        
-        # PJM: Better would be to recurse until the system has converged. 
+
+        # PJM: Better would be to recurse until the system has converged.
         #      If it doesn't converge, there's a problem with the code that
-        #      has to be fixed - so the code should *fail* in this 
+        #      has to be fixed - so the code should *fail* in this
         #      eventuality.
-        
+
         if self.vb:
             print "Number of images = ", numb
             print "Offset in Einstein radii = ",ts/tE
             print "Estimated Einstein Radius (arcsec) = ",tE
-        
+
         # Do some basic checks to avoid obvious problems:
-        
-        if numb==2: 
+
+        if numb==2:
             # The system is a double:
             if ts >= toodist:
                 print "Not a lens, the galaxy is way too far from the quasars!"
                 assert False
-                
+
             elif (ts >= magicdist or galshape.ab < magicflat or galshape.ab > 1./magicflat):
                 if self.vb:
                     print "Galaxy may just be fitting noise, repositioning."
-                
+
                 # Reposition galaxy, reset axis ratio and p.a.:
                 galpx, galpy, weight = 0.0, 0.0, 0.0
                 pippo0 = stars[0].getBrightness()[0]
@@ -329,42 +330,42 @@ class Model():
                     istar += 1
                 galpx, galpy = galpx/weight, galpy/weight
                 xd.ra, xd.dec = galpx, galpy
-                
+
                 # LT tries to reabsorb defects in the Nebula fit by playing
                 # around with very elongated or localised galaxy components.
                 # Reset these to ensure lens galaxy is roundish.
                 galshape.ab = 1.1  # MAGIC reset axis ratio to be reasonably round...
                 galshape.phi = 0.0 # MAGIC reset orientation to avoid mimicking the QSO residuals
-                galshape.re = tE   # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation        
-                
+                galshape.re = tE   # MAGIC reset eff.radius, in arcseconds, practically the extent of the img separation
+
                 # Set zero shear, phi = p.a. of lens galaxy:
                 gamma = 0.0
                 gamma1, gamma2 = 0.0, 0.0
                 phi = galshape.phi
                 # Source position has already been set (xs)
                 # Compute SIS total magnification for initial flux estimates
-                mu = 2.0*tE/ts 
+                mu = 2.0*tE/ts
 
             else:
-                # Lens galaxy looks sensible, and has a well defined position - 
+                # Lens galaxy looks sensible, and has a well defined position -
                 # so the shear cannot be zero. We have to solve for both the
-                # shear and the Einstein radius, and in the process we get the 
+                # shear and the Einstein radius, and in the process we get the
                 # refined source position.
-                
+
                 xs,tE,gamma1,gamma2,mu = self.solve_for_initial_lens_mass_and_source_position(stars,xd,tE)
 
 
-        elif numb==4: 
+        elif numb==4:
             # The system is a quad - so we can solve for xd as well.
-            
+
             if ts >= toodist:
                 print "Not a lens, the galaxy is way too far from the quasars!"
                 assert False
-                
+
             elif (ts >= magicdist or galshape.ab < magicflat or galshape.ab > 1./magicflat):
                 if self.vb:
                     print "Galaxy may just be fitting noise, repositioning."
-                
+
                 # Reposition galaxy using magnitudes in the first card, reset axis ratio and p.a.
                 galpx, galpy, weight = 0.0, 0.0, 0.0
                 pippo0 = stars[0].getBrightness()[0]
@@ -377,9 +378,9 @@ class Model():
                 galpx, galpy = galpx/weight, galpy/weight
                 xd.ra, xd.dec = galpx, galpy
                 galshape.ab = 0.8 # magic reset to axis ratio
-                galshape.phi = 0.0   
+                galshape.phi = 0.0
                 galshape.re = resetre
-                
+
                 # We need the centroid position *relative to the galaxy*, so we need to re-do this when resetting
                 if self.vb:
                     print "Solving for source position, shear etc..."
@@ -388,25 +389,25 @@ class Model():
                 self.xs0 = (ra - xd.ra)*self.deccorr*3600.0
                 self.ys0 = (dec - xd.dec)*3600.0
                 self.xs0 *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
-                # First guess at source position is just the image centroid.        
+                # First guess at source position is just the image centroid.
                 xs = centroid
 
-            
+
             # Now, recursively optimize the centre of mass of the lens:
-            
+
             ireccen=1
             Nreccen = 100 # No. of recursion steps for optimizing lens pos
             while ireccen<Nreccen:
                 if self.vb:
-                    print "Galaxy position = ", xd.ra,", ", xd.dec                
+                    print "Galaxy position = ", xd.ra,", ", xd.dec
                 self.deccorr = np.cos(xd.dec*deg2rad)
-                
+
                 xs,tE,gamma1,gamma2,mu = self.solve_for_initial_lens_mass_and_source_position(stars,xd,tE)
-                
+
                 if self.vb:
                     print "tE (arcsec) = ", tE
                     print "total magnification = ", mu
-                
+
                 # Now we adjust the lens mass center:
                 xd = self.solve_for_initial_lens_position(stars,xd,tE,gamma1,gamma2)
 
@@ -415,25 +416,25 @@ class Model():
         # Now we have everything we need to instantiate our Lens and Source models.
 
 
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
         # Instantiate ExternalShear object:
-       
+
         gamma = (gamma1**2+gamma2**2)**0.5
         shreg = 0.0001
         phi = 0.5*np.arctan(gamma2/(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
         # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
         # phi = 0.5*np.arctan2(gamma2,(gamma1+shreg)) # shreg helps in case gamma1==0, which is not expected to happen but one never knows..
-        # PJM: tried arctan2. This code needs checking carefully against 
-        #      analytic results. 
+        # PJM: tried arctan2. This code needs checking carefully against
+        #      analytic results.
         phi = np.rad2deg(phi)
         xshear = lenstractor.ExternalShear(gamma,phi)
         # PJM: this is also potentially a source of error - a mismatch between your
         #      definition of phi and LensTractor's. Really, all this source estimation stuff
         #      should be a getLensedSource method in the LensGalaxy class (as I was writing).
-        #      Not sure if that would help with the angle issues here, but it woudl keep 
+        #      Not sure if that would help with the angle issues here, but it woudl keep
         #      the code modular...
-        
+
         # Old workflow piece still valid
         ms = stars[0].getBrightness()
         # Start with just one point source's flux:
@@ -441,7 +442,7 @@ class Model():
         # The Tractor likes starting with smaller fluxes...
         # mu = 10.0*mu
         # Add the other images' flux:
-        for star in stars[1:]: 
+        for star in stars[1:]:
             pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
         # Correct source brightness for approximate magnification:
         pointsource.setBrightness(pointsource.getBrightness() + 2.5*np.log10(mu))
@@ -458,18 +459,18 @@ class Model():
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
         # if self.vb: print lensgalaxy
         # Note: this puts the lens mass where the galaxy light is!
-        
+
         if self.vb: print pointsource
 
         self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
         # assert False
-        
+
         return
-        
+
 # ----------------------------------------------------------------------------
 
     def solve_for_initial_lens_mass_and_source_position(self,stars,xd,tE):
-        
+
         #-- compute Ax etc
         Ax = Ay = sum0 = sum1 = sum2 = sum3 = sum4 = sum5 = A21 = A22 = A31 = A33 = B1 = B2 = 0.0
         #-- optimize for shear
@@ -509,10 +510,10 @@ class Model():
             tE = (B1 + gamma1*A12 + A13*gamma2)/A11
             gamma1 = -(B2 - A21*tE)/A22
             gamma2 = -(B3 - A31*tE)/A33
-            irec += 1    
-        
+            irec += 1
+
         # Now compute the source position, and magnification:
-        
+
         self.xs1 = self.ys1 = 0.0
         mu = 0.0 # for the SIS+XS total magnification
         muinvreg = 0.001 # to cope with possibly infinite magnification (although vey unlikely)
@@ -529,15 +530,15 @@ class Model():
             mu += 1.0/(np.abs(muinv) + muinvreg)
         self.xs1, self.ys1 = self.xs1/len(stars), self.ys1/len(stars) # Nb. in arcsec
         ras1, decs1 = -self.xs1/(self.deccorr*3600.0), self.ys1/3600.0 # Nb. in degrees, on sky
-        
-        xs = tractor.RaDecPos(xd.ra + ras1, xd.dec + decs1) 
+
+        xs = tractor.RaDecPos(xd.ra + ras1, xd.dec + decs1)
 
         return xs,tE,gamma1,gamma2,mu
 
 # ----------------------------------------------------------------------------
 
     def solve_for_initial_lens_position(self,stars,xd,tE,gamma1,gamma2):
-        
+
         learnrate = 0.1
         d11 = d12 = 0.0
         d21 = d22 = 0.0
@@ -546,7 +547,7 @@ class Model():
         treg = 0.00001 # just not to have zero denominator in blabla/thetai
         for star in stars:
             stradec = star.getPosition()
-            dxs = (stradec.ra-xd.ra)*self.deccorr*3600.0 
+            dxs = (stradec.ra-xd.ra)*self.deccorr*3600.0
             dys = (stradec.dec-xd.dec)*3600.0
             dxs *= -1.0 # To make x increase to the W, in a RH coord system, as in lens.py.
             thetai = treg + (dxs**2 + dys**2)**0.5
@@ -576,17 +577,17 @@ class Model():
         return xd
 
 # ----------------------------------------------------------------------------
-    
+
     def get_positions_from(self,catalog,SED):
-    
+
         positions = []
         Nbands = SED.numberOfParams()
-        
-        # Open up LT output catalog format file and read positions, assuming 
+
+        # Open up LT output catalog format file and read positions, assuming
         # hard-coded column numbers from the PS1 example:
         # Need to change that for other surveys!
         x = np.loadtxt(catalog)
-        
+
         # Init catalogs are always for Nebulae models.
         # Parameters are something like:
         #
@@ -613,22 +614,22 @@ class Model():
         # 21  catalog.source2.brightness.i   1.835242649962165373e+01
         # 22  catalog.source2.brightness.r   1.844604212419161726e+01
         # 23  catalog.source2.brightness.u   1.893952465584669653e+01
-        # 24  catalog.source2.brightness.z   1.829995958971434789e+01        
-        
+        # 24  catalog.source2.brightness.z   1.829995958971434789e+01
+
         # ie Npars = (5 + Nbands) + K*(2 + Nbands)
         # where K is the no. of point sources in the Nebula.
 
         numerator = (len(x) - (5 + Nbands))
-        denominator = (2 + Nbands)        
+        denominator = (2 + Nbands)
         assert numerator%denominator == 0
         Npos = numerator/denominator
         if (Npos < 1 or Npos > 4):
             print "ERROR: unrecognised Nebula model in catalog. K = ",Npos
             assert False
-        
+
         # Set up Nebula model:
         self.K = Npos
-                
+
         # Create position objects:
         j = 0
         positions.append(tractor.RaDecPos(x[j],x[j+1]))
@@ -639,60 +640,60 @@ class Model():
         assert len(positions) == (self.K+1)
 
         return positions
-        
+
 # ----------------------------------------------------------------------------
-    
+
     def plot(self,wcs,band):
-    
+
         if self.flavor == 'Nebula':
             self.plot_Nebula(wcs,band)
         else:
             self.plot_Lens(wcs,band)
-        
+
         return
-    
+
 # ----------------------------------------------------------------------------
-    
+
     def plot_Nebula(self,wcs,band):
-    
+
         galaxy = self.srcs[0]
         stars = self.srcs[1:]
-        
+
         # Plot galaxy as orange circle:
         radec = galaxy.getPosition()
         x,y = wcs.positionToPixel(radec)
         SED = galaxy.getBrightness()
         plotmag = (20.0 - SED.getMag(band))*50 # MAGIC 20,50
         plt.scatter(x,y,color='orange',s=plotmag,alpha=0.3)
-        
+
         # Plot point sources as cyan circles:
-        for star in stars: 
+        for star in stars:
             radec = star.getPosition()
             x,y = wcs.positionToPixel(radec)
             SED = star.getBrightness()
             plotmag = (20.0 - SED.getMag(band))*50 # MAGIC 20,50
             plt.scatter(x,y,color='cyan',s=plotmag,alpha=0.3)
-        
+
         return
-    
+
 # ----------------------------------------------------------------------------
-    
+
     def plot_Lens(self,wcs,band):
-       
+
         # Plot lens galaxy as orange circle:
         # lensgalaxy = self.srcs[0]
         # source = self.srcs[1:]
-        
+
         # Get image positions:
         # FUNCTIONCALL
-        
+
         # Plot point images as cyan circles:
-        # for ptimg in ptimgs: 
-   
-   
-   
+        # for ptimg in ptimgs:
+
+
+
         return
-    
+
 # ============================================================================
 
 if __name__ == '__main__':

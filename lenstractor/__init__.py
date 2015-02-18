@@ -3,6 +3,7 @@ from ps1 import *
 from kids import *
 from sdss import *
 from lens import *
+from nebula import *
 from dm import *
 from driver import *
 from model import *
