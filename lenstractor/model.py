@@ -156,7 +156,8 @@ class Model():
                 starpos = position.copy() + tractor.RaDecPos(dx,dy)
             starSED = SED.copy() + 2.5*np.log10((self.K+1)/fudge)
             # Package up:
-            star = tractor.PointSource(starpos,starSED)
+            star = lenstractor.Star(starpos,starSED)
+            star.setPriors()
             if self.vb: print star
             self.srcs.append(star)
 
@@ -170,6 +171,7 @@ class Model():
 
         # Inherit the galaxy from the parent:
         nebulousgalaxy = parent.srcs[0]
+        nebulousgalaxy.setPriors()
         if self.vb: print nebulousgalaxy
         self.srcs.append(nebulousgalaxy)
 
@@ -184,6 +186,7 @@ class Model():
             star1 = parentstars[k]
             parentBrightness = star1.getBrightness()
             star1.setBrightness(parentBrightness + 2.5*np.log10(1.0/(1.0-fluxratio)))
+            star1.setPriors()
             stars.append(star1)
             if self.vb: print "Point source",star1
             k += 1
@@ -194,6 +197,7 @@ class Model():
                 star2.setPosition(star2.getPosition() + tractor.RaDecPos(dx,dy))
                 # BUG: not quite the right way to add small offsets in WCs...
                 star2.setBrightness(parentBrightness + 2.5*np.log10(1.0/fluxratio))
+                star2.setPriors()
                 stars.append(star2)
                 if self.vb: print "Point source",star2
         for star in stars:
@@ -209,8 +213,9 @@ class Model():
         # Start with a source to be lensed:
         xs = position.copy()
         ms = SED.copy() + 2.5*np.log10(40.0)
-        pointsource = tractor.PointSource(xs,ms)
-        if self.vb: print pointsource
+        quasar = lenstractor.Quasar(xs,ms)
+        quasar.setPriors()
+        if self.vb: print quasar
 
         # Figure out a suitable initial lens potential:
         thetaE = lenstractor.EinsteinRadius(0.2) # arcsec. Start small, Adri?
@@ -231,7 +236,7 @@ class Model():
         lensgalaxy.setPriors()
         if self.vb: print lensgalaxy
 
-        self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
+        self.srcs.append(lenstractor.QuasarLens(lensgalaxy, quasar))
 
         return
 
@@ -454,14 +459,15 @@ class Model():
         # Old workflow piece still valid
         ms = stars[0].getBrightness()
         # Start with just one point source's flux:
-        pointsource = tractor.PointSource(xs,ms)
+        quasar = lenstractor.Quasar(xs,ms)
         # The Tractor likes starting with smaller fluxes...
         # mu = 10.0*mu
         # Add the other images' flux:
         for star in stars[1:]:
-            pointsource.setBrightness(pointsource.getBrightness() + star.getBrightness())
+            quasar.setBrightness(quasar.getBrightness() + star.getBrightness())
         # Correct source brightness for approximate magnification:
-        pointsource.setBrightness(pointsource.getBrightness() + 2.5*np.log10(mu))
+        quasar.setBrightness(quasar.getBrightness() + 2.5*np.log10(mu))
+        quasar.setPriors()
 
         thetaE = lenstractor.EinsteinRadius(tE)
         if self.vb:
@@ -473,12 +479,13 @@ class Model():
             print "Estimated shear angle (degrees) = ",phi
         # Package into lensgalaxy:
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
+        lensgalaxy.setPriors()
         # if self.vb: print lensgalaxy
         # Note: this puts the lens mass where the galaxy light is!
 
-        if self.vb: print pointsource
+        if self.vb: print quasar
 
-        self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))
+        self.srcs.append(lenstractor.QuasarLens(lensgalaxy, quasar))
         # assert False
 
         return

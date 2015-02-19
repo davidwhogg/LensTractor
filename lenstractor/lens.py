@@ -125,7 +125,7 @@ class LensGalaxy(galaxy.DevGalaxy):
             '''
             Unpack the parameters and pass to an instance of a
             gravitational lens, and ask for the image positions and fluxes for
-            the given source. The source is a `PointSource` object.
+            the given source. The source is a `Quasar` object.
             '''
             # Unpack the lens:
             lensRein = self.Rein[0]
@@ -163,29 +163,29 @@ class LensGalaxy(galaxy.DevGalaxy):
 
 # ============================================================================
 
-class PointSourceLens(tractor.MultiParams):
+class QuasarLens(tractor.MultiParams):
        '''
-       PointSourceLens is a composite object consisting of a LensGalaxy [that has
-       both light (Galaxy) and mass (GravitationalLens)], and a virtual Point
-       Source behind it. The lensed image positions are determined by the
+       QuasarLens is a composite object consisting of a LensGalaxy [that has
+       both light (Galaxy) and mass (GravitationalLens)], and a Quasar
+       source behind it. The lensed image positions are determined by the
        lensing deflection; the magnified fluxes need to be perturbed in order
-       to fit the data. Initialise with a LensGalaxy object, a PointSource
+       to fit the data. Initialise with a LensGalaxy object, a Quasar
        object, and internally with four magnification perturbations
        [to be implemented] (of which only 2, 3 or 4 are used in any given
        image configuration and which are initially set  to unity.
        '''
 
-       def __init__(self, lensgalaxy, pointsource):
+       def __init__(self, lensgalaxy, quasar):
 #             dmag = ParamList(np.zeros(4))
             # The next line fails if MultiParams.__init__ *copies*
-            # self.lensgalaxy, self.pointsource and self.dmag rather than
+            # self.lensgalaxy, self.quasar and self.dmag rather than
             # points to them...
-#             MultiParams.__init__(self, lensgalaxy, pointsource, dmag)
-            tractor.MultiParams.__init__(self, lensgalaxy, pointsource)
+#             MultiParams.__init__(self, lensgalaxy, quasar, dmag)
+            tractor.MultiParams.__init__(self, lensgalaxy, quasar)
 
-            # Create 4 local cached PointSource instances for the purpose of
+            # Create 4 local cached Quasar instances for the purpose of
             # patch-making later:
-            self.pointsourcecache = [pointsource.copy() for i in range(4)]
+            self.quasarcache = [quasar.copy() for i in range(4)]
 
             # Total magnification of the lens, for step sizes:
             self.mu = 1.0
@@ -194,19 +194,19 @@ class PointSourceLens(tractor.MultiParams):
 
        def __str__(self):
             return (self.getName() + ' comprising a ' + str(self.lensgalaxy)
-                                   + ' and a ' + str(self.pointsource)
+                                   + ' and a ' + str(self.quasar)
                                    + ' where ' + str(self.getMultiplicity())
                                    + ' images are predicted')
 
        def getName(self):
-            return 'PointSourceLens'
+            return 'QuasarLens'
 
        def getNamedParams(self):
-            # return dict(lensgalaxy=0, pointsource=1, dmag=2)
-            return dict(lensgalaxy=0, pointsource=1)
+            # return dict(lensgalaxy=0, quasar=1, dmag=2)
+            return dict(lensgalaxy=0, quasar=1)
 
        def getMultiplicity(self):
-            imagepositions, imagemagnifications = self.lensgalaxy.getLensedImages(self.pointsource)
+            imagepositions, imagemagnifications = self.lensgalaxy.getLensedImages(self.quasar)
             return len(imagemagnifications)
 
        # Only 'img' is used in the function below.
@@ -214,23 +214,23 @@ class PointSourceLens(tractor.MultiParams):
        # match the calling of this function in tractor/engine.py.
        def getModelPatch(self, img, src=None, minsb=0., **kwargs):
                '''
-               Render the image of the PointSourceLens on the image grid provided.
+               Render the image of the QuasarLens on the image grid provided.
                '''
                # Lens galaxy:
                patch = self.lensgalaxy.getModelPatch(img)
 
                # Solve the lens equation to get the image positions and fluxes.
                # Note: images are returned time-ordered:
-               imagepositions, imagemagnifications = self.lensgalaxy.getLensedImages(self.pointsource)
+               imagepositions, imagemagnifications = self.lensgalaxy.getLensedImages(self.quasar)
                # Keep track of total magnification of lens:
                self.mu = np.sum(np.abs(imagemagnifications))
 
                # Add point image patches to the patch, applying dmags:
                for i,(imageposition,imagemagnification) in enumerate(zip(imagepositions,imagemagnifications)):
-                  # Recall: pointsourcecache is a list of 4 pointsource instances, to be pointed at.
-                  PS = self.pointsourcecache[i]
+                  # Recall: quasarcache is a list of 4 quasar instances, to be pointed at.
+                  PS = self.quasarcache[i]
                   PS.setPosition(imageposition)
-                  PS.setBrightness(self.pointsource.getBrightness()*imagemagnification)
+                  PS.setBrightness(self.quasar.getBrightness()*imagemagnification)
                   # This is brittle - if the Patch is entirely outside the FoV, getModelPatch returns None,
                   # which cannot be added...
                   patch += PS.getModelPatch(img)
@@ -244,7 +244,7 @@ class PointSourceLens(tractor.MultiParams):
                # Step sizes (MAGIC 0.1):
                delta = 0.1*self.lensgalaxy.Rein.val/self.mu
                # print "Source position step size (arcsec) = ",delta
-               # self.pointsource.pos.setStepSizes(delta/3600.0)
+               # self.quasar.pos.setStepSizes(delta/3600.0)
                # Derivatives:
                derivs = []
                # print 'Step size check, img =', img.name

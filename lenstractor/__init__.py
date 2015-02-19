@@ -4,6 +4,7 @@ from kids import *
 from sdss import *
 from lens import *
 from nebula import *
+from quasar import *
 from dm import *
 from driver import *
 from model import *
