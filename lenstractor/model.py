@@ -228,6 +228,7 @@ class Model():
         # Shape parameters are now (logre, ee1, ee2)
 
         lensgalaxy = lenstractor.LensGalaxy(xd,md,galshape,thetaE,xshear)
+        lensgalaxy.setPriors()
         if self.vb: print lensgalaxy
 
         self.srcs.append(lenstractor.PointSourceLens(lensgalaxy, pointsource))

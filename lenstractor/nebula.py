@@ -15,9 +15,7 @@ import tractor
 from tractor import galaxy
 
 import lenstractor
-
-arcsec2deg = 1.0/3600.0
-deg2rad = np.pi/180.0
+from lenstractor import constants as const
 
 # ============================================================================
 
@@ -49,8 +47,8 @@ class NebulousGalaxy(galaxy.DevGalaxy):
 
     def setPriors(self):
         # MAGIC: prior settings!
-        self.pos.addGaussianPrior('ra',self.pos.ra,0.5*arcsec2deg*np.cos(self.pos.dec*deg2rad))
-        self.pos.addGaussianPrior('dec',self.pos.dec,0.5*arcsec2deg)
+        self.pos.addGaussianPrior('ra',self.pos.ra,0.5*const.arcsec2deg*np.cos(self.pos.dec*const.deg2rad))
+        self.pos.addGaussianPrior('dec',self.pos.dec,0.5*const.arcsec2deg)
         for band in self.brightness.order:
             self.brightness.addGaussianPrior(band,20.0,2.0)
         self.shape.addGaussianPrior('ee1', 0., 0.25)

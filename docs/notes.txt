@@ -1699,6 +1699,12 @@ python ../LensTractor.py -n 4 -z -v --survey PS1 \
      H1413+117_10x10arcsec_Nebula4_priortest.log & ; \
 tail -f H1413+117_10x10arcsec_Nebula4_priortest.log
 
+python ../LensTractor.py -l -z -v --survey PS1 \
+  -o H1413+117_10x10arcsec \
+     ../examples/ps1/H1413+117_10x10arcsec_*.fits >& \
+     H1413+117_10x10arcsec_Lens_priortest.log & ; \
+tail -f H1413+117_10x10arcsec_Lens_priortest.log
+
 
 # =============================================================================
 FINISH:
