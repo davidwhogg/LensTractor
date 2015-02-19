@@ -33,9 +33,12 @@ class NebulousGalaxy(galaxy.DevGalaxy):
         self.name = self.getName()
 
     def __str__(self):
-        return (self.getName() + ' at ' + str(self.pos)
-                               + ' with ' + str(self.brightness)
-                               + ' and ' + str(self.shape)
+        return (self.getName() + ' at ' + str(self.pos) + ' with '
+                               + str(self.pos.gpriors) + ', '
+                               + ' with ' + str(self.brightness) + ' and '
+                               + str(self.brightness.gpriors) + ', '
+                               + ' and ' + str(self.shape) + ' with '
+                               + str(self.shape.gpriors)
                )
 
     def getName(self):
@@ -48,11 +51,12 @@ class NebulousGalaxy(galaxy.DevGalaxy):
         # MAGIC: prior settings!
         self.pos.addGaussianPrior('ra',self.pos.ra,0.5*arcsec2deg*np.cos(self.pos.dec*deg2rad))
         self.pos.addGaussianPrior('dec',self.pos.dec,0.5*arcsec2deg)
-        # for band in self.brightness.order:
-        #     self.brightness.addGaussianPrior(band,20.0,2.0)
+        for band in self.brightness.order:
+            self.brightness.addGaussianPrior(band,20.0,2.0)
         self.shape.addGaussianPrior('ee1', 0., 0.25)
         self.shape.addGaussianPrior('ee2', 0., 0.25)
         self.shape.addGaussianPrior('logre',np.log(0.5),0.3)
+        return
 
 # ============================================================================
 
