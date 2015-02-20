@@ -1705,6 +1705,37 @@ python ../LensTractor.py -l -z -v --survey PS1 \
      H1413+117_10x10arcsec_Lens_priortest.log & ; \
 tail -f H1413+117_10x10arcsec_Lens_priortest.log
 
+# Both tests pass - except for bug in tractor/mixture_profiles.py.
+
+
+Traceback (most recent call last):
+  File "../LensTractor.py", line 399, in <module>
+    main()
+  File "../LensTractor.py", line 324, in main
+    LT = lenstractor.LensTractor(dataset,model,args.outstem,args.survey,counter=counter,vb=vb,noplots=args.noplots)
+  File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/driver.py", line 98, in __init__
+    self.plot_state('progress-%02d_initial_'%self.counter+self.model.name)
+  File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/driver.py", line 517, in plot_state
+    chi = self.chug.getChiImage(i)
+  File "/Users/pjm/work/tractor/tractor/engine.py", line 2424, in getChiImage
+    mod = self.getModelImage(img, srcs=srcs, minsb=minsb)
+  File "/Users/pjm/work/tractor/tractor/engine.py", line 2304, in getModelImage
+    patch = self.getModelPatch(img, src, minsb=minsb)
+  File "/Users/pjm/work/tractor/tractor/engine.py", line 2283, in getModelPatch
+    mod = self.getModelPatchNoCache(img, src, minsb=minsb, **kwargs)
+  File "/Users/pjm/work/tractor/tractor/engine.py", line 2266, in getModelPatchNoCache
+    return src.getModelPatch(img, **kwargs)
+  File "/Users/pjm/work/tractor/tractor/galaxy.py", line 148, in getModelPatch
+    p1 = self.getUnitFluxModelPatch(img, minval=minval)
+  File "/Users/pjm/work/tractor/tractor/galaxy.py", line 313, in getUnitFluxModelPatch
+    extent=extent)
+  File "/Users/pjm/work/tractor/tractor/galaxy.py", line 362, in _realGetUnitFluxModelPatch
+    exactExtent=(extent is not None))
+  File "/Users/pjm/work/tractor/tractor/mixture_profiles.py", line 350, in mixture_to_patch
+    return mixture.evaluate_grid(x0, x1, y0, y1, 0., 0.)
+  File "/Users/pjm/work/tractor/tractor/mixture_profiles.py", line 237, in evaluate_grid_dstn
+    self.amp, self.mean,self.var, result)
+TypeError: in method 'c_gauss_2d_grid', argument 6 of type 'int'
 
 # =============================================================================
 FINISH:

@@ -9,3 +9,4 @@ from dm import *
 from driver import *
 from model import *
 from constants import *
+from trattore import *

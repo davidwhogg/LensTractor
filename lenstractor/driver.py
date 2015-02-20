@@ -49,9 +49,9 @@ class LensTractor():
       2014-04-17       Started Marshall & Agnello (UCSB)
     '''
 # ----------------------------------------------------------------------------
-    
+
     def __init__(self,dataset,model,outstem,survey,counter=0,vb=0,noplots=True):
-    
+
         self.name = 'LensTractor'
         self.survey = survey
 
@@ -65,23 +65,24 @@ class LensTractor():
         self.settings['Nsnapshots'] = 3
         self.settings['Nsteps_per_snapshot'] = 5000
         self.settings['Restart'] = True
-        
+
         self.model = model
-        
+
         self.vb = vb
         self.noplots = noplots
         self.plot_all = True
-        
+
         self.outstem = outstem.split('.')[0]
-        
+
         self.bestpars = None
         self.maxlnp = None
         self.minchisq = None
         self.psteps = None
-        
+
         self.counter = counter
-        
-        self.chug = tractor.Tractor(dataset)
+
+        # self.chug = tractor.Tractor(dataset)
+        self.chug = lenstractor.Trattore(dataset)
         for src in self.model.srcs:
             self.chug.addSource(src)
 
@@ -92,29 +93,29 @@ class LensTractor():
             image.freezeParams('photocal')
             image.freezeParams('wcs')
             image.freezeParams('psf')
-        
+
         # Plot initial state:
-        if not self.noplots: 
+        if not self.noplots:
             self.plot_state('progress-%02d_initial_'%self.counter+self.model.name)
-        
+
         return None
 
 # ----------------------------------------------------------------------------
 # Drive the LensTractor. We have both steepest ascent and MCMC capability.
 # Try a mixture!
-   
+
     def drive(self,by='cunning_and_guile'):
-        
+
         self.method = by
-        
+
         if self.method == 'sampling':
-        
+
             self.sample()
-            
+
         elif self.method == 'optimizing':
 
             if self.model.flavor == 'Nebula':
-            
+
                 # First optimize to get the Nebula model about right, at fixed PSF:
                 self.settings['Nrounds'] = 2
                 self.settings['Nsteps_optimizing_catalog'] = 100000
@@ -132,42 +133,42 @@ class LensTractor():
                 self.settings['Nsteps_optimizing_catalog'] = 10000
                 self.settings['Nsteps_optimizing_PSFs'] = 0
                 self.optimize()
-        
+
             elif self.model.flavor == 'Lens':
-            
+
                 # PSF is already optimized, during Nebula run.
                 # Just do the lens part:
-                
+
                 self.settings['Nrounds'] = 2
                 self.settings['Nsteps_optimizing_catalog'] = 10000
                 self.settings['Nsteps_optimizing_PSFs'] = 0
                 self.optimize()
-               
-        
+
+
         else: # Apply cunning and guile! Both optimization and sampling.
-         
+
             # First optimize to get the fluxes about right:
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 100000
             self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()          
+            self.optimize()
             # Now optimize PSF at fixed model:
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 0
             self.settings['Nsteps_optimizing_PSFs'] = 2
-            self.optimize()           
+            self.optimize()
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 10000
             self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize() 
-            
+            self.optimize()
+
             # Now draw a few samples to shuffle the positions:
             self.settings['Nsnapshots'] = 1
             self.settings['Nwalkers_per_dim'] = 4
             self.settings['Nsteps_per_snapshot'] = 2500
             self.settings['Restart'] = True
             self.sample()
-            
+
             # Now optimize to refine model and PSF:
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 50000
@@ -181,22 +182,22 @@ class LensTractor():
             self.settings['Nsteps_optimizing_catalog'] = 10000
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
-            
+
         self.getBIC()
-        
+
         return None
 
 # ----------------------------------------------------------------------------
-# Fit the model to the image data by maximizing the posterior PDF 
+# Fit the model to the image data by maximizing the posterior PDF
 # ("optimizing") with respect to the parameters.
-  
+
     def optimize(self):
 
         Nrounds = self.settings['Nrounds']
         Nsteps_optimizing_catalog = self.settings['Nsteps_optimizing_catalog']
         Nsteps_optimizing_PSFs = self.settings['Nsteps_optimizing_PSFs']
 
-        if self.vb: 
+        if self.vb:
            print " "
            print "Optimizing model:"
            print "   - no. of iterations per round to be spent on catalog: ",Nsteps_optimizing_catalog
@@ -208,7 +209,7 @@ class LensTractor():
 
             if self.vb: print "Fitting "+self.model.name+": seconds out, round",round
 
-            if self.vb: 
+            if self.vb:
                 print "Fitting "+self.model.name+": Catalog parameters to be optimized are:",self.chug.getParamNames()
                 print "Fitting "+self.model.name+": Initial values are:",self.chug.getParams()
                 print "Fitting "+self.model.name+": Step sizes:",self.chug.getStepSizes()
@@ -217,21 +218,21 @@ class LensTractor():
             for i in range(Nsteps_optimizing_catalog):
                dlnp,X,a = self.chug.optimize(damp=3,shared_params=False)
                # print "Fitting "+self.model.name+": at step",k,"parameter values are:",self.chug.getParams()
-               if self.vb: 
+               if self.vb:
                    print "Progress: counter,dlnp = ",self.counter,dlnp
                    print ""
                    print "Catalog parameters:",self.chug.getParamNames()
                    print "Catalog values:",self.chug.getParams()
-               if dlnp == 0: 
+               if dlnp == 0:
                    print "Converged? Exiting..."
                    # Although this only leaves *this* loop...
                    break
-            
-            if not self.noplots: 
+
+            if not self.noplots:
                 self.plot_state('progress-%02d_optimizing_'%self.counter+self.model.name)
 
             if Nsteps_optimizing_PSFs > 0:
-            
+
                 # Freeze the sources and calibration, and thaw the psfs:
                 if self.vb: print "Freezing catalog..."
                 self.chug.freezeParams('catalog')
@@ -240,7 +241,7 @@ class LensTractor():
                     image.thawParams('psf')
                     if self.vb: print "Freezing photocal, WCS, sky (just to make sure...)"
                     image.freezeParams('photocal', 'wcs', 'sky')
-                if self.vb: 
+                if self.vb:
                     print "Fitting PSF: After thawing, zeroth PSF = ",self.chug.getImage(0).psf
                     print "Fitting PSF: PSF parameters to be optimized are:",self.chug.getParamNames()
                     print "Fitting PSF: Initial values are:",self.chug.getParams()
@@ -251,7 +252,7 @@ class LensTractor():
                    dlnp,X,a = self.chug.optimize(shared_params=False)
                    if self.vb: print "Fitting PSF: at counter =",self.counter,"parameter values are:",self.chug.getParams()
                 self.counter += 1
-                
+
                 if self.vb: print "Fitting PSF: After optimizing, zeroth PSF = ",self.chug.getImage(0).psf
                 if not self.noplots: self.plot_state(
                     'progress-%02d_optimizing_PSF_for_'%self.counter+self.model.name)
@@ -276,15 +277,15 @@ class LensTractor():
         if self.vb: print "Optimizer: chisq at highest lnprob point: ",self.minchisq
 
         return None
-        
+
 # ----------------------------------------------------------------------------
-# Fit the model to the image data by drawing samples from the posterior PDF 
+# Fit the model to the image data by drawing samples from the posterior PDF
 # that have high probability density: note, this is not really sampling,
 # its *sampling to optimize*...
 
     def sample(self):
 
-        if self.vb: 
+        if self.vb:
            print "Sampling model parameters with Emcee:"
 
         # Magic numbers:
@@ -305,10 +306,10 @@ class LensTractor():
         Nw = Nwalkers_per_dim*Ndim # 8*ndim
         sampler = emcee.EnsembleSampler(Nw, Ndim, self.chug, threads=4)
 
-        # Start the walkers off near the initialisation point - 
+        # Start the walkers off near the initialisation point -
         # We need it to be ~1 pixel in position, and not too much
         # flux restriction... But use any psteps we already have!
-        
+
         if self.psteps is None:
             if self.model.name=='Lens':
                # The following gets us 0.05" in dec:
@@ -317,9 +318,9 @@ class LensTractor():
             else:
                # Good first guess should be some fraction of the optimization step sizes:
                self.psteps = 0.01*np.array(self.chug.getStepSizes())
-               
+
         if self.vb: print "Initial size (in each dimension) of sample ball = ",self.psteps
-        
+
         #pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
         pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
         rstate = None
@@ -328,7 +329,7 @@ class LensTractor():
         # Take a few steps - memory leaks fast! (~10Mb per sec)
         for snapshot in range(1,Nsnapshots+1):
               self.counter += 1
-              
+
               if self.vb: print 'Emcee: MCMC snapshot:', snapshot
               t0 = tractor.Time()
               pp,lnp,rstate = sampler.run_mcmc(pp, Nsteps_per_snapshot, lnprob0=lnp, rstate0=rstate)
@@ -342,10 +343,10 @@ class LensTractor():
               best = np.where(lnp == self.maxlnp)
               self.bestpars = np.ravel(pp[best,:])
               if self.vb: print "Emcee: Best parameters: ",self.maxlnp,self.bestpars
-              
+
               self.minchisq = -2.0*self.chug.getLogLikelihood()
               if self.vb: print "Emcee: chisq at highest lnprob point: ",self.minchisq
-              if not self.noplots: 
+              if not self.noplots:
                  self.chug.setParams(self.bestpars)
                  self.plot_state('progress-%02d_sampling_'%self.counter+self.model.name)
 
@@ -366,20 +367,20 @@ class LensTractor():
 
 
         return None
-        
+
 # ----------------------------------------------------------------------------
 
-    def getBIC(self):    
+    def getBIC(self):
 
        self.K = len(self.bestpars)
        self.N = self.chug.getNdata()
        self.BIC = self.minchisq + self.K*np.log(1.0*self.N)
-       
+
        return self.BIC
 
 # ----------------------------------------------------------------------------
 
-    def write_catalog(self):    
+    def write_catalog(self):
 
         # Get parameter names and values:
         parnames = self.chug.getParamNames()
@@ -393,7 +394,7 @@ class LensTractor():
 
         # Set catalog file name:
         outfile = self.outstem+'_'+self.model.name+'.cat'
-        
+
         # Open up a new file, over-writing any old one:
         try: os.remove(outfile)
         except OSError: pass
@@ -418,7 +419,7 @@ class LensTractor():
         hdr.append(nameline)
         # Write to file:
         for line in hdr:
-            output.write("%s\n" % line)    
+            output.write("%s\n" % line)
         # Close file:
         output.close()
 
@@ -431,40 +432,40 @@ class LensTractor():
 
         return outfile
 
-           
+
 # ----------------------------------------------------------------------------
 
-    def set_cookie(self,outstem,result):    
+    def set_cookie(self,outstem,result):
 
         outfile = self.outstem+'_result.cookie'
-        
+
         # Open up a new file, over-writing any old one:
         try: os.remove(outfile)
         except OSError: pass
         output = open(outfile,'w')
 
         # Write result to file:
-        output.write("%s\n" % result)    
+        output.write("%s\n" % result)
         # Close file:
         output.close()
 
         return outfile
 
-           
+
 # ----------------------------------------------------------------------------
 # Plot progress.
 
     def plot_state(self,suffix):
        '''
-       Make all the plots we need to assess the state of the LensTractor. 
-       Mainly, a multi-panel figure of image, synthetic image and chi, for 
+       Make all the plots we need to assess the state of the LensTractor.
+       Mainly, a multi-panel figure of image, synthetic image and chi, for
        each image being modelled.
 
        self.chug is a Tractor object, containing a list of images.
        '''
 
        if self.plot_all:
-           # Make one giant plot with all progress panels on it, and 
+           # Make one giant plot with all progress panels on it, and
            # save it to PNG:
 
            # Plotting setup:
@@ -477,14 +478,14 @@ class LensTractor():
                top=0.95,\
                wspace=0.1,\
                hspace=0.1)
-           
+
            # Start the plot:
            fig = plt.figure(**figprops)
            fig.subplots_adjust(**adjustprops)
            plt.clf()
            plt.gray()
            counter = 0
-          
+
            # Name the plot file:
            pngfile = self.outstem+'_'+suffix+'.png'
 
@@ -598,7 +599,7 @@ class LensTractor():
            plt.savefig(pngfile)
            if self.vb:
                print "Progress snapshot saved to "+pngfile
-       
+
 
        return
 
