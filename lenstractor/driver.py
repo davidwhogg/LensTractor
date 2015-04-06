@@ -24,17 +24,6 @@ emcee_defaults = {}
 
 import pylab as plt
 
-# Global variables:
-px,py = 2,2
-figprops = dict(figsize=(5*px,5*py), dpi=128)
-adjustprops = dict(\
-   left=0.05,\
-   bottom=0.05,\
-   right=0.95,\
-   top=0.95,\
-   wspace=0.1,\
-   hspace=0.1)
-
 # ============================================================================
 
 class LensTractor():
@@ -61,26 +50,29 @@ class LensTractor():
     '''
 # ----------------------------------------------------------------------------
     
-    def __init__(self,dataset,model,survey,counter=0,vb=0,noplots=True):
+    def __init__(self,dataset,model,outstem,survey,counter=0,vb=0,noplots=True):
     
         self.name = 'LensTractor'
         self.survey = survey
 
         self.settings = {}
         # Optimization settings:
-        self.settings['Nrounds'] = 5
-        self.settings['Nsteps_optimizing_catalog'] = 5
-        self.settings['Nsteps_optimizing_PSFs'] = 0
+ #       self.settings['Nrounds'] = 5
+ #       self.settings['Nsteps_optimizing_catalog'] = 100
+ #       self.settings['Nsteps_optimizing_PSFs'] = 2
         # Sampling settings:
         self.settings['Nwalkers_per_dim'] = 8
         self.settings['Nsnapshots'] = 3
-        self.settings['Nsteps_per_snapshot'] = 10
+        self.settings['Nsteps_per_snapshot'] = 5000
         self.settings['Restart'] = True
         
         self.model = model
         
         self.vb = vb
         self.noplots = noplots
+        self.plot_all = True
+        
+        self.outstem = outstem.split('.')[0]
         
         self.bestpars = None
         self.maxlnp = None
@@ -105,8 +97,6 @@ class LensTractor():
         if not self.noplots: 
             self.plot_state('progress-%02d_initial_'%self.counter+self.model.name)
         
-        self.outstem = None
-        
         return None
 
 # ----------------------------------------------------------------------------
@@ -122,57 +112,76 @@ class LensTractor():
             self.sample()
             
         elif self.method == 'optimizing':
-         
-            # First optimize to get the model about right, at fixed PSF:
-            self.settings['Nrounds'] = 3
-            self.settings['Nsteps_optimizing_catalog'] = 15 # 5
-            self.settings['Nsteps_optimizing_PSFs'] = 2
-            self.optimize()
+
+            if self.model.flavor == 'Nebula':
+            
+                # First optimize to get the Nebula model about right, at fixed PSF:
+                self.settings['Nrounds'] = 2
+                self.settings['Nsteps_optimizing_catalog'] = 100000
+                self.settings['Nsteps_optimizing_PSFs'] = 0
+                self.optimize()
+
+                # Now optimize PSF at fixed model:
+                self.settings['Nrounds'] = 1
+                self.settings['Nsteps_optimizing_catalog'] = 0
+                self.settings['Nsteps_optimizing_PSFs'] = 2
+                self.optimize()
+
+                # Refine Nebula model at best PSF:
+                self.settings['Nrounds'] = 2
+                self.settings['Nsteps_optimizing_catalog'] = 10000
+                self.settings['Nsteps_optimizing_PSFs'] = 0
+                self.optimize()
         
-#             # Now optimize PSF at fixed model:
-#             self.settings['Nrounds'] = 1
-#             self.settings['Nsteps_optimizing_catalog'] = 0
-#             self.settings['Nsteps_optimizing_PSFs'] = 5
-#             self.optimize()
-#             
-#             # Refine model at best PSF:
-#             self.settings['Nrounds'] = 1
-#             self.settings['Nsteps_optimizing_catalog'] = 5
-#             self.settings['Nsteps_optimizing_PSFs'] = 0
-#             self.optimize()
+            elif self.model.flavor == 'Lens':
+            
+                # PSF is already optimized, during Nebula run.
+                # Just do the lens part:
+                
+                self.settings['Nrounds'] = 2
+                self.settings['Nsteps_optimizing_catalog'] = 10000
+                self.settings['Nsteps_optimizing_PSFs'] = 0
+                self.optimize()
+               
         
-        
-        else: # Apply unning and guile!
+        else: # Apply cunning and guile! Both optimization and sampling.
          
             # First optimize to get the fluxes about right:
             self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 3
+            self.settings['Nsteps_optimizing_catalog'] = 100000
             self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()
-            
-            # Now draw a few samples to shuffle the positions:
-            self.settings['Nsnapshots'] = 1
-            self.settings['Nwalkers_per_dim'] = 2
-            self.sample()
-            
-            # Now optimize to refine model at fixed PSF:
-            self.settings['Nrounds'] = 3
-            self.settings['Nsteps_optimizing_catalog'] = 5
-            self.settings['Nsteps_optimizing_PSFs'] = 0
-            self.optimize()
-            
+            self.optimize()          
             # Now optimize PSF at fixed model:
             self.settings['Nrounds'] = 1
             self.settings['Nsteps_optimizing_catalog'] = 0
-            self.settings['Nsteps_optimizing_PSFs'] = 5
-            self.optimize()
-            
-            # Refine model at best PSF:
+            self.settings['Nsteps_optimizing_PSFs'] = 2
+            self.optimize()           
             self.settings['Nrounds'] = 1
-            self.settings['Nsteps_optimizing_catalog'] = 5
+            self.settings['Nsteps_optimizing_catalog'] = 10000
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize() 
+            
+            # Now draw a few samples to shuffle the positions:
+            self.settings['Nsnapshots'] = 1
+            self.settings['Nwalkers_per_dim'] = 4
+            self.settings['Nsteps_per_snapshot'] = 2500
+            self.settings['Restart'] = True
+            self.sample()
+            
+            # Now optimize to refine model and PSF:
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 50000
             self.settings['Nsteps_optimizing_PSFs'] = 0
             self.optimize()
-        
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 0
+            self.settings['Nsteps_optimizing_PSFs'] = 2
+            self.optimize()
+            self.settings['Nrounds'] = 1
+            self.settings['Nsteps_optimizing_catalog'] = 10000
+            self.settings['Nsteps_optimizing_PSFs'] = 0
+            self.optimize()
+            
         self.getBIC()
         
         return None
@@ -327,8 +336,6 @@ class LensTractor():
 # that have high probability density: note, this is not really sampling,
 # its *sampling to optimize*...
 
-# BUG: sampling progress plots are not ordered with optimizations... 
-
     def sample(self):
 
         if self.vb: 
@@ -358,8 +365,8 @@ class LensTractor():
         
         if self.psteps is None:
             if self.model.name=='Lens':
-               # The following gets us 0.2" in dec:
-               self.psteps = np.zeros_like(p0) + 0.00004
+               # The following gets us 0.05" in dec:
+               self.psteps = np.zeros_like(p0) + 0.00001
                # This could be optimized, to allow more initial freedom in eg flux.
             else:
                # Good first guess should be some fraction of the optimization step sizes:
@@ -367,8 +374,8 @@ class LensTractor():
                
         if self.vb: print "Initial size (in each dimension) of sample ball = ",self.psteps
         
-        pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
-        # pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
+        #pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
+        pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
         rstate = None
         lnp = None
 
@@ -403,8 +410,8 @@ class LensTractor():
                  self.chug.setParams(self.bestpars)
                  p0 = np.array(self.chug.getParams())
                  self.psteps = np.std(pp,axis=0)
-                 pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
-                 # pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
+                 # pp = emcee.EnsembleSampler.sampleBall(p0, self.psteps, Nw)
+                 pp = emcee.utils.sample_ball(p0, self.psteps, Nw)
                  rstate = None
                  lnp = None
 
@@ -426,7 +433,7 @@ class LensTractor():
 
 # ----------------------------------------------------------------------------
 
-    def write_catalog(self,outstem):    
+    def write_catalog(self):    
 
         # Get parameter names and values:
         parnames = self.chug.getParamNames()
@@ -438,8 +445,7 @@ class LensTractor():
         for image in self.chug.getImages():
             imgnames.append(image.name)
 
-        # Make sure outfile has model name in it:
-        self.outstem = outstem.split('.')[0]
+        # Set catalog file name:
         outfile = self.outstem+'_'+self.model.name+'.cat'
         
         # Open up a new file, over-writing any old one:
@@ -484,8 +490,6 @@ class LensTractor():
 
     def set_cookie(self,outstem,result):    
 
-        # Make sure outfile has model name in it:
-        self.outstem = outstem.split('.')[0]
         outfile = self.outstem+'_result.cookie'
         
         # Open up a new file, over-writing any old one:
@@ -501,8 +505,8 @@ class LensTractor():
         return outfile
 
            
-# ============================================================================
-# All progress plots.
+# ----------------------------------------------------------------------------
+# Plot progress.
 
     def plot_state(self,suffix):
        '''
@@ -512,6 +516,50 @@ class LensTractor():
 
        self.chug is a Tractor object, containing a list of images.
        '''
+
+       if self.plot_all:
+           # Make one giant plot with all progress panels on it, and 
+           # save it to PNG:
+
+           # Plotting setup:
+           px,py = 4,len(self.chug.images)
+           figprops = dict(figsize=(5*px,5*py), dpi=128)
+           adjustprops = dict(\
+               left=0.05,\
+               bottom=0.05,\
+               right=0.95,\
+               top=0.95,\
+               wspace=0.1,\
+               hspace=0.1)
+           
+           # Start the plot:
+           fig = plt.figure(**figprops)
+           fig.subplots_adjust(**adjustprops)
+           plt.clf()
+           plt.gray()
+           counter = 0
+          
+           # Name the plot file:
+           pngfile = self.outstem+'_'+suffix+'.png'
+
+
+       else:
+           # Make one plot per image, and save each to PNG.
+
+           # Plotting setup:
+           px,py = 2,2
+           figprops = dict(figsize=(5*px,5*py), dpi=128)
+           adjustprops = dict(\
+              left=0.05,\
+              bottom=0.05,\
+              right=0.95,\
+              top=0.95,\
+              wspace=0.1,\
+              hspace=0.1)
+
+
+
+       # Loop over images, making plots:
 
        for i,image in enumerate(self.chug.images):
 
@@ -537,25 +585,40 @@ class LensTractor():
 
               psfa = dict(interpolation='nearest', origin='lower')
 
-          fig = plt.figure(**figprops)
-          fig.subplots_adjust(**adjustprops)
-          plt.clf()
-          plt.gray()
+          if not self.plot_all:
+              # Start a new plot:
+              fig = plt.figure(**figprops)
+              fig.subplots_adjust(**adjustprops)
+              plt.clf()
+              plt.gray()
+              counter = 0
 
-          plt.subplot(py,px,1)
+          # 1) Data Image
+          counter += 1
+          plt.subplot(py,px,counter)
           plt.imshow(-image.data, **ima)
           self.tidyup_plot()
           plt.title('Observed image')
+          # Overlay image filter in lower left corner
+          plt.text(1,1,image.photocal.bandname+'-band')
+          # Figure out how to get this in bottom right hand corner instead
 
+          # 2) Predicted image
+          counter += 1
+          plt.subplot(py,px,counter)
           model = self.chug.getModelImages()[i]
-          # print "LensTractor.plot_state: minmax of model = ",np.min(model),np.max(model)
-          print "Model image shape: ",model.shape
-          plt.subplot(py,px,2)
           plt.imshow(-model, **ima)
           self.tidyup_plot()
+          # Overlay cartoon of model:
+          self.model.plot(image.wcs,image.photocal.bandname)
           plt.title('Predicted image')
+          # Overlay name of model in lower left corner
+          plt.text(1,1,self.model.name)
+          # Figure out how to get this in top left hand corner instead
 
-          plt.subplot(py,px,3)
+          # 3) Normalised residual
+          counter += 1
+          plt.subplot(py,px,counter)
           plt.imshow(-chi, **chia)
           self.tidyup_plot()
           if self.survey == 'KIDS':
@@ -566,18 +629,30 @@ class LensTractor():
               plt.title('Residuals (flexible scale)')
           else:
               plt.title('Residuals ($\pm 5\sigma$)')
+          # Overlay quantified goodness of fit, in sigma from acceptable...
+          # TBI!
 
+          # 4) PSF image
+          counter += 1
+          plt.subplot(py,px,counter)
           psfimage = image.psf.getPointSourcePatch(*model.shape).patch
-          print "PSF image shape: ",psfimage.shape
-          plt.subplot(py,px,4)
           plt.imshow(-psfimage, **psfa)
           self.tidyup_plot()
           plt.title('PSF')
 
-          pngfile = imname+'_'+suffix+'.png'
-          plt.savefig(pngfile)
-          if self.vb:
-              print "Progress snapshot saved to "+pngfile
+          if not self.plot_all:
+              # Save this image's plot:
+              pngfile = imname+'_'+suffix+'.png'
+              plt.savefig(pngfile)
+              if self.vb:
+                  print "Progress snapshot saved to "+pngfile
+
+       if self.plot_all:
+           # Save the giant plot:
+           plt.savefig(pngfile)
+           if self.vb:
+               print "Progress snapshot saved to "+pngfile
+       
 
        return
 

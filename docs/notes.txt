@@ -813,6 +813,856 @@ time python LensTractor.py -v -l \
 # Helps a bit - but we really need Nebula4 to converge before optimizing the
 # PSFs, otherwise they go elliptical and cover up some of the bad fit...
 
+# =============================================================================
+# 2014-05-04 (Sunday) 22:32 PDT
+
+# Put all panels in one plot...
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec.log &
+     
+# OK, looks good.
+# Next up:
+#  - overlay image name on data image, bottom lefthand corner
+#  - overlay cartoon model on predicted image
+#  - overlay goodness of fit on residual image
+#  - figure out how to zoom in to only show 6x6 arcsec
+#  - make PSF images only 6x6 arcsec...
+
+# =============================================================================
+# 2014-05-06 (Tuesday) 15:58 PDT
+
+# Manual initialization - for testing optimizer. Suggested by Tommaso.
+
+# Here's the H1413 example:
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -n 4 -z \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits
+
+cp examples/ps1/H1413+117_10x10arcsec_Nebula4.cat examples/ps1/n4.txt
+cp examples/ps1/H1413+117_10x10arcsec_progress-06_optimizing_Nebula4.png  examples/ps1/n4.PNG
+     
+# Save as "n4.txt" for initialization tests, also save plot for reference as 
+# "n4.PNG". Now run with manual optimization:
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -n 4 -z \
+  --manual examples/ps1/n4.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits
+
+# Looks good, except initial sources are quite faint? No, they're always like that. Check in.
+
+# Now initialize from ds9 positions, using handy script:
+
+ds9regions2initcat.csh --filters 2  ds9.reg
+# Processing 1 ds9 region files...
+#        6 ds9.cat
+
+more ds9.cat
+# # Dummy LensTractor-format catalog containing Nebula positions
+# # Data source: ds9.reg
+# # Written by ds9regions2initcat.csh on Tue May 6 16:52:08 PDT 2014
+# # Model: Nebula4
+# # 
+# 213.94271 11.495453 99 99 99 99 99 213.94267 11.49535 99 99 213.94252 11.49555 99 99 213.94276 11.495617 99 99 213.94288 11.495387 99 99
+
+# Now test, by copying this into n4.txt and rerunning...
+cp ds9.cat examples/ps1/n4.txt 
+
+# Works fine! Now ready for Adri to derive starting positions for SDSS examples.
+
+# Renamed examples:
+
+mv examples/ps1/n4.txt examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt
+mv examples/ps1/n4.reg examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -n 4 -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Nebula4.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Nebula4.log
+
+# Nebula4 results: chisq, K, N, BIC = 9541.14230606 23 7203 9745.43412241
+
+# OK, good. Now try lens - this runs Nebula4 first in any case...
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -l -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Lens.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
+
+# Nebula4 results: chisq, K, N, BIC = 9541.14230606 23 7203 9745.43412241
+# Lens results: chisq, K, N, BIC = 17196.5458015 14 7203 17320.8973419
+# BIC =  {'Lens': 17320.897341899403, 'Nebula': 9745.4341224117252}
+# Hypothesis test result: Bayes factor in favour of Lens is exp[ -3787.73160974 ]
+# BUT: Lens predicts only 1 image, so it's not a strong lens.
+
+# Hmm. Lens intialization is *terrible*! 
+# Also note Nebula4 optimized to the exact same BIC as before, good.
+# Just need to work on Lens init from Nebula. AS USUAL
+
+# =============================================================================
+# 2014-05-23 (Friday) 14:28 PDT
+
+# New code from Adri, differet way of spawning lens. Try it out!
+# He's working in the master branch...
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -l -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Lens.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
+
+# Runs, despite odd indentation:
+
+# Initializing model: Lens
+# Initializing Lens model from Nebula4 template...
+# Galaxy's brightness =  14.1211924654
+# Zeroth-order source displacement =  -0.000105005422256 ,  -1.97001781128e-05
+# Number of peaks =  4
+# Galaxy position =  213.942815197 ,  11.4955025664
+# Offset in Enstein radii =  0.489670368782
+# Estimated Einstein Radius (arcsec) =  EinsteinRadius: 0.770238
+# Estimated shear amplitude gamma1 =  -0.40717027515
+# Estimated shear amplitude gamma2 =  -0.15526175081
+# Estimated shear amplitude gamma =  0.435768108322
+# Estimated shear angle (degrees) =  10.438741833
+# PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225
+# Initialization complete: 
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (213.94282, 11.49550) with Mags: r=14.1212, z=14.5674 and Galaxy Shape: re=0.53, ab=0.96, phi=-91.1 and EinsteinRadius: 0.770238 and External shear: gamma=0.4, phi=10.4 and a PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225 where 4 images are predicted
+
+# But images show ra separation is way too high. Need to multiply by cos(dec), probably.
+# Adri's request:
+
+#    I've pushed the new spawn, it's in model.py, I'm still working on the formulae but we
+#    must also convert ra,dec into pixel positions (to compute Ax, Ay, sum etc) and just at
+#    the end into ra,dec again. @drphilmarshall , would you please manage to do it? It'd take
+#    longer to me digging into the Tractor than to you simply writing the two necessary lines
+#    of code. We'd like to get to the next strides telecon with results! I'll refine the
+#    formulae in the meanwhile.
+
+# He doesn't mean pixel positions I think... th emodel is all in world coords. 
+# But the separations do need to be correct...
+
+# Implemented declination correction, fixed indentation bug. Initial model still sucks!
+
+# Initializing model: Lens
+# Initializing Lens model from Nebula4 template...
+# Galaxy's brightness =  14.1211924654
+# Solving for source position, shear etc...
+# Zeroth-order source displacement (arcsec) =  -0.37043658168 ,  -0.0709206412061
+# Number of images =  4
+# Galaxy position =  213.942815197 ,  11.4955025664
+# Offset in Einstein radii =  0.489670368782
+# Estimated Einstein Radius (arcsec) =  EinsteinRadius: 0.770238
+# Estimated shear amplitude gamma1 =  -0.341016536494
+# Estimated shear amplitude gamma2 =  -0.151342002784
+# Estimated shear amplitude gamma =  0.373090712788
+# Estimated shear angle (degrees) =  11.9688598778
+# PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225
+# Initialization complete: 
+# PointSourceLens comprising a LensGalaxy at RaDecPos: RA, Dec = (213.94282, 11.49550) with Mags: r=14.1212, z=14.5674 and Galaxy Shape: re=0.53, ab=0.96, phi=-91.1 and EinsteinRadius: 0.770238 and External shear: gamma=0.4, phi=12.0 and a PointSource at RaDecPos: RA, Dec = (213.94275, 11.49550) with Mags: r=14.818, z=15.0225 where 4 images are predicted
+
+
+# Email back to Adri, to check equations. Galaxy brightness looks suspiciously high...
+
+# =============================================================================
+# 2014-05-29 (Thursday) 18:56 PDT
+
+# Dustin recommends getting SDSS data with his sdss_getimage tractor code.
+# This would (I think) grab a suitably sized cutout, including weight image, 
+# given Ra and Dec. Give LensTractor the option, if --survey SDSS, of 
+# --radec alpha delta (in degrees), and the go and pull the data down into 
+# a suitably named directory before Riffling and Dealing it.
+
+# Look up Ra, Dec for SDSSJ0951.
+# At http://www-utap.phys.s.u-tokyo.ac.jp/~sdss/sqls/lens.html
+# there is a link to the skyserver at
+# http://cas.sdss.org/astro/en/tools/explore/obj.asp?ra=147.844080&dec=+26.587220
+
+# Degrees:
+# 147.844080 +26.587220
+
+# Hexagesimal:
+# 09:51:22.57 +26:35:13.96
+
+# Here's the test command. Note that the -o option shows where the 
+# FITS files are to be downloaded to. Run, camcol, field (frame?) come from
+# 0951 example fits files. We'll have to look up all of these numbers for 
+# the sample... Execute this example in th e0951 directory.
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# OK, close. The call to get_tractor_image fails because the astrometry code has not built:
+
+# File "/Users/pjm/work/astrometry/astrometry/libkd/spherematch.py", line 409, in <module>
+#     tree_permute = spherematch_c.kdtree_permute
+# AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+# In the tractor/astrometry directory, I followed the steps in checkout.sh and got:
+
+cd $TRACTOR_dir/astrometry/libkd
+make pyspherematch
+
+# clang -arch x86_64 -g -Wall   -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE   -I../qfits-an -I../util -I../util  -I../qfits-an -I../util -I../gsl-an  -I/usr/local/Cellar/python/2.7.2/include/python2.7 -MM -MP  pyspherematch.c > pyspherematch.dep.tmp && mv pyspherematch.dep.tmp pyspherematch.dep
+# pyspherematch.c:24:10: fatal error: 'numpy/arrayobject.h' file not found
+# #include "numpy/arrayobject.h"
+
+# Emailed dstn.
+
+# OK, looks like you have to fix some links in the distribution directory, 
+# at least according to https://groups.google.com/forum/#!topic/cython-users/_PyzG5F4LoA
+
+# Here's where my arrayobject.h file lives: /usr/local/lib/python2.7/site-packages/numpy/core/include/numpy
+# Advice is to link this (and other header files?) into the directory where python.h lives.
+# This is /usr/local/include/python2.7 (although NB, th efile is actually Python.h)
+
+cd /usr/local/include/python2.7
+sudo ln -s /usr/local/lib/python2.7/site-packages/numpy/core/include/numpy .
+
+# OK, make pyspherematch gets a bit further along. Now I get this:
+
+# clang -arch x86_64 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE   -I../qfits-an -I../util -I../util  -I../qfits-an -I../util -I../gsl-an  -I/usr/local/Cellar/python/2.7.2/include/python2.7 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -I.   -c -o sys/infnan.o sys/infnan.c
+# clang: warning: argument unused during compilation: '-march=native'
+# clang: warning: argument unused during compilation: '-O3'
+# sys/infnan.c:98:3: error: #error "cannot define gsl_finite without
+#       HAVE_DECL_FINITE or HAVE_IEEE_COMPARISONS"
+# # error "cannot define gsl_finite without HAVE_DECL_FINITE or ...
+#   ^
+# sys/infnan.c:115:3: error: #error "cannot define gsl_isnan without
+#       HAVE_DECL_ISNAN or HAVE_IEEE_COMPARISONS"
+# # error "cannot define gsl_isnan without HAVE_DECL_ISNAN or ...
+#   ^
+# 2 errors generated.
+
+# Is this a result of not having run configure, in checkout.sh? Advice please.
+
+# ----------------------------------------------------------------------------
+# 2014-06-11 (Wednesday) 13:40 PDT
+
+# Fixing various astrometry build errors.
+
+brew install pkg-config
+
+# Then svn up in astrometry, then try building again using stripped down
+# script. In $TRACTOR_DIR:
+
+./build_astrometry.sh > & build_astrometry_2014-06-11.log &
+
+# Then re-try example:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Still not building pyspherematch?
+
+# Here's the build record, by hand:
+
+    cd astrometry/
+    make pyutil
+        make -C qfits-an
+        make[1]: Nothing to be done for `all'.
+        make -C gsl-an
+        make[1]: Nothing to be done for `all'.
+        make -C util pyutil
+        LDFLAGS="-Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline" LDLIBS="          -lm        -lm" SLIB="../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a  ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a " \
+                INC="-I../util -I../libkd -I../util  -I../qfits-an -I../util -I../gsl-an  -I../util  -I../qfits-an -I../util -I../gsl-an " CFLAGS="  " \
+                python setup-util.py build_ext -v --inplace --build-temp .
+        link: ['-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-g', '-Wall', '-ffinite-math-only', '-pthread', '-march=native', '-O3', '-fomit-frame-pointer', '-DNDEBUG', '-fpic', '-Winline', '-lm', '-lm']
+        objs: ['../util/libanfiles.a', '../libkd/libkd.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a']
+        inc: ['../util', '../libkd', '../util', '../qfits-an', '../util', '../gsl-an', '../util', '../qfits-an', '../util', '../gsl-an']
+        cflags: []
+        running build_ext
+        building '_util' extension
+        swigging util.i to util_wrap.c
+        C compiler: clang -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes
+
+        compile options: '-I/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include -I../util -I../libkd -I../util -I../qfits-an -I../util -I../gsl-an -I../util -I../qfits-an -I../util -I../gsl-an -I. -I/usr/local/Cellar/python/2.7.2/include/python2.7 -c'
+        clang: util_wrap.c
+        In file included from util_wrap.c:112:
+        In file included from /usr/local/Cellar/python/2.7.2/include/python2.7/Python.h:126:
+        /usr/local/Cellar/python/2.7.2/include/python2.7/modsupport.h:27:65: warning: 'format' attribute argument not supported: PyArg_ParseTuple
+        PyAPI_FUNC(int) PyArg_ParseTuple(PyObject *, const char *, ...) Py_FORMAT_PARSETUPLE(PyArg_ParseTuple, 2, 3);
+                                                                        ^
+        In file included from util_wrap.c:112:
+        In file included from /usr/local/Cellar/python/2.7.2/include/python2.7/Python.h:58:
+        /usr/local/Cellar/python/2.7.2/include/python2.7/pyport.h:871:57: note: instantiated from:
+        #define Py_FORMAT_PARSETUPLE(func,p1,p2) __attribute__((format(func,p1,p2)))
+                                                                ^
+        util_wrap.c:853:38: warning: format string is not a string literal (potentially insecure) [-Wformat-security]
+            PyErr_Format(PyExc_RuntimeError, mesg);
+                                             ^~~~
+        In file included from util_wrap.c:2531:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/arrayobject.h:4:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/ndarrayobject.h:17:
+        In file included from /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/ndarraytypes.h:1761:
+        /usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/numpy/core/include/numpy/npy_1_7_deprecated_api.h:15:2: warning: #warning "Using deprecated NumPy API, disable it by "          "#defining NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION" [-W#warnings]
+        #warning "Using deprecated NumPy API, disable it by " \
+         ^
+        3 warnings generated.
+        /usr/bin/gcc-4.2 -bundle -undefined dynamic_lookup -L/usr/local/Cellar/readline/6.2.2/lib -Wall -undefined dynamic_lookup -Wall -undefined dynamic_lookup -g -Wall -ffinite-math-only -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline ./util_wrap.o ../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a ../qfits-an/libqfits.a ../util/libanbase.a ../gsl-an/libgsl-an.a ../util/libanutils.a ../qfits-an/libqfits.a ../util/libanbase.a ../gsl-an/libgsl-an.a -o /Users/pjm/work/tractor/astrometry/util/_util.so -Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline -lm -lm
+        LDFLAGS="-Wall -undefined dynamic_lookup -arch x86_64 -Wall -undefined dynamic_lookup -arch x86_64 -g -Wall -ffinite-math-only  -pthread -march=native -O3 -fomit-frame-pointer -DNDEBUG -fpic -Winline" LDLIBS="          -lm        -lm" SLIB="../util/libanfiles.a ../libkd/libkd.a ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a  ../util/libanutils.a  ../qfits-an/libqfits.a ../util/libanbase.a     ../gsl-an/libgsl-an.a " \
+                INC="-I../util -I../libkd -I../util  -I../qfits-an -I../util -I../gsl-an  -I../util  -I../qfits-an -I../util -I../gsl-an " CFLAGS="  " \
+                python setup-util.py build_ext -v --inplace --build-temp .
+        link: ['-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-Wall', '-undefined', 'dynamic_lookup', '-arch', 'x86_64', '-g', '-Wall', '-ffinite-math-only', '-pthread', '-march=native', '-O3', '-fomit-frame-pointer', '-DNDEBUG', '-fpic', '-Winline', '-lm', '-lm']
+        objs: ['../util/libanfiles.a', '../libkd/libkd.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a', '../util/libanutils.a', '../qfits-an/libqfits.a', '../util/libanbase.a', '../gsl-an/libgsl-an.a']
+        inc: ['../util', '../libkd', '../util', '../qfits-an', '../util', '../gsl-an', '../util', '../qfits-an', '../util', '../gsl-an']
+        cflags: []
+        running build_ext
+    cd libkd/
+    make pyspherematch
+        pyspherematch
+    cd ../sdss/
+    make
+        make lib
+        make[1]: Nothing to be done for `lib'.
+    cd ../../
+    make
+        make -C tractor mix
+        make[1]: Nothing to be done for `mix'.
+        make -C tractor emfit
+        make[1]: Nothing to be done for `emfit'.
+
+# Seems to have all built correctly...
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
+
+# Same error.
+
+# OK, try a clean build. 
+
+mv tractor tractor-variability
+tractor-variability/checkout.sh >& checkout_2014-06-11.log &
+ 
+# Ok, looks good!
+mv checkout_2014-06-11.log tractor/.
+ 
+# Ran the example again, same error. Here it is:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem
+
+#     Traceback (most recent call last):
+#       File "LensTractor.py", line 25, in <module>
+#         import lenstractor
+#       File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/__init__.py", line 4, in <module>
+#         from sdss import *
+#       File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/sdss.py", line 22, in <module>
+#         from tractor import sdss as st
+#       File "/Users/pjm/work/tractor/tractor/sdss.py", line 31, in <module>
+#         from astrometry.libkd.spherematch import match_radec
+#       File "/Users/pjm/work/astrometry/astrometry/libkd/spherematch.py", line 409, in <module>
+#         tree_permute = spherematch_c.kdtree_permute
+#     AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+
+# Dustin says:
+
+#    Ok, this is progress.
+# 
+#    What do you get with:
+# 
+#    python -c "import astometry.libkd.spherematch as sp; print sp.__file__"
+#    python -c "import astometry.libkd.spherematch_c as spc; print spc.__file__"
+#    python -c "import astometry.libkd.spherematch_c as spc; print dir(spc)"
+# 
+#    I'm guessing it's loading some other (older?) version of the
+#    astrometry.net code.
+# 
+#    This has nothing to do with the tractor or lenstractor, it's something
+#    about the astrometry.net install.
+ 
+python -c "import astrometry.libkd.spherematch as sp; print sp.__file__"
+#    AttributeError: 'module' object has no attribute 'kdtree_permute'
+
+python -c "import astrometry.libkd.spherematch_c as spc; print spc.__file__"
+#    /Users/pjm/work/astrometry/astrometry/libkd/spherematch_c.so
+
+python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
+#    ['__doc__', '__file__', '__name__', '__package__', 'kdtree_build',
+# 'kdtree_close', 'kdtree_free', 'kdtree_open', 'kdtree_write', 'match',
+# 'nearest']
+
+# OK, looks like we need to remove old astrometry directory from the 
+# PYTHONPATH. Indeed, let's just trash the whole thing.
+
+python -c "import astrometry.libkd.spherematch as sp; print sp.__file__"
+#    /Users/pjm/work/tractor/astrometry/libkd/spherematch.py
+
+python -c "import astrometry.libkd.spherematch_c as spc; print spc.__file__"
+#    /Users/pjm/work/tractor/astrometry/libkd/spherematch_c.so
+
+python -c "import astrometry.libkd.spherematch_c as spc; print dir(spc)"
+#   ['__doc__', '__file__', '__name__', '__package__', 'kdtree_bbox',
+# 'kdtree_build', 'kdtree_close', 'kdtree_free', 'kdtree_get_positions',
+# 'kdtree_n', 'kdtree_open', 'kdtree_permute', 'kdtree_print',
+# 'kdtree_rangesearch', 'kdtree_write', 'match', 'match2', 'nearest',
+# 'nearest2']
+
+# OK, now try again: success. Well, python errors, but they are my own.
+
+# Need to git pull tractor, there are some updates: sdss_galaxy no longer 
+# exists, DevGalaxy etc are now in tractor/galaxy.py
+# Here's the check:
+
+grep sdss_galaxy *.py lenstractor/*py
+
+
+# ============================================================================
+# 2014-06-02 (Monday) 14:10 PDT
+
+# The collected woes of Adriano Agnello:
+# 
+# 1) May 30: Manual init catalogs not being interpreted properly?
+# 
+# From Adri:
+# 
+# It seems that the initialization does something strange when reading in from
+# .cat files; if you do
+# 
+#     python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1
+# 
+# and then
+# 
+#     python LensTractor.py -n 4 -z -v examples/ps1/H*sci.fits --survey PS1 --manual lenstractor_Nebula4.cat
+# 
+# you'll see that the last snapshot of the first passage does *not* correspond
+# to the zeroth snapshot of the second passage! When reading from the
+# catalogue, the point-sources are somehow scrambled and I don't understand
+# why. Do you know what's happening?!
+# 
+# 
+# 2) May 31: Fitting Nebula and Lens equally
+# 
+# From Adri:
+# 
+# I'd like chug to know how to optimize based on the model, so
+# I'd actually add another argument to the driver. The idea is:
+# 
+# if we ask for Lens from command line, it should
+# 
+#     optimize nebula sources
+#     optimize psf
+#     re-optimize nebula sources
+#     spawn lens
+#     optimize lens sources
+#     optimize psf
+#     re-optimize lens sources
+# 
+# else, if we ask for Nebula from command line, it should
+# 
+#     [ optimize nebula sources
+#     optimize psf
+#     re-optimize nebula sources ] *twice*
+# 
+# I guess we should either write two very similar optimizer classes,
+# i.e. opt_lens and opt_neb, to be called from the main LensTractor
+# script, or introduce the modelname variable inside the
+# existing optimizer. This however is what I'm not able to do
+# without making a major mess. Do you think you'd be able to
+# make this refactor?
+# 
+# 
+# 3) June 1: Manual init catalogs not being interpreted properly?
+# 
+# From Adri:
+# 
+# I've tried running LT on the 0951 example, with manual initalisation
+# otherwise it does stupid stuff, but there are *serious* problems with
+# properly initialising the sources from the input catalog. I'm sending it
+# attached, I've done it simply by drag-and-click with ds9 but then
+# LensTractor puts the guys in completely wrong places! Try running and see...
+# 
+#     python LensTractor.py -n 2 -z -v examples/... --survey SDSS --manual examples/.../init.txt
+# 
+# I've emailed you the init.txt file.
+# 
+# In model.py I have commented a line out (which was tuned on PS1) and
+# inserted the correct option for the SQLS examples. There's a double round of
+# optimization in drive.py, which I comment out when running Lens. Can you
+# figure out what's happening?
+
+
+# Converted these to two github issues. Do refactor first, then look at init 
+# problem.
+
+# Issue 2) refactor to model-specific optimization. 
+
+# Test on lens model:
+
+\rm examples/ps1/*png examples/ps1/*cat examples/ps1/*log examples/ps1/*cookie
+time python LensTractor.py -v -l -z \
+  --manual examples/ps1/H1413+117_10x10arcsec_Nebula4_init.txt \
+  -o examples/ps1/H1413+117_10x10arcsec \
+     examples/ps1/H1413+117_10x10arcsec_*.fits > \
+     examples/ps1/H1413+117_10x10arcsec_Lens.log &
+tail -f examples/ps1/H1413+117_10x10arcsec_Lens.log
+
+# Optimization scheme seems like it could work. 
+# Code fails to initialize lens from nebula though: looks like a problem with 
+# angles for Adri to solve.
+
+
+# Issue 1) Manual init scramblings.
+
+# Try Adri's test:
+
+mkdir -p firstpassage; cd firstpassage
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage.log
+
+mkdir -p secondpassage; cd secondpassage
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  --manual ../firstpassage/lenstractor_Nebula4.cat > secondpassage.log
+
+# Compare plots:
+
+open firstpassage/lenstractor_progress-04_optimizing_Nebula4.png \
+    secondpassage/lenstractor_progress-00_initial_Nebula4.png
+
+# Its true, initial positions of second passage do not match final positions of first passage.
+# Check positions after read in from init file, in secondpassage.log:
+
+# Initializing Nebula4 model from catalog...
+# DevGalaxy at RaDecPos: RA, Dec = (213.94277, 11.49539) with Mags: r=15.2946, z=15.5652 and Galaxy Shape: re=1.00, ab=0.80, phi=0.0
+# PointSource at RaDecPos: RA, Dec = (213.94284, 11.49558) with Mags: r=15.2946, z=15.5652
+# PointSource at RaDecPos: RA, Dec = (213.94292, 11.49583) with Mags: r=15.2946, z=15.5652
+# PointSource at RaDecPos: RA, Dec = (213.94253, 11.49558) with Mags: r=15.2946, z=15.5652
+# PointSource at RaDecPos: RA, Dec = (213.94275, 11.49570) with Mags: r=15.2946, z=15.5652
+
+# Compare with catalog written out in firstpassage/
+
+cols lenstractor_Nebula4.cat
+#  1        catalog.source0.pos.ra  2.139427701665881614e+02
+#  2       catalog.source0.pos.dec  1.149538848865398499e+01
+#  8        catalog.source1.pos.ra  2.139428380379461885e+02
+#  9       catalog.source1.pos.dec  1.149558016251176973e+01
+# 12        catalog.source2.pos.ra  2.139429153818444718e+02
+# 13       catalog.source2.pos.dec  1.149582740543879567e+01
+# 16        catalog.source3.pos.ra  2.139425325887738154e+02
+# 17       catalog.source3.pos.dec  1.149558187566380774e+01
+# 20        catalog.source4.pos.ra  2.139427521044458729e+02
+# 21       catalog.source4.pos.dec  1.149569738880204994e+01
+
+# Looks right. secondpassage initial plot looks way off though! Why?
+# Double check numbers - put positions from secondpassage.log into a region
+# file...
+
+cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage.reg
+
+# and edit...
+# OK, secondpassage.log regions agree with initial plot in second passage 
+# These are the same as the positions written out to catalog at the end
+# of firstpassage - so that all checks out. 
+
+# Try re-running above test but without the PSF optimization...
+# Looks like the positions are better before the PSF was tweaked.
+
+mkdir -p firstpassage_frozenpsf; cd firstpassage_frozenpsf
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage_frozenpsf.log
+
+# Literally commented out parts of driver.optimize that fit PSF.
+# Resulting positions, from log file:
+
+# DevGalaxy at RaDecPos: RA, Dec = (213.94275, 11.49556) with Mags: r=13.0641, z=13.5599 and Galaxy Shape: re=1.19, ab=0.98, phi=106.9
+# PointSource at RaDecPos: RA, Dec = (213.94250, 11.49556) with Mags: r=15.1032, z=15.1036
+# PointSource at RaDecPos: RA, Dec = (213.94289, 11.49536) with Mags: r=14.7832, z=15.1418
+# PointSource at RaDecPos: RA, Dec = (213.94307, 11.49544) with Mags: r=17.1714, z=17.9673
+# PointSource at RaDecPos: RA, Dec = (213.94267, 11.49534) with Mags: r=14.5346, z=14.7401
+ 
+# Made regions file...
+cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage_frozenpsf.reg
+
+# 4 objects *are* in the right place, but galaxy is taking place of one
+# point source. Then 4th point source is 1.1" out West, with low flux (17.2mag)...
+# Not sure how to avoid this, but it shows that we cannot take point sources
+# too seriously, just like we cannot take nebula galaxy too seriously...
+
+# OK, ds9 regions are really useful. As would be model overlay on plots...
+
+# Maybe DevGalaxy is the problem? Try making it an Exp?
+
+mkdir -p firstpassage_expgalaxy; cd firstpassage_expgalaxy
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage_expgalaxy.log
+
+# ExpGalaxy at RaDecPos:   RA, Dec = (213.94270, 11.49542) with Mags: r=13.0127, z=13.4163 and Galaxy Shape: re=0.74, ab=0.75, phi=64.4
+# PointSource at RaDecPos: RA, Dec = (213.94304, 11.49577) with Mags: r=17.5757, z=17.9351
+# PointSource at RaDecPos: RA, Dec = (213.94252, 11.49560) with Mags: r=15.7069, z=15.7013
+# PointSource at RaDecPos: RA, Dec = (213.94278, 11.49568) with Mags: r=15.522, z=15.8459
+# PointSource at RaDecPos: RA, Dec = (213.94291, 11.49542) with Mags: r=15.4142, z=15.6781
+
+# Try *these* in a regions file...
+
+cp ../examples/ps1/H1413+117_10x10arcsec_Nebula4_init.reg firstpassage_expgalaxy.reg
+
+# OK, same problem - one point source gets dimmed, while the galaxy is used
+# to fit the data. No good! 
+
+# In situations where the quasar images are the brightest things, 
+# we may want to fit an "asterism" model first. Then spawn a nebula from
+# th easterism, just by adding a galaxy. Try this in an asterism branch?
+
+# Meanwhile, add points to plots to avoid ds9 shenanigans. 
+# Positions and magnitudes (=sizes).
+
+# Pulled in Adri's changes, try first and second passage again...Keep exp 
+# galaxy!
+
+mkdir -p firstpassage; cd firstpassage
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  > firstpassage.log &
+
+# Point sources are all over the shop, galaxy used to fit south-east image
+
+mkdir -p secondpassage; cd secondpassage
+python ../LensTractor.py -n 4 -z -v ../examples/ps1/H*sci.fits --survey PS1 \
+  --manual ../firstpassage/lenstractor_Nebula4.cat > secondpassage.log &
+
+# Compare plots:
+
+open  \
+firstpassage/lenstractor_progress-06_optimizing_Nebula4.png \
+secondpassage/lenstractor_progress-00_initial_Nebula4.png 
+
+# Models are consistent - just bad. Back to cunning and guile!
+
+# Adri asks, what about sqls 1242? 
+# init files not checked in, no sign of 1242. Try 0841, first with no init:
+
+python LensTractor.py -n 4 -z -v --survey SDSS \
+         examples/sdss/0814+5828/*sci.fits
+
+# Hmm. Positions different in different images...
+
+# Nebula4 results: chisq, K, N, BIC = 20805.430077 33 40804 21155.775745
+# ExpGalaxy at RaDecPos: RA, Dec = (123.58479, 58.42518) with Mags: g=21.6415, i=63.2621, r=824.333, z=20.2959 and Galaxy Shape: re=0.86, ab=0.61, phi=66.4
+# PointSource at RaDecPos: RA, Dec = (123.58486, 58.42496) with Mags: g=276.833, i=198.214, r=23.4595, z=18.7786
+# PointSource at RaDecPos: RA, Dec = (123.58452, 58.42499) with Mags: g=18.7194, i=350.129, r=150.339, z=8.93371e+06
+# PointSource at RaDecPos: RA, Dec = (123.58499, 58.42509) with Mags: g=152.715, i=79.2947, r=22.723, z=20.731
+# PointSource at RaDecPos: RA, Dec = (123.58443, 58.42471) with Mags: g=21.8116, i=133365, r=98.3197, z=22.3167
+
+# Compare with regions file/ init cat:
+
+$LENSTRACTOR_DIR/utils/ds9regions2initcat.csh -f 4 ds9.reg
+# Processing 1 ds9 region files...
+#        6 ds9.cat
+mv ds9.cat SDSSJ0814+5828_init.txt
+
+# point(123.52327,58.478021) # point=cross
+# point(123.52365,58.478245) # point=cross
+# point(123.52292,58.477789) # point=cross
+
+# Huh - central object according to ds9 is (0.06,0.06) away from 
+# where LT fitted it. Yes: LT headers are screwed up. 
+
+# Suspect this problem will only go away when we use the tractor routines for
+# getting the SDSS images. 
+
+# =============================================================================
+# 2014-06-11 (Wednesday) 15:05 PDT
+
+# Still trying to download SDSS data:
+
+set rcf = "5038,153,3,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Querying SDSS skyserver for data at ra,dec =  147.84408 26.58722
+#   in run, camcol, field =  [5038, 153, 3]
+# Looking to make cutouts that are  10.0  arcsec ( 25  pixels) across
+# Checking for file psField-005038-153-0003.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit
+# Command failed: command wget --continue -nv -O psField-005038-153-0003.fit.tmp 'http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit'
+# Output: 
+# Error: http://data.sdss3.org/sas/dr9/boss/photo/redux/None/5038/objcs/153/psField-005038-153-0003.fit:
+# 2014-06-11 15:03:42 ERROR 404: Not Found.
+
+# Check run, camcol, field at skyserver...
+# Huh - I was nowehere near. Header not right?
+
+set rcf = "5038,3,145,147.844080,26.587220,10.0"
+set stem = examples/sdss/0951+2635/SDSSJ0951+2635_10x10arcsec
+
+python LensTractor.py -v -n 4 -z --SDSS $rcf -o $stem 
+
+# Querying SDSS skyserver for data at ra,dec =  147.84408 26.58722
+#   in run, camcol, field =  [5038, 3, 145]
+# Looking to make cutouts that are  10.0  arcsec ( 25  pixels) across
+#  
+# --------u-band--------
+# Checking for file psField-005038-3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/fpM-005038-u3-0145.fit.gz
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photoObj/frames/301/5038/3/frame-u-005038-3-0145.fits.bz2
+# First get_tractor_image_dr8() failed -- trying to re-retrieve data
+# Traceback (most recent call last):
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 845, in get_tractor_image_dr8
+#     return _get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 929, in _get_tractor_image_dr8
+#     frame = sdss.readFrame(run, camcol, field, bandname, filename=fn)
+#   File "/Users/pjm/work/tractor/astrometry/sdss/dr8.py", line 443, in readFrame
+#     p = pyfits.open(fn)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/util.py", line 206, in _with_extensions_wrapper
+#     return func(*args, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 103, in fitsopen
+#     return HDUList.fromfile(name, mode, memmap, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 251, in fromfile
+#     hdu = _BaseHDU.readfrom(ffo, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/base.py", line 282, in readfrom
+#     raise IOError('Header missing END card.')
+# IOError: Header missing END card.
+# None
+# 
+# Checking for file psField-005038-3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photo/redux/301/5038/objcs/3/fpM-005038-u3-0145.fit.gz
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Retrieving from URL: http://data.sdss3.org/sas/dr9/boss/photoObj/frames/301/5038/3/frame-u-005038-3-0145.fits.bz2
+# Checking for file psField-005038-3-0145.fit
+# Checking for file fpM-005038-u3-0145.fit
+# Checking for file frame-u-005038-3-0145.fits.bz2
+# Traceback (most recent call last):
+#   File "LensTractor.py", line 388, in <module>
+#     main()
+#   File "LensTractor.py", line 249, in main
+#     images,centroids,total_mags,bands = lenstractor.getSDSSdata(rcf,roi,datadir,vb=vb)
+#   File "/Users/pjm/work/stronglensing/LensTractor/lenstractor/sdss.py", line 232, in getSDSSdata
+#     image,info = st.get_tractor_image_dr9(run, camcol, field, band, roiradecsize=geometry)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 1093, in get_tractor_image_dr9
+#     return get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 862, in get_tractor_image_dr8
+#     return _get_tractor_image_dr8(*args, **kwargs)
+#   File "/Users/pjm/work/tractor/tractor/sdss.py", line 929, in _get_tractor_image_dr8
+#     frame = sdss.readFrame(run, camcol, field, bandname, filename=fn)
+#   File "/Users/pjm/work/tractor/astrometry/sdss/dr8.py", line 443, in readFrame
+#     p = pyfits.open(fn)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/util.py", line 206, in _with_extensions_wrapper
+#     return func(*args, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 103, in fitsopen
+#     return HDUList.fromfile(name, mode, memmap, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/hdulist.py", line 251, in fromfile
+#     hdu = _BaseHDU.readfrom(ffo, **kwargs)
+#   File "/usr/local/Cellar/python/2.7.2/lib/python2.7/site-packages/pyfits/hdu/base.py", line 282, in readfrom
+#     raise IOError('Header missing END card.')
+# IOError: Header missing END card.
+
+# Missing END card?! Send to Dustin. His response:
+# 
+#    Huh, must be the frame*.bz2 file (compressed).  In my notes I have that
+#    pyfits can read bz2 files.
+# 
+#    What do you get if you do:
+
+python -c "import pyfits; pyfits.open('frame-u-005038-3-0145.fits.bz2')"
+# Header missing END card
+
+bunzip2 frame-u-005038-3-0145.fits.bz2
+python -c "import pyfits; pyfits.open('frame-u-005038-3-0145.fits')"
+
+# Works OK. Need to subprocess a bunzip2 call?
+# Try updating to pyfits 3.2.4
+
+pip install pyfits --upgrade
+
+# Nope, that wasn't it.
+
+# Have a look at astrometry/sdss/dr8.py line 267: try commenting out that
+# block:
+# 
+#         # if not fitsio:
+#         #    # pyfits can read .bz2
+#         #    return None,True
+# 
+# and see if that works.
+# Yes! Success :-)
+
+# Well, code runs, at least - but doesn't seem to get anywhere...
+# OK, code eventually finished: all 4 quasars attached to one
+# point source, the galaxy used for the other one! Why did t take so long?
+# Its only working on 25x25x5 pixels!!
+
+# Next test: try initializing.
+
+# Notes:
+# - FITS files downloaded are full frame. Hopefully tractor wget does not
+#   re-download! Looks like it does...
+# - Best to run the code in the examples directory...
+# - Could still run on local SDSS cutouts, with --survey SDSS
+
+# Test code with Nebula2:
+
+cd $LENSTRACTOR_DIR/examples/sdss/0951+2635/
+
+set rcf = "5038,3,145,147.844080,26.587220,10.0"
+set stem = SDSSJ0951+2635_10x10arcsec
+
+LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem 
+
+# OK, similar issue - galaxy takes one QSO image, both point sources 
+# take the other. Oh well - check in!
+
+# Back to init testing. Made my own init file!
+
+../../../utils/ds9regions2initcat.csh -f 5 SDSSJ0951+2635_10x10arcsec_init.reg
+
+LensTractor.py -v -n 2 -z --SDSS $rcf -o $stem \
+  --manual SDSSJ0951+2635_10x10arcsec_init.txt
+
+# OK, fixed model.py to read init catalog correctly, code runs. Check in.
+
+# Quick check - do the catalog positions match the input init positions?
+
+cols SDSSJ0951+2635_10x10arcsec_Nebula2.cat | \
+  grep pos | awk '{printf "%20s  %.6f\n", $2,$3}'
+# catalog.source0.pos.ra  147.844265
+# catalog.source0.pos.dec  26.587106
+# catalog.source1.pos.ra  147.844059
+# catalog.source1.pos.dec  26.587220
+# catalog.source2.pos.ra  147.844053
+# catalog.source2.pos.dec  26.587224
+
+cat SDSSJ0951+2635_10x10arcsec_init.reg | grep point
+# point(147.84422,26.587121) # point=cross
+# point(147.84433,26.587049) # point=cross
+# point(147.84404,26.587196) # point=cross
+
+# Movement is by about 1e-4, or 0.4" - not very much. So the slowness to
+# optimize is something else. Maybe the starting flux?
+
+# =============================================================================
+# 2014-06-11 (Wednesday) 15:29 PDT
+
+# Spawn lens problem from Adri:
+# ISSUE orientation errors in model.spawn_lens()? #47
+# https://github.com/davidwhogg/LensTractor/issues/47
+
+
+# =============================================================================
+
 # 2014-05-01 (Thursday) 18:07 PDT
 
 # With Adri, trying to turn off galaxy in the early stages of fit...

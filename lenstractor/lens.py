@@ -21,7 +21,7 @@ import numpy as np
 from astrometry.util import util
 
 import tractor
-from tractor import sdss_galaxy
+from tractor import galaxy
 
 import lenstractor
 
@@ -65,7 +65,7 @@ class ExternalShear(tractor.ParamList):
 #  - deV galaxy
 #  - SIS + shear mass distribution to act as a gravitational lens
 
-class LensGalaxy(sdss_galaxy.DevGalaxy):
+class LensGalaxy(galaxy.DevGalaxy):
       '''
       A LensGalaxy has mass, and emits light. Initialise with a position,
       brightness and shape for the Galaxy (which is assumed to have a De 
@@ -82,7 +82,8 @@ class LensGalaxy(sdss_galaxy.DevGalaxy):
                                    + ' with ' + str(self.brightness) 
                                    + ' and ' + str(self.shape)
                                    + ' and ' + str(self.Rein)
-                                   + ' and ' + str(self.xshear))
+                                   + ' and ' + str(self.xshear)
+                   )
       
       def getName(self):
             return 'LensGalaxy'
